@@ -19,14 +19,14 @@ class DeadMansSwitch @Inject constructor(
         val settings = guardians.current()
         val topic = settings.firstTopic ?: return null
         if (!settings.alertsOn) return null
-        val mom = settings.momName.ifBlank { Texts.APP_NAME }
+        val owner = settings.ownerName.ifBlank { Texts.APP_NAME }
         return ntfy.send(
             topic,
-            GuardianMessage(title = mom, body = Texts.Guardian.NOT_CHECKED_IN.format(mom), urgent = false, delay = QUIET_FOR, sequenceId = SEQUENCE_ID),
+            GuardianMessage(title = owner, body = Texts.Guardian.NOT_CHECKED_IN.format(owner), urgent = false, delay = QUIET_FOR, sequenceId = SEQUENCE_ID),
         )
     }
 
-    /** Cancels the waiting message, for when Mom turns guardian alerts off. */
+    /** Cancels the waiting message, for when the owner turns guardian alerts off. */
     suspend fun disarm(): SendResult? {
         val topic = guardians.current().firstTopic ?: return null
         return ntfy.cancel(topic, SEQUENCE_ID)

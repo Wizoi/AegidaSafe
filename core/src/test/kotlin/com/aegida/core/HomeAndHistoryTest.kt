@@ -60,7 +60,7 @@ class HistoryRowsTest {
         val rows = HistoryRows.of(
             listOf(
                 HistoryEntry(now, Problem.ScamLink, Outcome.GuardianTold),
-                HistoryEntry(now, Problem.ScamLink, Outcome.MomWarned),
+                HistoryEntry(now, Problem.ScamLink, Outcome.OwnerWarned),
             ),
         )
         assertEquals(1, rows.size)
@@ -72,7 +72,7 @@ class HistoryRowsTest {
         val earlier = now.minus(Duration.ofHours(2))
         val rows = HistoryRows.of(
             listOf(
-                HistoryEntry(earlier, Problem.WebsiteFilterOff, Outcome.MomWarned),
+                HistoryEntry(earlier, Problem.WebsiteFilterOff, Outcome.OwnerWarned),
                 HistoryEntry(now, Problem.WebsiteFilterOff, Outcome.Fixed),
             ),
         )
@@ -81,8 +81,8 @@ class HistoryRowsTest {
 
     @Test fun greenWhenFixedOrAegidaDidItForHerAmberWhenSheStillHasToAct() {
         val fixed = HistoryRows.of(listOf(HistoryEntry(now, Problem.WebsiteFilterOff, Outcome.Fixed))).single()
-        val hidden = HistoryRows.of(listOf(HistoryEntry(now, Problem.SiteNotifications, Outcome.MomWarned))).single()
-        val open = HistoryRows.of(listOf(HistoryEntry(now, Problem.WebsiteFilterOff, Outcome.MomWarned))).single()
+        val hidden = HistoryRows.of(listOf(HistoryEntry(now, Problem.SiteNotifications, Outcome.OwnerWarned))).single()
+        val open = HistoryRows.of(listOf(HistoryEntry(now, Problem.WebsiteFilterOff, Outcome.OwnerWarned))).single()
         assertTrue(fixed.handled)
         assertTrue(hidden.handled)
         assertEquals(false, open.handled)

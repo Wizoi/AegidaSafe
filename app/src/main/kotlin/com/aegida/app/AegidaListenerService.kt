@@ -26,7 +26,7 @@ class AegidaListenerService : NotificationListenerService() {
 
     @Inject lateinit var checks: CheckRunner
 
-    // A failed check must never crash the process Mom's protection runs in; it is logged only in debug builds.
+    // A failed check must never crash the process the owner's protection runs in; it is logged only in debug builds.
     private val scope = CoroutineScope(
         SupervisorJob() + Dispatchers.Default + CoroutineExceptionHandler { _, error ->
             if (applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE != 0) Log.w(TAG, "check failed", error)

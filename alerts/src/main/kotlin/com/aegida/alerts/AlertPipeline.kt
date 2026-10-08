@@ -4,7 +4,7 @@ import com.aegida.core.alert.FindingStore
 import com.aegida.core.alert.GuardianSettings
 import com.aegida.core.alert.HistoryEntry
 import com.aegida.core.alert.HistoryLog
-import com.aegida.core.alert.MomNotifier
+import com.aegida.core.alert.OwnerNotifier
 import com.aegida.core.alert.Outbox
 import com.aegida.core.alert.QueuedMessage
 import com.aegida.core.alert.Outcome
@@ -19,11 +19,11 @@ import javax.inject.Inject
 /**
  * The only path from findings to people (design section 5). A finding alerts once: a repeat only updates
  * lastSeen. Findings from settings-based detectors that stop appearing are resolved. Guardians hear only
- * when Mom turned alerts on, and only the coarse Problem sentence. Escalation is build step 2.
+ * when the owner turned alerts on, and only the coarse Problem sentence. Escalation is build step 2.
  */
 class AlertPipeline @Inject constructor(
     private val findings: FindingStore,
-    private val mom: MomNotifier,
+    private val owner: OwnerNotifier,
     private val history: HistoryLog,
     private val guardians: GuardianSettings,
     private val ntfy: NtfySender,
@@ -43,8 +43,8 @@ class AlertPipeline @Inject constructor(
             findings.put(finding.copy(state = FindingState.Open))
             alerted++
             if (finding.severity >= Severity.NeedsTap) {
-                mom.show(finding)
-                history.add(HistoryEntry(now, finding.key.problem, Outcome.MomWarned))
+                owner.show(finding)
+                history.add(HistoryEntry(now, finding.key.problem, Outcome.OwnerWarned))
             }
             when (tellFirstGuardian(finding)) {
                 SendResult.Delivered -> history.add(HistoryEntry(now, finding.key.problem, Outcome.GuardianTold))
@@ -61,7 +61,7 @@ class AlertPipeline @Inject constructor(
         val resolved = findings.open().filter { it.key.detectorId in ran && it.key.detectorId in SETTING_BASED && it.key !in stillThere }
         resolved.forEach { finding ->
             findings.put(finding.copy(state = FindingState.Resolved, lastSeen = now))
-            mom.clear(finding.key)
+            owner.clear(finding.key)
             history.add(HistoryEntry(now, finding.key.problem, Outcome.Fixed))
         }
         return PipelineResult(alerted = alerted, resolved = resolved.size, guardiansNotReached = notReached)
@@ -77,11 +77,11 @@ class AlertPipeline @Inject constructor(
         val settings = guardians.current()
         val topic = settings.firstTopic ?: return null
         if (!settings.alertsOn) return null
-        val text = finding.key.problem.forGuardian(settings.momName) ?: return null
-        return topic to GuardianMessage(title = settings.momName, body = text, urgent = finding.severity == Severity.Urgent)
+        val text = finding.key.problem.forGuardian(settings.ownerName) ?: return null
+        return topic to GuardianMessage(title = settings.ownerName, body = text, urgent = finding.severity == Severity.Urgent)
     }
 
-    /** A message that did not go is kept and retried by [OutboxFlusher]; Mom is not asked to do anything. */
+    /** A message that did not go is kept and retried by [OutboxFlusher]; the owner is not asked to do anything. */
     private suspend fun holdForRetry(finding: Finding, now: java.time.Instant) {
         val (topic, message) = messageFor(finding) ?: return
         outbox.add(QueuedMessage(0, topic.value, message.title, message.body, message.urgent, finding.key.problem, now, 1, now))

@@ -8,9 +8,9 @@ import com.aegida.core.text.Problem
 import javax.inject.Inject
 
 /**
- * Owns "is a website sending notifications Mom did not already have?". Chrome posts each site on its own
+ * Owns "is a website sending notifications the owner did not already have?". Chrome posts each site on its own
  * channel "web:<origin>;<n>" (findings #18). A site from setup's baseline is left alone unless it starts
- * using scare wording. The app hides the notification and opens that site's switch for Mom (decisions.md).
+ * using scare wording. The app hides the notification and opens that site's switch for the owner (decisions.md).
  */
 class PopupSpamDetector @Inject constructor() : Detector {
     override val id = DetectorId.PopupSpam

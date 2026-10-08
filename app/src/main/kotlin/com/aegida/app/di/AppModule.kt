@@ -6,7 +6,7 @@ import com.aegida.app.AegidaListenerService
 import com.aegida.core.alert.FindingStore
 import com.aegida.core.alert.GuardianSettings
 import com.aegida.core.alert.HistoryLog
-import com.aegida.core.alert.MomNotifier
+import com.aegida.core.alert.OwnerNotifier
 import com.aegida.core.alert.Outbox
 import com.aegida.core.feed.FeedKey
 import com.aegida.core.feed.FeedUpdater
@@ -67,7 +67,7 @@ abstract class AppModule {
         @Provides @Singleton
         fun notifications(@ApplicationContext context: Context): NotificationPoster = NotificationPoster(context)
 
-        @Provides fun momNotifier(poster: NotificationPoster): MomNotifier = poster
+        @Provides fun ownerNotifier(poster: NotificationPoster): OwnerNotifier = poster
 
         @Provides
         fun snapshotter(@ApplicationContext context: Context, clock: Clock, oem: OemSource): Snapshotter =

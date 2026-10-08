@@ -3,7 +3,7 @@ package com.aegida.core.store
 import com.aegida.core.feed.ThreatFeed
 import com.aegida.core.model.Setup
 
-/** What Mom chose in setup. Implemented by :store. */
+/** What the owner chose in setup. Implemented by :store. */
 interface SetupStore {
     suspend fun setup(): Setup
     suspend fun save(setup: Setup)

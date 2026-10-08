@@ -5,7 +5,7 @@ import com.aegida.core.alert.GuardianSettings
 import com.aegida.core.alert.Guardians
 import com.aegida.core.alert.HistoryEntry
 import com.aegida.core.alert.HistoryLog
-import com.aegida.core.alert.MomNotifier
+import com.aegida.core.alert.OwnerNotifier
 import com.aegida.core.feed.ThreatFeed
 import com.aegida.core.health.CheckLog
 import com.aegida.core.health.CheckRun
@@ -31,7 +31,7 @@ class Findings : FindingStore {
     override suspend fun put(finding: Finding) { rows[finding.key] = finding }
 }
 
-class Mom : MomNotifier {
+class Owner : OwnerNotifier {
     val shown = mutableListOf<FindingKey>()
     val cleared = mutableListOf<FindingKey>()
     override fun show(finding: Finding) { shown += finding.key }

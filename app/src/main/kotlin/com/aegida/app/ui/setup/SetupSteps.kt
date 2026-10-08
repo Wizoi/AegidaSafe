@@ -50,7 +50,7 @@ private fun StepScreen(
 
 @Composable
 fun AboutStep(pictureId: String?, number: Int, total: Int, initial: Guardians, onContinue: (name: String, guardian: String, email: String, phone: String) -> Unit) {
-    var name by rememberSaveable { mutableStateOf(initial.momName) }
+    var name by rememberSaveable { mutableStateOf(initial.ownerName) }
     var guardian by rememberSaveable { mutableStateOf(initial.firstGuardianName) }
     var email by rememberSaveable { mutableStateOf(initial.firstGuardianEmail) }
     var phone by rememberSaveable { mutableStateOf(initial.firstGuardianPhone) }

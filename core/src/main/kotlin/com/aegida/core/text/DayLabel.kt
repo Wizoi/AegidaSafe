@@ -4,7 +4,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 
-/** Which day a moment falls on, from Mom's point of view: today, yesterday, or a date. Pure, so it is tested. */
+/** Which day a moment falls on, from the owner's point of view: today, yesterday, or a date. Pure, so it is tested. */
 sealed interface DayLabel {
     data object Today : DayLabel
     data object Yesterday : DayLabel

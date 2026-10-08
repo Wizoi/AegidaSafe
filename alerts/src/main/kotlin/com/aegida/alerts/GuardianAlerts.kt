@@ -10,7 +10,7 @@ data class AlertsSwitched(val welcome: SendResult?, val heartbeat: SendResult?)
 /**
  * The one place the alerts switch is changed. Turning it on tells the guardian once that Aegida is set up
  * (so they know the link works) and starts the "hasn't checked in" message; turning it off cancels that
- * message so a phone Mom chose not to report on never alarms anyone.
+ * message so a phone the owner chose not to report on never alarms anyone.
  */
 class GuardianAlerts @Inject constructor(
     private val settings: GuardianSettings,
@@ -22,9 +22,9 @@ class GuardianAlerts @Inject constructor(
         if (current.alertsOn == on) return AlertsSwitched(null, null)
         settings.save(current.copy(alertsOn = on))
         if (!on) return AlertsSwitched(null, switch.disarm())
-        val mom = current.momName.ifBlank { Texts.APP_NAME }
+        val owner = current.ownerName.ifBlank { Texts.APP_NAME }
         val welcome = current.firstTopic?.let {
-            ntfy.send(it, GuardianMessage(title = mom, body = Texts.Guardian.SET_UP.format(mom), urgent = false))
+            ntfy.send(it, GuardianMessage(title = owner, body = Texts.Guardian.SET_UP.format(owner), urgent = false))
         }
         return AlertsSwitched(welcome, switch.arm())
     }

@@ -6,7 +6,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import com.aegida.core.alert.MomNotifier
+import com.aegida.core.alert.OwnerNotifier
 import com.aegida.core.model.Finding
 import com.aegida.core.model.FindingKey
 import com.aegida.core.text.Texts
@@ -14,10 +14,10 @@ import com.aegida.platform.R
 
 /**
  * The only code that creates channels or posts notifications (NotificationSingleOwnerTest). Alerts on
- * Mom's phone are heads-up banners: no full-screen intent, no overlay. A tap opens the screen that fixes
+ * the owner's phone are heads-up banners: no full-screen intent, no overlay. A tap opens the screen that fixes
  * the problem, or the app when there is no single screen for it.
  */
-class NotificationPoster(private val context: Context) : MomNotifier {
+class NotificationPoster(private val context: Context) : OwnerNotifier {
 
     private val manager: NotificationManager get() = context.getSystemService(NotificationManager::class.java)
 
@@ -44,7 +44,7 @@ class NotificationPoster(private val context: Context) : MomNotifier {
         manager.notify(tagOf(finding.key), NOTIFICATION_ID, notification)
     }
 
-    /** The persistent notice the foreground service shows, so Mom can always see that Aegida is running. */
+    /** The persistent notice the foreground service shows, so the owner can always see that Aegida is running. */
     fun statusNotification(): Notification {
         val open = openApp()?.let { PendingIntent.getActivity(context, 0, it, PendingIntent.FLAG_IMMUTABLE) }
         return Notification.Builder(context, CHANNEL_STATUS)

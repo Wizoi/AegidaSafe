@@ -12,7 +12,7 @@ import javax.inject.Inject
 
 /**
  * Keeps the persistent "Aegida is protecting you" notice up. It is visible, has Aegida's own icon and
- * can be swiped away by Mom; it is also what keeps the phone from putting Aegida to sleep when she never
+ * can be swiped away by the owner; it is also what keeps the phone from putting Aegida to sleep when she never
  * opens it (design section 8b, Samsung validation still to do).
  */
 @AndroidEntryPoint

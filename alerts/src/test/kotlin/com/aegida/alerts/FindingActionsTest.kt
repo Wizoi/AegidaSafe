@@ -22,13 +22,13 @@ import java.time.Instant
 class FindingActionsTest {
     private val now = Instant.now()
     private val findings = Findings()
-    private val mom = Mom()
+    private val owner = Owner()
     private val history = History()
     private val http = Http()
     private val topic = NtfyTopic.generate(java.util.Random(3))
-    private val guardians = FakeGuardians(Guardians(alertsOn = true, momName = "Ruth", firstTopic = topic))
-    private val pipeline = AlertPipeline(findings, mom, history, guardians, NtfySender(http), FakeOutbox()) { now }
-    private val actions = FindingActions(findings, history, mom) { now }
+    private val guardians = FakeGuardians(Guardians(alertsOn = true, ownerName = "Ruth", firstTopic = topic))
+    private val pipeline = AlertPipeline(findings, owner, history, guardians, NtfySender(http), FakeOutbox()) { now }
+    private val actions = FindingActions(findings, history, owner) { now }
 
     private val scam = Finding(FindingKey(DetectorId.Link, Problem.ScamLink, "evil.example"), emptyMap(), now.minus(Duration.ofMinutes(1)), now)
 
@@ -40,7 +40,7 @@ class FindingActionsTest {
 
         assertEquals(FindingState.Acknowledged, findings.get(scam.key)!!.state)
         assertFalse(HomeState.of(findings.open(), null) is HomeState.NeedsTaps)
-        assertEquals(listOf(scam.key), mom.cleared)
+        assertEquals(listOf(scam.key), owner.cleared)
         val row = HistoryRows.of(history.entries).single { Outcome.Acknowledged.forMom in it.detail }
         assertEquals("A message had a scam link", row.title)
         assertTrue(row.handled)
@@ -58,7 +58,7 @@ class FindingActionsTest {
         pipeline.handle(listOf(scam), setOf(DetectorId.Link))
         actions.acknowledge(scam.key)
         assertEquals(1, pipeline.handle(listOf(scam), setOf(DetectorId.Link)).alerted)
-        assertEquals(2, mom.shown.size)
+        assertEquals(2, owner.shown.size)
     }
 
     @Test fun eachProblemHasTheFixThatMatchesHowItClears() {

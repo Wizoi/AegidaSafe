@@ -9,7 +9,7 @@ import javax.inject.Inject
 
 /**
  * The only code that sends to ntfy (NtfySingleOwnerTest). Called only by the alert classes in this module,
- * which build the message from a Problem or a fixed guardian text: coarse, in Mom's name, no URLs and no
+ * which build the message from a Problem or a fixed guardian text: coarse, in the owner's name, no URLs and no
  * message text.
  */
 class NtfySender @Inject constructor(private val http: HttpClient) {

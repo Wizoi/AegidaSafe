@@ -56,7 +56,7 @@ data class MainState(
 }
 
 /**
- * Loads state and performs Mom's actions by calling the tested layers (CheckRunner, FindingActions, the
+ * Loads state and performs the owner's actions by calling the tested layers (CheckRunner, FindingActions, the
  * stores). It makes no decisions of its own: what Home says is HomeState.of, what a fix does is Problem.fix.
  */
 @HiltViewModel
@@ -131,7 +131,7 @@ class MainViewModel @Inject constructor(
     fun saveAbout(name: String, guardianName: String, email: String, phone: String) = change {
         val current = guardianSettings.current()
         guardianSettings.save(
-            current.copy(momName = name.trim(), firstGuardianName = guardianName.trim(), firstGuardianEmail = email.trim(), firstGuardianPhone = phone.trim()),
+            current.copy(ownerName = name.trim(), firstGuardianName = guardianName.trim(), firstGuardianEmail = email.trim(), firstGuardianPhone = phone.trim()),
         )
     }
 

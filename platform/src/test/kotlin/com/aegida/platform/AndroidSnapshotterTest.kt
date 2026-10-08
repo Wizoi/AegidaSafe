@@ -96,7 +96,7 @@ class AndroidSnapshotterTest {
     }
 
     // Only the user can switch a channel off and back on; an app cannot raise it again, so one scenario each.
-    @Test fun bannersAreBlockedWhenMomSwitchedOffTheNeedsTapChannel() {
+    @Test fun bannersAreBlockedWhenOwnerSwitchedOffTheNeedsTapChannel() {
         notifications.createNotificationChannel(NotificationChannel(NotificationPoster.CHANNEL_NEEDS_TAP, "x", NotificationManager.IMPORTANCE_NONE))
         assertFalse(take().canPostNotifications)
     }

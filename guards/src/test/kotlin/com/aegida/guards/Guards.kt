@@ -92,7 +92,7 @@ object Guards {
         allowedPrefixes = listOf("platform/$KT/platform/oem/"),
     )
 
-    /** The plain word in Mom-facing copy ("Some Samsung phones have...") is not code; only Texts.kt may use it (findings #34). */
+    /** The plain word in the owner-facing copy ("Some Samsung phones have...") is not code; only Texts.kt may use it (findings #34). */
     val oemWordInCopy = Rule(
         "OemSingleOwner (words)",
         Regex("""(?i)samsung"""),

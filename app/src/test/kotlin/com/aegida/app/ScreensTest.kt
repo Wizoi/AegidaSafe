@@ -58,7 +58,7 @@ import java.time.ZoneId
 import java.util.Locale
 
 /**
- * Every screen in light and dark, at the normal font and at 200% (Mom's reality, CLAUDE.md). Each check
+ * Every screen in light and dark, at the normal font and at 200% (the owner's reality, CLAUDE.md). Each check
  * scrolls to the main button, so a button pushed off the bottom by large text fails here.
  */
 @RunWith(ParameterizedRobolectricTestRunner::class)
@@ -173,7 +173,7 @@ class ScreensTest(private val dark: Boolean, private val fontScale: Float) {
         show {
             SettingsScreen(
                 Setup(null, emptySet(), pictureId = picture),
-                Guardians(alertsOn = false, momName = "Ruth", firstTopic = null, firstGuardianName = "Kevin"),
+                Guardians(alertsOn = false, ownerName = "Ruth", firstTopic = null, firstGuardianName = "Kevin"),
                 filterOn = false, onChangePicture = {}, onAlerts = { alerts = it }, onFilterHelp = {},
             )
         }

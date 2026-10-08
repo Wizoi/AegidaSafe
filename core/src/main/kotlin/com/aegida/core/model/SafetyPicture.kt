@@ -1,7 +1,7 @@
 package com.aegida.core.model
 
 /**
- * The ten pictures Mom picks from (storyboard, Setup board). Her pick is shown on every genuine Aegida
+ * The ten pictures the owner picks from (storyboard, Setup board). Her pick is shown on every genuine Aegida
  * screen, so a fake one without it is easy to spot. The drawings are in :app; the [label] is the plain
  * word spoken by a screen reader and shown under the choice.
  */

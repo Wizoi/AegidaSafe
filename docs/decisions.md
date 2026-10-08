@@ -83,6 +83,9 @@
 - **Repeated event warnings:** need a back-off so the guardian is not told constantly; details with escalation in phase 2.
 - **Home wording:** "No known problems found." is approved.
 
+## Naming (Kevin, Oct 8)
+- In code the person who holds the phone is the **owner** (`ownerName`, `OwnerNotifier`, `Outcome.OwnerWarned`), not "Mom". What people read uses the name she saved. Product docs may still say Mom as the persona.
+
 ## Open / next session
 - Create the Gradle project and run the **emulator spike**: confirm each `adb`/`cmd` scenario works on the API 36 Play image.
 - Kevin: look for an old Samsung phone on One UI 6+; look into Samsung Remote Test Lab.

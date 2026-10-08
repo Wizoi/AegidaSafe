@@ -1,7 +1,7 @@
 package com.aegida.core.text
 
 /**
- * Every sentence Mom or a guardian can see (UserTextTest, CopyRulesTest). Plain words, one idea per line,
+ * Every sentence the owner or a guardian can see (UserTextTest, CopyRulesTest). Plain words, one idea per line,
  * never red, never "safe": say "no known problems found". Kept in :core so the notification owner in
  * :platform can use it too. A `%s` is filled by the caller (times are formatted for the phone's language).
  */
@@ -14,7 +14,7 @@ object Texts {
     const val CHANNEL_STATUS = "Aegida is protecting you"
     const val CHANNEL_NEEDS_TAP = "Needs a tap"
 
-    /** What a guardian reads on their phone. Written in Mom's name; no links, no message text, no "safe". */
+    /** What a guardian reads on their phone. Written in the owner's name; no links, no message text, no "safe". */
     object Guardian {
         const val SET_UP = "Aegida is set up on %s's phone. You will get a message here if it needs help."
         const val NOT_CHECKED_IN = "Aegida hasn't checked in on %s's phone for 2 days. The phone may be off or asleep. Please call her."
@@ -130,7 +130,7 @@ object Texts {
         const val GUARDIANS_NOTIFIED = "Changing your guardian tells your current guardian."
     }
 
-    /** The email Mom's phone drafts for her guardian. Filled in by the invite builder. */
+    /** The email the owner's phone drafts for her guardian. Filled in by the invite builder. */
     object Invite {
         const val SUBJECT = "%s has picked you as a guardian"
         const val BODY = "Hi %s,\n\n" +

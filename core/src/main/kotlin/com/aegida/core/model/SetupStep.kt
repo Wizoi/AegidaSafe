@@ -1,6 +1,6 @@
 package com.aegida.core.model
 
-/** The first-run steps in the order Mom does them (product brief, "First run"). */
+/** The first-run steps in the order the owner does them (product brief, "First run"). */
 enum class SetupStep {
     About,
     Picture,

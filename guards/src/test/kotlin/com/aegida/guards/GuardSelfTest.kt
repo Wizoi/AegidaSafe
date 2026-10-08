@@ -56,7 +56,7 @@ class GuardSelfTest {
         flags(Guards.oem, "detectors/$k/detectors/X.kt", "if (Build.MANUFACTURER == \"x\")")
         flags(Guards.oem, "app/$k/app/X.kt", "Intent(\"com.samsung.android.sm.ACTION\")")
         allows(Guards.oem, "platform/$k/platform/oem/AndroidOemSource.kt", "Build.MANUFACTURER == \"samsung\"")
-        // Mom-facing copy may name the maker; code may not (findings #34).
+        // the owner-facing copy may name the maker; code may not (findings #34).
         allows(Guards.oemWordInCopy, "core/$k/core/text/Texts.kt", "const val X = \"Some Samsung phones have a switch\"")
         flags(Guards.oemWordInCopy, "app/$k/app/ui/X.kt", "val x = \"Samsung\"")
         flags(Guards.oemWordInCopy, "detectors/$k/detectors/X.kt", "if (name == \"samsung\") {}")

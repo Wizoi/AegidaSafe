@@ -50,7 +50,7 @@ interface HistoryDao {
     suspend fun prune(beforeMillis: Long): Int
 }
 
-/** Mom's choices as key/value rows, so a new setting needs no schema change. */
+/** the owner's choices as key/value rows, so a new setting needs no schema change. */
 @Entity(tableName = "setting", primaryKeys = ["name"])
 data class SettingEntity(val name: String, val value: String)
 

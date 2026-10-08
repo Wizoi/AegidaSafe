@@ -42,11 +42,11 @@ class DailyCheckTest {
     private val http = Http()
     private val outbox = FakeOutbox()
     private val topic = NtfyTopic("aegida_" + "x9Y8z7W6".repeat(4))
-    private val guardians = FakeGuardians(Guardians(alertsOn = true, momName = "Mom", firstTopic = topic, firstGuardianName = "Kevin", firstGuardianEmail = "k@example.com", firstGuardianPhone = ""))
-    private val mom = Mom()
+    private val guardians = FakeGuardians(Guardians(alertsOn = true, ownerName = "Mom", firstTopic = topic, firstGuardianName = "Kevin", firstGuardianEmail = "k@example.com", firstGuardianPhone = ""))
+    private val owner = Owner()
 
     private val evaluator = Evaluator(setOf(DnsDetector(), HealthDetector()), { now }, FakeSetupStore(), feedStore, checkLog, outbox)
-    private val pipeline = AlertPipeline(findings, mom, history, guardians, NtfySender(http), outbox) { now }
+    private val pipeline = AlertPipeline(findings, owner, history, guardians, NtfySender(http), outbox) { now }
     private val snapshot = Snapshot(now, PrivateDns.Automatic, "com.android.chrome", true, true, Reading.NotPresent, Reading.NotPresent)
     private val daily = DailyCheck(
         FeedUpdater(http, FeedVerifier(keys.public.encoded), feedStore) { now },
@@ -95,8 +95,8 @@ class DailyCheckTest {
     }
 
     @Test fun historyOlderThanNinetyDaysIsDroppedAndRecentKept() = runTest {
-        history.add(HistoryEntry(now.minus(Duration.ofDays(91)), Problem.ScamLink, Outcome.MomWarned))
-        history.add(HistoryEntry(now.minus(Duration.ofDays(89)), Problem.ScamLink, Outcome.MomWarned))
+        history.add(HistoryEntry(now.minus(Duration.ofDays(91)), Problem.ScamLink, Outcome.OwnerWarned))
+        history.add(HistoryEntry(now.minus(Duration.ofDays(89)), Problem.ScamLink, Outcome.OwnerWarned))
         assertEquals(1, daily.run().historyPruned)
         assertEquals(listOf(now.minus(Duration.ofDays(89))), history.entries.map { it.at })
     }

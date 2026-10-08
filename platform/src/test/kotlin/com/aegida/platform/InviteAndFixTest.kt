@@ -24,7 +24,7 @@ import java.time.Instant
 class InviteAndFixTest {
     private val topic = NtfyTopic.generate(java.util.Random(7))
     private val guardians = Guardians(
-        alertsOn = false, momName = "Ruth", firstTopic = topic,
+        alertsOn = false, ownerName = "Ruth", firstTopic = topic,
         firstGuardianName = "Kevin", firstGuardianEmail = " kevin@example.org ", firstGuardianPhone = "(555) 010-0199",
     )
     private val now = Instant.now()
@@ -32,7 +32,7 @@ class InviteAndFixTest {
     private fun finding(problem: Problem, evidence: Map<String, String> = emptyMap()) =
         Finding(FindingKey(DetectorId.Dns, problem, "x"), evidence, now, now)
 
-    // The invitation: an email draft in Mom's own mail app, never sent by Aegida.
+    // The invitation: an email draft in the owner's own mail app, never sent by Aegida.
 
     @Test fun theInviteIsAnEmailDraftToTheGuardianWithBothInstallLinksAndHerPrivateLink() {
         val intent = InviteEmail.intent(guardians)!!

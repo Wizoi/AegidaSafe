@@ -3,7 +3,7 @@ package com.aegida.core.text
 import com.aegida.core.model.Severity
 
 /**
- * Every kind of finding, with the one sentence Mom sees and the one a guardian gets (written in her name,
+ * Every kind of finding, with the one sentence the owner sees and the one a guardian gets (written in her name,
  * coarse, no links, no message text; null = guardians are not told). Severity is decided here once.
  */
 enum class Problem(
@@ -15,7 +15,7 @@ enum class Problem(
     val whatHappened: String,
     /**
      * Aegida hides the notification that caused it. Only website notifications: they are the fake virus
-     * pop-ups. A message with a scam link is left in place (it may be from family) and Mom gets a warning.
+     * pop-ups. A message with a scam link is left in place (it may be from family) and the owner gets a warning.
      */
     val hidesNotification: Boolean = false,
     /** What "Fix my phone" does for it. */
@@ -80,12 +80,12 @@ enum class Problem(
     ),
     ;
 
-    fun forGuardian(momName: String): String? = guardianTemplate?.format(momName)
+    fun forGuardian(ownerName: String): String? = guardianTemplate?.format(ownerName)
 }
 
 /** How a problem is put right, so the screens do the same thing for it every time. */
 enum class Fix {
-    /** Nothing for Mom to do (an Info line). */
+    /** Nothing for the owner to do (an Info line). */
     None,
 
     /** Open the Android screen that fixes it; the next check sees it fixed. */

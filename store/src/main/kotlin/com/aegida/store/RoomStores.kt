@@ -88,7 +88,7 @@ internal class RoomSettings(private val dao: SettingDao) : SetupStore, GuardianS
         val v = values()
         return Guardians(
             alertsOn = v[ALERTS_ON] == "true",
-            momName = v[MOM_NAME].orEmpty(),
+            ownerName = v[MOM_NAME].orEmpty(),
             firstTopic = v[FIRST_TOPIC]?.takeIf { it.isNotEmpty() }?.let(::NtfyTopic),
             firstGuardianName = v[GUARDIAN_NAME].orEmpty(),
             firstGuardianEmail = v[GUARDIAN_EMAIL].orEmpty(),
@@ -99,7 +99,7 @@ internal class RoomSettings(private val dao: SettingDao) : SetupStore, GuardianS
     override suspend fun save(guardians: Guardians) = dao.put(
         listOf(
             SettingEntity(ALERTS_ON, guardians.alertsOn.toString()),
-            SettingEntity(MOM_NAME, guardians.momName),
+            SettingEntity(MOM_NAME, guardians.ownerName),
             SettingEntity(FIRST_TOPIC, guardians.firstTopic?.value.orEmpty()),
             SettingEntity(GUARDIAN_NAME, guardians.firstGuardianName),
             SettingEntity(GUARDIAN_EMAIL, guardians.firstGuardianEmail),
@@ -111,7 +111,7 @@ internal class RoomSettings(private val dao: SettingDao) : SetupStore, GuardianS
         const val FILTER_HOST = "setup.websiteFilterHost"
         const val ALLOWED_SITES = "setup.allowedSites"
         const val ALERTS_ON = "guardians.alertsOn"
-        const val MOM_NAME = "guardians.momName"
+        const val MOM_NAME = "guardians.ownerName"
         const val FIRST_TOPIC = "guardians.firstTopic"
         const val GUARDIAN_NAME = "guardians.firstName"
         const val GUARDIAN_EMAIL = "guardians.firstEmail"

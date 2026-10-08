@@ -32,7 +32,7 @@ object FixActions {
         else -> null
     }?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
-    /** Where Mom turns notification access on for Aegida (setup and "Fix my phone"). */
+    /** Where the owner turns notification access on for Aegida (setup and "Fix my phone"). */
     fun notificationAccess(): Intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
     /** The network settings page, where Private DNS lives (there is no public action for Private DNS itself). */
@@ -41,7 +41,7 @@ object FixActions {
     /** Security settings, the closest standard place to Samsung's Auto Blocker (findings #12). */
     fun securitySettings(): Intent = Intent(Settings.ACTION_SECURITY_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
-    /** Opens the dialer with the number filled in, or the empty dialer. Dialing needs no permission, and Mom presses Call. */
+    /** Opens the dialer with the number filled in, or the empty dialer. Dialing needs no permission, and the owner presses Call. */
     fun callGuardian(phone: String): Intent {
         val number = phone.filter { it.isDigit() || it == '+' }
         val dial = if (number.isEmpty()) Intent(Intent.ACTION_DIAL) else Intent(Intent.ACTION_DIAL, Uri.fromParts("tel", number, null))

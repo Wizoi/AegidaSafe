@@ -35,16 +35,16 @@ class CheckRunnerTest {
     )
     private val checkLog = FakeCheckLog()
     private val findings = Findings()
-    private val mom = Mom()
+    private val owner = Owner()
     private val history = History()
     private val http = Http()
     private val outbox = FakeOutbox()
-    private val guardians = FakeGuardians(Guardians(alertsOn = true, momName = "Ruth", firstTopic = topic))
+    private val guardians = FakeGuardians(Guardians(alertsOn = true, ownerName = "Ruth", firstTopic = topic))
 
     private val evaluator = Evaluator(
         setOf(LinkDetector(), PopupSpamDetector(), DnsDetector(), HealthDetector()), { now }, setupStore, feedStore, checkLog, outbox,
     )
-    private val pipeline = AlertPipeline(findings, mom, history, guardians, NtfySender(http), outbox) { now }
+    private val pipeline = AlertPipeline(findings, owner, history, guardians, NtfySender(http), outbox) { now }
     private val runner = CheckRunner({ snapshot() }, evaluator, pipeline, OutboxFlusher(outbox, NtfySender(http), history, { now }))
 
     private fun snapshot() = Snapshot(now, dns, "com.android.chrome", true, true, Reading.NotPresent, Reading.NotPresent)
@@ -64,11 +64,11 @@ class CheckRunnerTest {
         "Locked! Verify at https://login.evil.example/x", now,
     )
 
-    @Test fun aFakeVirusPopUpIsHiddenAndMomAndTheGuardianAreTold() = runTest {
+    @Test fun aFakeVirusPopUpIsHiddenAndOwnerAndTheGuardianAreTold() = runTest {
         val outcome = runner.run(Trigger.NotificationPosted, siteNotification(1))
         assertEquals(listOf(Problem.SiteNotifications), outcome.findings.map { it.key.problem })
         assertEquals(listOf(siteNotification(1).key), outcome.notificationsToHide)
-        assertEquals(1, mom.shown.size)
+        assertEquals(1, owner.shown.size)
         assertEquals(listOf("A website was sending fake warnings to Ruth's phone. Aegida hid them."), http.bodies)
     }
 
@@ -76,13 +76,13 @@ class CheckRunnerTest {
         val outcome = runner.run(Trigger.NotificationPosted, scamText)
         assertEquals(listOf(Problem.ScamLink), outcome.findings.map { it.key.problem })
         assertEquals(emptyList<String>(), outcome.notificationsToHide) // it may be from family
-        assertEquals(1, mom.shown.size)
+        assertEquals(1, owner.shown.size)
     }
 
-    @Test fun everyRepeatedPopUpIsHiddenButMomIsOnlyAlertedOnce() = runTest {
+    @Test fun everyRepeatedPopUpIsHiddenButOwnerIsOnlyAlertedOnce() = runTest {
         val outcomes = (1..3).map { runner.run(Trigger.NotificationPosted, siteNotification(it)) }
         assertEquals(listOf(siteNotification(1).key, siteNotification(2).key, siteNotification(3).key), outcomes.flatMap { it.notificationsToHide })
-        assertEquals(1, mom.shown.size)
+        assertEquals(1, owner.shown.size)
         assertEquals(1, http.bodies.size)
     }
 
@@ -99,7 +99,7 @@ class CheckRunnerTest {
         dns = PrivateDns.Hostname("security.cloudflare-dns.com")
         val fixed = runner.run(Trigger.SettingChanged)
         assertEquals(1, fixed.pipeline.resolved)
-        assertEquals(listOf(Outcome.MomWarned, Outcome.GuardianTold, Outcome.Fixed), history.entries.map { it.outcome })
+        assertEquals(listOf(Outcome.OwnerWarned, Outcome.GuardianTold, Outcome.Fixed), history.entries.map { it.outcome })
     }
 
     @Test fun everyRunIsRecordedWithItsTrigger() = runTest {

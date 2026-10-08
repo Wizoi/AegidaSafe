@@ -61,7 +61,7 @@ class RoomStoresTest {
 
     @Test fun historyIsNewestFirstAndPrunesByAge() = runTest {
         val log = RoomHistoryLog(db.history())
-        val old = HistoryEntry(now.minus(Duration.ofDays(91)), Problem.ScamLink, Outcome.MomWarned)
+        val old = HistoryEntry(now.minus(Duration.ofDays(91)), Problem.ScamLink, Outcome.OwnerWarned)
         val recent = HistoryEntry(now.minus(Duration.ofDays(1)), Problem.ScamLink, Outcome.GuardianTold)
         val newest = HistoryEntry(now, Problem.WebsiteFilterOff, Outcome.Fixed)
         listOf(old, recent, newest).forEach { log.add(it) }
@@ -79,7 +79,7 @@ class RoomStoresTest {
             pictureId = "Owl", autoBlocker = AutoBlockerAnswer.NotNow, stepsDone = 8,
         )
         val guardians = Guardians(
-            alertsOn = true, momName = "Ruth", firstTopic = NtfyTopic("aegida_" + "r5T6y7U8".repeat(4)),
+            alertsOn = true, ownerName = "Ruth", firstTopic = NtfyTopic("aegida_" + "r5T6y7U8".repeat(4)),
             firstGuardianName = "Kevin", firstGuardianEmail = "kevin@example.org", firstGuardianPhone = "+1 555 0100",
         )
         settings.save(setup)

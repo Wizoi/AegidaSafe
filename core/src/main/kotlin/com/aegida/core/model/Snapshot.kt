@@ -12,7 +12,7 @@ data class Snapshot(
     val privateDns: PrivateDns,
     /** Package holding the default-browser role, or null if none. */
     val browser: String?,
-    /** Aegida's notification listener is enabled (Mom granted notification access). */
+    /** Aegida's notification listener is enabled (the owner granted notification access). */
     val listenerEnabled: Boolean,
     /** Aegida may post notifications (POST_NOTIFICATIONS granted and not blocked). */
     val canPostNotifications: Boolean,
@@ -38,10 +38,10 @@ sealed interface PrivateDns {
     }
 }
 
-/** What Mom told Aegida about Samsung Auto Blocker. Never a reading: Aegida cannot read it (findings #10). */
+/** What the owner told Aegida about Samsung Auto Blocker. Never a reading: Aegida cannot read it (findings #10). */
 enum class AutoBlockerAnswer { NotAsked, UserSaidOn, NotNow }
 
-/** What Mom chose in setup. Detectors compare the phone against this, never against a guess. */
+/** What the owner chose in setup. Detectors compare the phone against this, never against a guess. */
 data class Setup(
     /** The website filter host she set up, or null if that step is not done yet. */
     val websiteFilterHost: String?,

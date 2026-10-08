@@ -88,7 +88,7 @@ private fun Context.startSafely(intent: Intent?) {
     try {
         startActivity(intent)
     } catch (e: ActivityNotFoundException) {
-        // A phone without that screen: nothing to open, and Mom is not shown an error she cannot act on.
+        // A phone without that screen: nothing to open, and the owner is not shown an error she cannot act on.
     }
 }
 

@@ -24,8 +24,8 @@ class OutboxFlusherTest {
     private val outbox = FakeOutbox()
     private val history = History()
     private val findings = Findings()
-    private val guardians = FakeGuardians(Guardians(alertsOn = true, momName = "Ruth", firstTopic = topic))
-    private val pipeline = AlertPipeline(findings, Mom(), history, guardians, NtfySender(http), outbox) { now }
+    private val guardians = FakeGuardians(Guardians(alertsOn = true, ownerName = "Ruth", firstTopic = topic))
+    private val pipeline = AlertPipeline(findings, Owner(), history, guardians, NtfySender(http), outbox) { now }
     private val flusher = OutboxFlusher(outbox, NtfySender(http), history) { now }
     private val offline = HttpResult.Failed(null, FailureReason.Offline)
 

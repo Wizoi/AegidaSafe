@@ -8,7 +8,7 @@ import com.aegida.core.model.PrivateDns
 import com.aegida.core.text.Problem
 import javax.inject.Inject
 
-/** Owns "is the website filter Mom set up still on?". Nothing to say before she sets it up. */
+/** Owns "is the website filter the owner set up still on?". Nothing to say before she sets it up. */
 class DnsDetector @Inject constructor() : Detector {
     override val id = DetectorId.Dns
 

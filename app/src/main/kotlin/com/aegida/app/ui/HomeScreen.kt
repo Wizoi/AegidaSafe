@@ -20,7 +20,7 @@ import java.time.ZoneId
 import java.util.Locale
 
 /**
- * What Mom sees when she opens Aegida: one mark, one sentence, one big button. HomeState decides which;
+ * What the owner sees when she opens Aegida: one mark, one sentence, one big button. HomeState decides which;
  * this only draws it.
  */
 @Composable

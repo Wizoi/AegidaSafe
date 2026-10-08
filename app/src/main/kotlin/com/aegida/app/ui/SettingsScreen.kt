@@ -21,7 +21,7 @@ import com.aegida.core.model.SafetyPicture
 import com.aegida.core.model.Setup
 import com.aegida.core.text.Texts
 
-/** What Mom can see and change later. Changing the guardian is not here yet: it must tell the current guardian first. */
+/** What the owner can see and change later. Changing the guardian is not here yet: it must tell the current guardian first. */
 @Composable
 fun SettingsScreen(
     setup: Setup,
@@ -35,7 +35,7 @@ fun SettingsScreen(
     AegidaScreen(setup.pictureId) {
         Text(Texts.Settings.TITLE, style = MaterialTheme.typography.headlineMedium, modifier = Modifier.semantics { heading() })
         SettingCard {
-            ValueRow(Texts.Settings.NAME, guardians.momName.ifBlank { Texts.Settings.NOT_SET })
+            ValueRow(Texts.Settings.NAME, guardians.ownerName.ifBlank { Texts.Settings.NOT_SET })
             ValueRow(Texts.Settings.GUARDIAN, guardians.firstGuardianName.ifBlank { Texts.Settings.NOT_SET })
         }
         SettingCard {
