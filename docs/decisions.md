@@ -71,6 +71,9 @@
 ## Storage (Oct 8)
 - Room schema **version 1 is extended in place** while nothing has shipped (only the emulator has ever had it). From the first Play build on, every schema change is a tested Migration, asked first (CLAUDE.md).
 
+## Pushing while the initial app is built (Kevin, Oct 8)
+- `git push` to Wizoi/AegidaSafe and Wizoi/Aegida-Feed no longer needs a yes each time **while the initial app is being built**. Before every push: full build green and the staged-diff secrets scan clean (CLAUDE.md). Still asked first: publishing to Play, destructive git (force-push, reset, history rewrites), changing repo visibility or settings, anything that sends to guardians, and any new permission or secret.
+
 ## Open / next session
 - Create the Gradle project and run the **emulator spike**: confirm each `adb`/`cmd` scenario works on the API 36 Play image.
 - Kevin: look for an old Samsung phone on One UI 6+; look into Samsung Remote Test Lab.
