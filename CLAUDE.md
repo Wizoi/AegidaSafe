@@ -66,6 +66,8 @@ New code goes where design section 2 puts it. Modules (compile-time layering, im
   seen on a device is a finding in the same step, with an emulator reproduction tried before it is deferred.
 - Samsung-specific checks come last (see `docs/samsung-validation-options.md`).
 - Look at every screen in both themes and at 200% font size.
+- `python scripts/mutation-check.py` breaks each guarded rule on purpose and requires a test to go red (27 checks in
+  `scripts/mutants.json`). Add one when you add a rule worth guarding; it always restores the file.
 - Check per-class test times when the suite passes 5 minutes or a class passes 60 s.
 
 ## Running things
@@ -73,6 +75,7 @@ New code goes where design section 2 puts it. Modules (compile-time layering, im
 - Gradle needs the Android Studio JBR. Check for `BUILD SUCCESSFUL`; do not read success from a piped
   command's exit code (the pipe reports `tail`'s code).
 - Device-test builds use `-PlocalBuild` so they report `-local` and cannot be mistaken for a Play build.
+- Windows shell traps (backslashes in the Bash tool, `adb shell` quoting, line endings): [docs/windows-notes.md](docs/windows-notes.md).
 
 ## Working with agents
 

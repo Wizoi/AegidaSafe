@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Emulator-first checks (design section 7). Run from Git Bash in the repo root:
 #   scripts/emulator-checks.sh avd        create the API 36 Google Play AVD (Pixel profile; Mom's OS level)
-#   scripts/emulator-checks.sh smoke      install the -local debug build and run the instrumented tests
+#   scripts/emulator-checks.sh snapshot   save a clean quick-boot snapshot (run once, before installing the app)
+#   scripts/emulator-checks.sh boot       start the emulator without a window, from that snapshot if there is one
+#   scripts/emulator-checks.sh smoke     install the -local debug build and run the instrumented tests
 #   scripts/emulator-checks.sh spike      check each adb/cmd mechanism the scenarios rely on (PASS/FAIL)
 #   scripts/emulator-checks.sh popup-page serve the website-notification-spam fixture and open it in Chrome
 #   scripts/emulator-checks.sh scenarios  feature scenarios on a cleared app: pop-up warning, messages, daily feed, listed link
@@ -131,6 +133,30 @@ scenarios)
   powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \"Name='python.exe'\" | Where-Object { \$_.CommandLine -match 'http.server 8765' } | ForEach-Object { Stop-Process -Id \$_.ProcessId }" >/dev/null 2>&1
   echo "$FAILS failed"; [ "$FAILS" = 0 ]
   ;;
+boot|snapshot)
+  # Starts the emulator without a window. `snapshot` makes a clean quick-boot snapshot called "clean" from a cold
+  # boot (do it before installing the app); `boot` then starts from it in seconds instead of 30-70 s.
+  PORT="${SERIAL#emulator-}"; SNAP_DIR="$HOME/.android/avd/$AVD_NAME.avd/snapshots/clean"
+  EMU="$SDK/emulator/emulator.exe"; [ -f "$EMU" ] || EMU="$SDK/emulator/emulator"
+  up() { [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]; }
+  wait_boot() { for _ in $(seq 1 120); do up && return 0; sleep 2; done; return 1; }
+  started=$(date +%s)
+  if [ "$1" = "snapshot" ]; then
+    adb emu kill >/dev/null 2>&1; sleep 3
+    ("$EMU" -avd "$AVD_NAME" -port "$PORT" -no-window -no-audio -no-boot-anim -no-snapshot-load -no-snapshot-save >"${TEMP:-/tmp}/aegida-emu.log" 2>&1 &)
+    wait_boot || { echo "emulator did not boot"; exit 1; }
+    echo "cold boot took $(( $(date +%s) - started )) s; letting the system settle"; sleep 30
+    adb emu avd snapshot save clean | tail -2
+    adb emu kill >/dev/null 2>&1
+    echo "saved snapshot 'clean'; start it with: scripts/emulator-checks.sh boot"
+  else
+    if up; then echo "an emulator is already running"; exit 0; fi
+    if [ -d "$SNAP_DIR" ]; then FROM="-snapshot clean"; else FROM="-no-snapshot-load"; echo "no 'clean' snapshot yet, so a cold boot (make one with: snapshot)"; fi
+    ("$EMU" -avd "$AVD_NAME" -port "$PORT" -no-window -no-audio -no-boot-anim $FROM -no-snapshot-save >"${TEMP:-/tmp}/aegida-emu.log" 2>&1 &)
+    wait_boot || { echo "emulator did not boot"; exit 1; }
+    echo "booted in $(( $(date +%s) - started )) s"
+  fi
+  ;;
 failures)
   # The design's failure states (section 6) on a real system: the daily job offline, and a phone whose daily
   # check never runs. Asserts on what the app recorded in its own database, so it needs no screen (findings #39).
@@ -197,5 +223,5 @@ shots)
   adb shell cmd uimode night auto
   echo "wrote $OUT"
   ;;
-*) sed -n 2,10p "$0"; exit 1;;
+*) sed -n 2,12p "$0"; exit 1;;
 esac
