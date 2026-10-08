@@ -23,6 +23,12 @@ First session checklist (15–30 min):
 6. Capture `dumpsys package`/`dumpsys notification` fixtures, labelled Samsung.
 7. Record what the lab could not do, in `docs/emulator-vs-device.md`.
 
+### First session result (Oct 8, 30 min)
+- Got an SM-S916U (Galaxy S23+) on Android 16 / One UI 8.0. The first reservation showed Android 13 / One UI 5.1, so check the version before starting.
+- adb works through **Remote Debug Bridge**: download RDB from the web client, run `rdb.exe` from a shell where `adb` is on PATH (`$env:Path += ";$env:LOCALAPPDATA\Android\Sdk\platform-tools"`), then the device shows as `localhost:<port>`. Screenshots via `adb exec-out screencap` and taps via `adb shell input` work, so no browser automation is needed.
+- **The lab phone is managed by Knox Guard and has Auto Blocker disabled**, so the lab cannot answer the Auto Blocker questions (findings #10–#12). The Never-sleeping deep link works (#13).
+- Still useful for: One UI screens, deep links, `dumpsys`/`settings` captures, Samsung Internet notifications with a public fixture page.
+
 ## Option B: paid device farms
 BrowserStack, TestingBot and similar list real Galaxy phones; pricing and exact models not checked.
 

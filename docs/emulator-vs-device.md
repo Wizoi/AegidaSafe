@@ -20,8 +20,8 @@ closes moves back to the emulator list. Section 8 of the technical design is whe
 | Item | Checked? | Result |
 |---|---|---|
 | Sleeping / deep-sleeping apps with a foreground service and notification listener | No | |
-| Never-sleeping deep link opens the right screen | No | |
-| Auto Blocker readable? Maximum restrictions hides links in notifications? | No | |
+| Never-sleeping deep link opens the right screen | Yes, Remote Test Lab S23+ One UI 8.0 (Oct 8) | Works; screen is titled "Never auto sleeping apps" (findings #13) |
+| Auto Blocker readable? Maximum restrictions hides links in notifications? | Partly (Oct 8) | Signature-level permissions, no settings key (findings #10); lab phone has Auto Blocker disabled under Knox Guard, so on/off and Maximum restrictions untested (#11) |
 | Samsung Internet website-notification behaviour | No | |
 | One UI default-apps and Private DNS screen wording | No | |
 
