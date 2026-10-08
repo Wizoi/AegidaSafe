@@ -47,6 +47,20 @@ class NotificationPoster(private val context: Context) : MomNotifier {
         manager.notify(tagOf(finding.key), NOTIFICATION_ID, notification)
     }
 
+    /** The persistent notice the foreground service shows, so Mom can always see that Aegida is running. */
+    fun statusNotification(): Notification {
+        val open = openApp()?.let { PendingIntent.getActivity(context, 0, it, PendingIntent.FLAG_IMMUTABLE) }
+        return Notification.Builder(context, CHANNEL_STATUS)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle(Texts.APP_NAME)
+            .setContentText(Texts.STATUS_NOTICE)
+            .setCategory(Notification.CATEGORY_SERVICE)
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .setContentIntent(open)
+            .build()
+    }
+
     override fun clear(key: FindingKey) {
         manager.cancel(tagOf(key), NOTIFICATION_ID)
     }

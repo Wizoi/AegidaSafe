@@ -77,4 +77,13 @@ class NotificationPosterTest {
         poster.clear(dns.key)
         assertEquals(listOf(Problem.SiteNotifications.forMom), posted().map { it.extras.getString(Notification.EXTRA_TEXT) })
     }
+
+    @Test fun theStatusNoticeIsPersistentQuietAndSaysAegidaIsProtectingYou() {
+        val n = poster.statusNotification()
+        assertEquals(NotificationPoster.CHANNEL_STATUS, n.channelId)
+        assertEquals(Texts.APP_NAME, n.extras.getString(Notification.EXTRA_TITLE))
+        assertEquals("Aegida is protecting you", n.extras.getString(Notification.EXTRA_TEXT))
+        assertTrue(n.flags and Notification.FLAG_ONGOING_EVENT != 0)
+        assertNull(n.fullScreenIntent)
+    }
 }

@@ -1,14 +1,30 @@
 package com.aegida.app.di
 
+import android.content.ComponentName
 import android.content.Context
+import com.aegida.app.AegidaListenerService
+import com.aegida.core.alert.FindingStore
+import com.aegida.core.alert.GuardianSettings
+import com.aegida.core.alert.HistoryLog
+import com.aegida.core.alert.MomNotifier
+import com.aegida.core.feed.FeedKey
+import com.aegida.core.feed.FeedUpdater
 import com.aegida.core.health.CheckLog
+import com.aegida.core.model.Snapshotter
 import com.aegida.core.net.HttpClient
 import com.aegida.core.oem.OemSource
+import com.aegida.core.store.FeedStore
+import com.aegida.core.store.SetupStore
 import com.aegida.core.time.Clock
 import com.aegida.detectors.Detector
+import com.aegida.detectors.DnsDetector
+import com.aegida.detectors.HealthDetector
+import com.aegida.detectors.LinkDetector
+import com.aegida.detectors.PopupSpamDetector
 import com.aegida.platform.net.OkHttpHttpClient
 import com.aegida.platform.notify.NotificationPoster
 import com.aegida.platform.oem.AndroidOemSource
+import com.aegida.platform.snapshot.AndroidSnapshotter
 import com.aegida.platform.time.SystemClock
 import com.aegida.store.AegidaStore
 import dagger.Binds
@@ -17,26 +33,44 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import dagger.multibindings.Multibinds
+import dagger.multibindings.IntoSet
 import javax.inject.Singleton
 
-/** The composition root: one real implementation per port. Detectors join the set as they are built. */
+/** The composition root: one real implementation per port, and the detectors that make up a check. */
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class AppModule {
     @Binds abstract fun clock(impl: SystemClock): Clock
     @Binds @Singleton abstract fun http(impl: OkHttpHttpClient): HttpClient
     @Binds abstract fun oem(impl: AndroidOemSource): OemSource
-    @Multibinds abstract fun detectors(): Set<Detector>
+
+    @Binds @IntoSet abstract fun linkDetector(impl: LinkDetector): Detector
+    @Binds @IntoSet abstract fun popupSpamDetector(impl: PopupSpamDetector): Detector
+    @Binds @IntoSet abstract fun dnsDetector(impl: DnsDetector): Detector
+    @Binds @IntoSet abstract fun healthDetector(impl: HealthDetector): Detector
 
     companion object {
         @Provides @Singleton
         fun store(@ApplicationContext context: Context): AegidaStore = AegidaStore(context)
 
-        @Provides
-        fun checkLog(store: AegidaStore): CheckLog = store.checkLog
+        @Provides fun checkLog(store: AegidaStore): CheckLog = store.checkLog
+        @Provides fun findings(store: AegidaStore): FindingStore = store.findings
+        @Provides fun history(store: AegidaStore): HistoryLog = store.history
+        @Provides fun setup(store: AegidaStore): SetupStore = store.setup
+        @Provides fun guardians(store: AegidaStore): GuardianSettings = store.guardians
+        @Provides fun feed(store: AegidaStore): FeedStore = store.feed
 
         @Provides @Singleton
         fun notifications(@ApplicationContext context: Context): NotificationPoster = NotificationPoster(context)
+
+        @Provides fun momNotifier(poster: NotificationPoster): MomNotifier = poster
+
+        @Provides
+        fun snapshotter(@ApplicationContext context: Context, clock: Clock, oem: OemSource): Snapshotter =
+            AndroidSnapshotter(context, clock, oem, ComponentName(context, AegidaListenerService::class.java))
+
+        @Provides
+        fun feedUpdater(http: HttpClient, store: FeedStore, clock: Clock): FeedUpdater =
+            FeedUpdater(http, FeedKey.verifier(), store, clock)
     }
 }

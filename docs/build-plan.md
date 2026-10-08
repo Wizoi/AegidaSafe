@@ -22,8 +22,8 @@ Gate (design section 11): guard tests green; emulator scenarios for link check, 
 | 1c | Link, PopupSpam, Dns, Health detectors; Evaluator records runs | `:detectors` | done |
 | 1d | AlertPipeline: alert once, opt-in guardians, resolve fixed settings | `:alerts` | done |
 | 1e | Storage: findings, 90-day history, setup and guardians, feed file | `:store` | done (commit pending) |
-| 1f | Android adapters: read Private DNS, default browser, listener and notification state into a `Snapshot`; map a notification into a `NotificationEvent`; banners (`NotificationPoster`); feed download with signature check | `:platform` | next |
-| 1g | Wiring: notification listener (hide scam notifications, open the site's switch), "Aegida is protecting you" foreground service, daily WorkManager job (check, feed update, dead man's switch) | `:app` | next |
+| 1f | Android adapters: Snapshotter (Private DNS, default browser, listener, banner permission), notification mapper, banner poster with the brand icon, feed download and verified update | `:platform`, `:core` | done |
+| 1g | Wiring: `CheckRunner` and `DailyCheck` (`:alerts`, JVM-tested), notification listener that hides fake website warnings, the "Aegida is protecting you" foreground service, daily WorkManager job, boot receiver, Hilt graph | `:alerts`, `:app` | written and unit-tested; emulator proof is 1j |
 | 1h | Screens: Home (pure `HomeState.of`), History, first-run setup, My settings; both themes at 200% font | `:app` | next |
 | 1i | Feed publishing: daily workflow (`build-feed.yml`) builds, signs, verifies and pushes `feed.bin`/`feed.sig` to the public Aegida-Feed Pages site. First run green Oct 8; live feed verified with the committed public key (findings #28, #29) | `.github/`, `:feedtool`, Aegida-Feed | done |
 | 1j | Emulator scenarios: link check, pop-up page, website filter turned off, starved worker, offline, killed mid-check | `emulator-checks.sh` | next |

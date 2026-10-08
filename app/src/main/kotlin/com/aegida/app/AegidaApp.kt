@@ -19,5 +19,6 @@ class AegidaApp : Application(), Configuration.Provider {
     override fun onCreate() {
         super.onCreate()
         notifications.ensureChannels()
+        DailyCheckWorker.schedule(this)
     }
 }
