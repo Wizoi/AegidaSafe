@@ -88,6 +88,14 @@ class GuardSelfTest {
         allows(Guards.noLiteralUiText, "app/$k/app/ui/X.kt", "Text(Texts.APP_NAME)")
     }
 
+    @Test fun deadColumnReadPattern() {
+        // Same pattern as NoDeadColumnsTest: a named-argument write is not a read; any other mention is.
+        val read = { name: String, code: String -> Regex("""\b$name\b(?!\s*=(?!=))""").containsMatchIn(code) }
+        assertTrue(!read("finishedAtMillis", "CheckRunEntity(finishedAtMillis = run.finishedAt?.toEpochMilli())"))
+        assertTrue(read("finishedAtMillis", "finishedAt = finishedAtMillis?.let(Instant::ofEpochMilli)"))
+        assertTrue(read("finishedAtMillis", "if (row.finishedAtMillis == null) x"))
+    }
+
     @Test fun secrets() {
         val googleKey = "AI" + "za" + "Sy" + "A".repeat(33)
         flags(Guards.secrets, "app/$k/app/X.kt", "val key = \"$googleKey\"")

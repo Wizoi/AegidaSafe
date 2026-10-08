@@ -45,6 +45,14 @@ class RoomCheckLogTest {
         assertEquals(newer, log.latest())
     }
 
+    @Test fun latestForATriggerIgnoresNewerRunsOfOtherTriggers() = runTest {
+        val daily = CheckRun(Trigger.Daily, now.minus(Duration.ofDays(2)), now.minus(Duration.ofDays(2)))
+        log.record(daily)
+        log.record(CheckRun(Trigger.NotificationPosted, now.minus(Duration.ofMinutes(1)), now))
+        assertEquals(daily, log.latest(Trigger.Daily))
+        assertNull(log.latest(Trigger.SettingChanged))
+    }
+
     @Test fun exportedSchemaVersion1Opens() {
         migrations.createDatabase("schema-check", 1).close()
     }

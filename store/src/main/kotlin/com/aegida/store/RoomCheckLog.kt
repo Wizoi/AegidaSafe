@@ -17,11 +17,13 @@ internal class RoomCheckLog(private val dao: CheckRunDao) : CheckLog {
         )
     }
 
-    override suspend fun latest(): CheckRun? = dao.latest()?.let { row ->
-        CheckRun(
-            trigger = Trigger.valueOf(row.trigger),
-            startedAt = Instant.ofEpochMilli(row.startedAtMillis),
-            finishedAt = row.finishedAtMillis?.let(Instant::ofEpochMilli),
-        )
-    }
+    override suspend fun latest(): CheckRun? = dao.latest()?.toCheckRun()
+
+    override suspend fun latest(trigger: Trigger): CheckRun? = dao.latest(trigger.name)?.toCheckRun()
+
+    private fun CheckRunEntity.toCheckRun() = CheckRun(
+        trigger = Trigger.valueOf(trigger),
+        startedAt = Instant.ofEpochMilli(startedAtMillis),
+        finishedAt = finishedAtMillis?.let(Instant::ofEpochMilli),
+    )
 }

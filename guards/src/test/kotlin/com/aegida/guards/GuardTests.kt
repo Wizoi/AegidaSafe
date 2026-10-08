@@ -125,7 +125,9 @@ class NoDeadColumnsTest {
         assertTrue("no @Entity found in :store; the scan is broken", entities.isNotEmpty())
         val dead = entities.flatMap { (file, match) ->
             column.findAll(match.groupValues[2]).map { it.groupValues[1] }.filter { name ->
-                val readInCode = store.any { it !== file && Regex("""\.$name\b""").containsMatchIn(it.code) }
+                // A read is any mention except a named-argument write ("name = ..."), so receiver-less reads
+                // inside an extension count (findings #25) but a column that is only ever written does not.
+                val readInCode = store.any { it !== file && Regex("""\b$name\b(?!\s*=(?!=))""").containsMatchIn(it.code) }
                 val readInSql = queries.any { Regex("""\b$name\b""").containsMatchIn(it) }
                 !readInCode && !readInSql
             }.map { "${match.groupValues[1]}.$it" }.toList()

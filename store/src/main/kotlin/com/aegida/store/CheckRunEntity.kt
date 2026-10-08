@@ -21,4 +21,7 @@ interface CheckRunDao {
 
     @Query("SELECT * FROM check_run ORDER BY startedAtMillis DESC, id DESC LIMIT 1")
     suspend fun latest(): CheckRunEntity?
+
+    @Query("SELECT * FROM check_run WHERE trigger = :trigger ORDER BY startedAtMillis DESC, id DESC LIMIT 1")
+    suspend fun latest(trigger: String): CheckRunEntity?
 }
