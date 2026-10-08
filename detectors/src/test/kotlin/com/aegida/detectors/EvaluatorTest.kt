@@ -15,9 +15,10 @@ import java.time.Duration
 
 class EvaluatorTest {
     private val log = FakeCheckLog()
+    private val outbox = FakeOutbox()
     private val all = setOf(LinkDetector(), PopupSpamDetector(), DnsDetector(), HealthDetector())
     private fun evaluator(detectors: Set<Detector> = all) =
-        Evaluator(detectors, { now }, FakeSetupStore(), FakeFeedStore(Fixtures.feed()), log)
+        Evaluator(detectors, { now }, FakeSetupStore(), FakeFeedStore(Fixtures.feed()), log, outbox)
 
     @Test fun runningTwiceGivesTheSameFindings() = runTest {
         val e = evaluator()

@@ -87,3 +87,15 @@ class FakeCheckLog : CheckLog {
     override suspend fun latest() = runs.maxByOrNull { it.startedAt }
     override suspend fun latest(trigger: Trigger) = runs.filter { it.trigger == trigger }.maxByOrNull { it.startedAt }
 }
+
+class FakeOutbox : com.aegida.core.alert.Outbox {
+    val rows = mutableListOf<com.aegida.core.alert.QueuedMessage>()
+    private var next = 1L
+    override suspend fun add(message: com.aegida.core.alert.QueuedMessage) { rows += message.copy(id = next++) }
+    override suspend fun all() = rows.sortedBy { it.queuedAt }
+    override suspend fun remove(id: Long) { rows.removeAll { it.id == id } }
+    override suspend fun failedAgain(id: Long, at: java.time.Instant) {
+        val i = rows.indexOfFirst { it.id == id }
+        rows[i] = rows[i].copy(attempts = rows[i].attempts + 1, lastTriedAt = at)
+    }
+}

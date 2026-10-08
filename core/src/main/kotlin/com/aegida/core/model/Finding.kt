@@ -3,7 +3,7 @@ package com.aegida.core.model
 import com.aegida.core.text.Problem
 import java.time.Instant
 
-enum class DetectorId { Link, PopupSpam, Dns, Health, Drift, NewApp, RemoteControl, Stalkerware }
+enum class DetectorId { Link, PopupSpam, Dns, Health, Delivery, Drift, NewApp, RemoteControl, Stalkerware }
 
 /** Mapped once to channel, banner behaviour and guardian message. */
 enum class Severity { Info, NeedsTap, Urgent }

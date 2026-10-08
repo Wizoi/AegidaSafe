@@ -26,4 +26,6 @@ data class Inputs(
     val event: NotificationEvent?,
     /** The last daily check before this run, or null if there has never been one. */
     val lastDailyCheck: CheckRun?,
+    /** When the oldest guardian message still waiting to be delivered was first held back, or null. */
+    val oldestUndelivered: Instant? = null,
 )

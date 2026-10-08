@@ -5,7 +5,9 @@ import com.aegida.core.alert.GuardianSettings
 import com.aegida.core.alert.Guardians
 import com.aegida.core.alert.HistoryEntry
 import com.aegida.core.alert.HistoryLog
+import com.aegida.core.alert.Outbox
 import com.aegida.core.alert.Outcome
+import com.aegida.core.alert.QueuedMessage
 import com.aegida.core.model.AutoBlockerAnswer
 import com.aegida.core.model.DetectorId
 import com.aegida.core.model.Finding
@@ -118,4 +120,24 @@ internal class RoomSettings(private val dao: SettingDao) : SetupStore, GuardianS
         const val AUTO_BLOCKER = "setup.autoBlocker"
         const val STEPS_DONE = "setup.stepsDone"
     }
+}
+
+internal class RoomOutbox(private val dao: OutboxDao) : Outbox {
+    override suspend fun add(message: QueuedMessage) = dao.add(
+        OutboxEntity(
+            topic = message.topic, title = message.title, body = message.body, urgent = message.urgent,
+            outboxProblem = message.problem.name, queuedAtMillis = message.queuedAt.toEpochMilli(),
+            attempts = message.attempts, lastTriedMillis = message.lastTriedAt.toEpochMilli(),
+        ),
+    )
+
+    override suspend fun all(): List<QueuedMessage> = dao.all().map {
+        QueuedMessage(
+            it.rowId, it.topic, it.title, it.body, it.urgent, Problem.valueOf(it.outboxProblem),
+            Instant.ofEpochMilli(it.queuedAtMillis), it.attempts, Instant.ofEpochMilli(it.lastTriedMillis),
+        )
+    }
+
+    override suspend fun remove(id: Long) = dao.remove(id)
+    override suspend fun failedAgain(id: Long, at: Instant) = dao.failedAgain(id, at.toEpochMilli())
 }

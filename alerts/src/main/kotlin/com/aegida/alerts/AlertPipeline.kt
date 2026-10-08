@@ -5,11 +5,14 @@ import com.aegida.core.alert.GuardianSettings
 import com.aegida.core.alert.HistoryEntry
 import com.aegida.core.alert.HistoryLog
 import com.aegida.core.alert.MomNotifier
+import com.aegida.core.alert.Outbox
+import com.aegida.core.alert.QueuedMessage
 import com.aegida.core.alert.Outcome
 import com.aegida.core.model.DetectorId
 import com.aegida.core.model.Finding
 import com.aegida.core.model.FindingState
 import com.aegida.core.model.Severity
+import com.aegida.core.net.NtfyTopic
 import com.aegida.core.time.Clock
 import javax.inject.Inject
 
@@ -24,6 +27,7 @@ class AlertPipeline @Inject constructor(
     private val history: HistoryLog,
     private val guardians: GuardianSettings,
     private val ntfy: NtfySender,
+    private val outbox: Outbox,
     private val clock: Clock,
 ) {
     suspend fun handle(current: List<Finding>, ran: Set<DetectorId>): PipelineResult {
@@ -46,6 +50,7 @@ class AlertPipeline @Inject constructor(
                 SendResult.Delivered -> history.add(HistoryEntry(now, finding.key.problem, Outcome.GuardianTold))
                 is SendResult.NotDelivered -> {
                     notReached++
+                    holdForRetry(finding, now)
                     history.add(HistoryEntry(now, finding.key.problem, Outcome.GuardianNotReached))
                 }
                 null -> Unit
@@ -64,11 +69,22 @@ class AlertPipeline @Inject constructor(
 
     /** Null when guardians are not to be told about this finding. */
     private suspend fun tellFirstGuardian(finding: Finding): SendResult? {
+        val message = messageFor(finding) ?: return null
+        return ntfy.send(message.first, message.second)
+    }
+
+    private suspend fun messageFor(finding: Finding): Pair<NtfyTopic, GuardianMessage>? {
         val settings = guardians.current()
         val topic = settings.firstTopic ?: return null
         if (!settings.alertsOn) return null
         val text = finding.key.problem.forGuardian(settings.momName) ?: return null
-        return ntfy.send(topic, GuardianMessage(title = settings.momName, body = text, urgent = finding.severity == Severity.Urgent))
+        return topic to GuardianMessage(title = settings.momName, body = text, urgent = finding.severity == Severity.Urgent)
+    }
+
+    /** A message that did not go is kept and retried by [OutboxFlusher]; Mom is not asked to do anything. */
+    private suspend fun holdForRetry(finding: Finding, now: java.time.Instant) {
+        val (topic, message) = messageFor(finding) ?: return
+        outbox.add(QueuedMessage(0, topic.value, message.title, message.body, message.urgent, finding.key.problem, now, 1, now))
     }
 
     companion object {
@@ -76,7 +92,7 @@ class AlertPipeline @Inject constructor(
          * Detectors that look at the phone's settings on every run, so a missing finding means "fixed".
          * Event detectors (links, site notifications) only speak when a notification arrives.
          */
-        val SETTING_BASED = setOf(DetectorId.Dns, DetectorId.Health)
+        val SETTING_BASED = setOf(DetectorId.Dns, DetectorId.Health, DetectorId.Delivery)
     }
 }
 

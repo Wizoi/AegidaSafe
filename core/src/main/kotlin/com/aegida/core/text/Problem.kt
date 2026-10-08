@@ -64,6 +64,13 @@ enum class Problem(
         whatHappened = "Aegida could not show you warnings",
         fix = Fix.Settings,
     ),
+    GuardianUnreachable(
+        Severity.NeedsTap,
+        "Aegida couldn't reach your guardian for a day. Please call them.",
+        null,
+        whatHappened = "Aegida could not reach your guardian",
+        fix = Fix.CallGuardian,
+    ),
     MissedCheck(Severity.Info, "Aegida missed its daily check.", null, whatHappened = "Aegida missed its daily check"),
     ListsOld(
         Severity.Info,
@@ -89,6 +96,9 @@ enum class Fix {
 
     /** Aegida's own step-by-step page for the website filter. */
     WebsiteFilterGuide,
+
+    /** Open the phone dialer with the guardian's number, if she gave one. */
+    CallGuardian,
 
     /** Say what it is and let her mark it seen ("Messages like this are scams. You can delete it."). */
     Acknowledge,

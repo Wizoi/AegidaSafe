@@ -33,8 +33,9 @@ class AlertPipelineTest {
     private val mom = Mom()
     private val history = History()
     private val http = Http()
+    private val outbox = FakeOutbox()
     private val settings = FakeGuardians(Guardians(alertsOn = true, momName = "Ruth", firstTopic = topic))
-    private val pipeline = AlertPipeline(findings, mom, history, settings, NtfySender(http)) { now }
+    private val pipeline = AlertPipeline(findings, mom, history, settings, NtfySender(http), outbox) { now }
 
     private fun finding(problem: Problem, subject: String, detector: DetectorId) =
         Finding(FindingKey(detector, problem, subject), emptyMap(), now.minus(Duration.ofSeconds(1)), now)

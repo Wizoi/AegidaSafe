@@ -191,6 +191,7 @@ private fun MainContent(state: MainState, vm: MainViewModel) {
             Fix.SettingsThenAcknowledge -> { context.startSafely(screen); vm.acknowledge(finding) }
             Fix.WebsiteFilterGuide -> page = Page.FilterGuide
             Fix.Acknowledge -> page = Page.Advice(finding)
+            Fix.CallGuardian -> context.startSafely(FixActions.callGuardian(state.guardians.firstGuardianPhone))
             Fix.None -> Unit
         }
     }

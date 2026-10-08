@@ -27,7 +27,7 @@ class FindingActionsTest {
     private val http = Http()
     private val topic = NtfyTopic.generate(java.util.Random(3))
     private val guardians = FakeGuardians(Guardians(alertsOn = true, momName = "Ruth", firstTopic = topic))
-    private val pipeline = AlertPipeline(findings, mom, history, guardians, NtfySender(http)) { now }
+    private val pipeline = AlertPipeline(findings, mom, history, guardians, NtfySender(http), FakeOutbox()) { now }
     private val actions = FindingActions(findings, history, mom) { now }
 
     private val scam = Finding(FindingKey(DetectorId.Link, Problem.ScamLink, "evil.example"), emptyMap(), now.minus(Duration.ofMinutes(1)), now)

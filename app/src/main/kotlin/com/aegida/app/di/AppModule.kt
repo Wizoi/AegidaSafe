@@ -7,6 +7,7 @@ import com.aegida.core.alert.FindingStore
 import com.aegida.core.alert.GuardianSettings
 import com.aegida.core.alert.HistoryLog
 import com.aegida.core.alert.MomNotifier
+import com.aegida.core.alert.Outbox
 import com.aegida.core.feed.FeedKey
 import com.aegida.core.feed.FeedUpdater
 import com.aegida.core.health.CheckLog
@@ -16,6 +17,7 @@ import com.aegida.core.oem.OemSource
 import com.aegida.core.store.FeedStore
 import com.aegida.core.store.SetupStore
 import com.aegida.core.time.Clock
+import com.aegida.detectors.DeliveryDetector
 import com.aegida.detectors.Detector
 import com.aegida.detectors.DnsDetector
 import com.aegida.detectors.HealthDetector
@@ -48,6 +50,7 @@ abstract class AppModule {
     @Binds @IntoSet abstract fun popupSpamDetector(impl: PopupSpamDetector): Detector
     @Binds @IntoSet abstract fun dnsDetector(impl: DnsDetector): Detector
     @Binds @IntoSet abstract fun healthDetector(impl: HealthDetector): Detector
+    @Binds @IntoSet abstract fun deliveryDetector(impl: DeliveryDetector): Detector
 
     companion object {
         @Provides @Singleton
@@ -56,6 +59,7 @@ abstract class AppModule {
         @Provides fun checkLog(store: AegidaStore): CheckLog = store.checkLog
         @Provides fun findings(store: AegidaStore): FindingStore = store.findings
         @Provides fun history(store: AegidaStore): HistoryLog = store.history
+        @Provides fun outbox(store: AegidaStore): Outbox = store.outbox
         @Provides fun setup(store: AegidaStore): SetupStore = store.setup
         @Provides fun guardians(store: AegidaStore): GuardianSettings = store.guardians
         @Provides fun feed(store: AegidaStore): FeedStore = store.feed

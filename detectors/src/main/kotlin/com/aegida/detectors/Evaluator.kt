@@ -1,5 +1,6 @@
 package com.aegida.detectors
 
+import com.aegida.core.alert.Outbox
 import com.aegida.core.health.CheckLog
 import com.aegida.core.health.CheckRun
 import com.aegida.core.health.Trigger
@@ -25,6 +26,7 @@ class Evaluator @Inject constructor(
     private val setupStore: SetupStore,
     private val feedStore: FeedStore,
     private val checkLog: CheckLog,
+    private val outbox: Outbox,
 ) {
     private val mutex = Mutex()
 
@@ -33,7 +35,7 @@ class Evaluator @Inject constructor(
 
     suspend fun run(trigger: Trigger, snapshot: Snapshot, event: NotificationEvent? = null): List<Finding> = mutex.withLock {
         val started = clock.now()
-        val input = Inputs(snapshot, started, setupStore.setup(), feedStore.current(), event, checkLog.latest(Trigger.Daily))
+        val input = Inputs(snapshot, started, setupStore.setup(), feedStore.current(), event, checkLog.latest(Trigger.Daily), outbox.all().minOfOrNull { it.queuedAt })
         val findings = detectors.sortedBy { it.id }.flatMap { it.evaluate(input) }.distinctBy { it.key }
         checkLog.record(CheckRun(trigger, started, clock.now()))
         findings

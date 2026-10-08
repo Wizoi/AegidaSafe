@@ -11,7 +11,7 @@ import androidx.room.RoomDatabase
  * schema in store/schemas, and Kevin's OK first. No destructive fallback, ever.
  */
 @Database(
-    entities = [CheckRunEntity::class, FindingEntity::class, HistoryEntity::class, SettingEntity::class],
+    entities = [CheckRunEntity::class, FindingEntity::class, HistoryEntity::class, OutboxEntity::class, SettingEntity::class],
     version = 1,
     exportSchema = true,
 )
@@ -19,6 +19,7 @@ abstract class AegidaDatabase : RoomDatabase() {
     abstract fun checkRuns(): CheckRunDao
     abstract fun findings(): FindingDao
     abstract fun history(): HistoryDao
+    abstract fun outbox(): OutboxDao
     abstract fun settings(): SettingDao
 
     companion object {

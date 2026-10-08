@@ -62,3 +62,32 @@ interface SettingDao {
     @Query("SELECT * FROM setting")
     suspend fun all(): List<SettingEntity>
 }
+
+/** Guardian messages not delivered yet (core Outbox). */
+@Entity(tableName = "outbox")
+data class OutboxEntity(
+    @androidx.room.PrimaryKey(autoGenerate = true) val rowId: Long = 0,
+    val topic: String,
+    val title: String,
+    val body: String,
+    val urgent: Boolean,
+    val outboxProblem: String,
+    val queuedAtMillis: Long,
+    val attempts: Int,
+    val lastTriedMillis: Long,
+)
+
+@Dao
+interface OutboxDao {
+    @Insert
+    suspend fun add(row: OutboxEntity)
+
+    @Query("SELECT * FROM outbox ORDER BY queuedAtMillis, rowId")
+    suspend fun all(): List<OutboxEntity>
+
+    @Query("DELETE FROM outbox WHERE rowId = :id")
+    suspend fun remove(id: Long)
+
+    @Query("UPDATE outbox SET attempts = attempts + 1, lastTriedMillis = :atMillis WHERE rowId = :id")
+    suspend fun failedAgain(id: Long, atMillis: Long)
+}
