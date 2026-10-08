@@ -21,11 +21,11 @@ tasks.test {
     systemProperty("aegida.root", rootDir.absolutePath)
     // Room writes store/schemas during kapt; read it after that in the same build, not in parallel.
     mustRunAfter(":store:kaptDebugKotlin", ":store:kaptReleaseKotlin")
-    // The scanned files are inputs, so editing any source re-runs the guards.
+    // Inputs are every file the guards read (ShippedSources.allText is the widest: the whole repo
+    // minus build output), so editing a doc or script re-runs the secrets scan too (findings #9).
     inputs.files(
         fileTree(rootDir) {
-            include("*/src/main/**", "*/build.gradle.kts", "store/schemas/**", "*.gradle.kts", "gradle.properties")
-            exclude("**/build/**")
+            exclude("**/build/**", "**/.gradle/**", ".git/**", "**/.idea/**", "**/.kotlin/**")
         },
     ).withPropertyName("shippedSources").withPathSensitivity(PathSensitivity.RELATIVE)
 }
