@@ -22,6 +22,12 @@ class GuardianAlerts @Inject constructor(
         if (current.alertsOn == on) return AlertsSwitched(null, null)
         settings.save(current.copy(alertsOn = on))
         if (!on) return AlertsSwitched(null, switch.disarm())
+        return startTelling()
+    }
+
+    /** Tells the current guardian Aegida is set up and starts the "hasn't checked in" message. Used when alerts go on and when the guardian changes. */
+    suspend fun startTelling(): AlertsSwitched {
+        val current = settings.current()
         val owner = current.ownerName.ifBlank { Texts.APP_NAME }
         val welcome = current.firstTopic?.let {
             ntfy.send(it, GuardianMessage(title = owner, body = Texts.Guardian.SET_UP.format(owner), urgent = false))

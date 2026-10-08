@@ -26,6 +26,7 @@ import com.aegida.app.ui.SettingsScreen
 import com.aegida.app.ui.setup.AboutStep
 import com.aegida.app.ui.setup.AccessStep
 import com.aegida.app.ui.setup.AlertsStep
+import com.aegida.app.ui.setup.ChangeGuardianScreen
 import com.aegida.app.ui.setup.FilterStep
 import com.aegida.app.ui.setup.InviteStep
 import com.aegida.app.ui.setup.PictureStep
@@ -174,15 +175,41 @@ class ScreensTest(private val dark: Boolean, private val fontScale: Float) {
             SettingsScreen(
                 Setup(null, emptySet(), pictureId = picture),
                 Guardians(alertsOn = false, ownerName = "Ruth", firstTopic = null, firstGuardianName = "Kevin"),
-                filterOn = false, onChangePicture = {}, onAlerts = { alerts = it }, onFilterHelp = {},
+                filterOn = false, onChangePicture = {}, onChangeGuardian = {}, onAlerts = { alerts = it }, onFilterHelp = {},
             )
         }
         reachable("Ruth")
         reachable("Kevin")
+        reachable(Texts.Settings.CHANGE_GUARDIAN)
         compose.onNode(androidx.compose.ui.test.hasClickAction() and androidx.compose.ui.test.isToggleable()).performScrollTo().performClick()
         assertEquals(true, alerts)
         reachable(Texts.Settings.OFF)
         reachable(Texts.Setup.FILTER_TITLE)
+    }
+
+    @Test fun changingTheGuardianFirstAsksHerToTellTheOldOneAndOnlySavesAfterShesAgreed() {
+        var saved: List<String>? = null
+        show { ChangeGuardianScreen(picture, "Kevin") { a, b, c -> saved = listOf(a, b, c) } }
+        compose.onNodeWithText(Texts.Common.SAVE).performScrollTo().assertIsNotEnabled()
+        compose.onNodeWithText(Texts.Setup.GUARDIAN_NAME).performScrollTo().performTextInput("Ann")
+        compose.onNodeWithText(Texts.Setup.GUARDIAN_EMAIL).performScrollTo().performTextInput("ann@example.org")
+        compose.onNodeWithText(Texts.Common.SAVE).performScrollTo().assertIsEnabled().performClick()
+        assertEquals(null, saved)
+        compose.onNodeWithText(Texts.Settings.CHANGE_GUARDIAN_POPUP_TITLE.format("Kevin")).assertIsDisplayed()
+        compose.onNodeWithText(Texts.Settings.CHANGE_GUARDIAN_POPUP_BACK).performClick()
+        assertEquals(null, saved)
+        compose.onNodeWithText(Texts.Common.SAVE).performScrollTo().performClick()
+        compose.onNodeWithText(Texts.Settings.CHANGE_GUARDIAN_POPUP_OK).performClick()
+        assertEquals(listOf("Ann", "ann@example.org", ""), saved)
+    }
+
+    @Test fun changingTheGuardianWithNoPreviousOneDoesNotAskAnyone() {
+        var saved: List<String>? = null
+        show { ChangeGuardianScreen(picture, "") { a, b, c -> saved = listOf(a, b, c) } }
+        compose.onNodeWithText(Texts.Setup.GUARDIAN_NAME).performScrollTo().performTextInput("Ann")
+        compose.onNodeWithText(Texts.Setup.GUARDIAN_EMAIL).performScrollTo().performTextInput("ann@example.org")
+        compose.onNodeWithText(Texts.Common.SAVE).performScrollTo().performClick()
+        assertEquals(listOf("Ann", "ann@example.org", ""), saved)
     }
 
     // First-run steps

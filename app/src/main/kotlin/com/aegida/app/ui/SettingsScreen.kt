@@ -21,13 +21,14 @@ import com.aegida.core.model.SafetyPicture
 import com.aegida.core.model.Setup
 import com.aegida.core.text.Texts
 
-/** What the owner can see and change later. Changing the guardian is not here yet: it must tell the current guardian first. */
+/** What the owner can see and change later. */
 @Composable
 fun SettingsScreen(
     setup: Setup,
     guardians: Guardians,
     filterOn: Boolean,
     onChangePicture: () -> Unit,
+    onChangeGuardian: () -> Unit,
     onAlerts: (Boolean) -> Unit,
     onFilterHelp: () -> Unit,
 ) {
@@ -37,6 +38,7 @@ fun SettingsScreen(
         SettingCard {
             ValueRow(Texts.Settings.NAME, guardians.ownerName.ifBlank { Texts.Settings.NOT_SET })
             ValueRow(Texts.Settings.GUARDIAN, guardians.firstGuardianName.ifBlank { Texts.Settings.NOT_SET })
+            QuietButton(Texts.Settings.CHANGE_GUARDIAN, onChangeGuardian)
         }
         SettingCard {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {

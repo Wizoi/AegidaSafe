@@ -6,9 +6,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -64,6 +66,34 @@ fun AboutStep(pictureId: String?, number: Int, total: Int, initial: Guardians, o
         Field(email, { email = it }, Texts.Setup.GUARDIAN_EMAIL, KeyboardType.Email)
         Field(phone, { phone = it }, Texts.Setup.GUARDIAN_PHONE, KeyboardType.Phone)
         BigButton(Texts.Common.CONTINUE, { onContinue(name, guardian, email, phone) }, enabled = valid)
+    }
+}
+
+/** Picks a different guardian later. The owner decides; before saving she is asked to tell the previous guardian herself. */
+@Composable
+fun ChangeGuardianScreen(pictureId: String?, previousName: String, onSave: (name: String, email: String, phone: String) -> Unit) {
+    var guardian by rememberSaveable { mutableStateOf("") }
+    var email by rememberSaveable { mutableStateOf("") }
+    var phone by rememberSaveable { mutableStateOf("") }
+    var asking by rememberSaveable { mutableStateOf(false) }
+    val valid = guardian.isNotBlank() && email.contains('@') && email.substringAfter('@').contains('.')
+    AegidaScreen(pictureId) {
+        Text(Texts.Settings.CHANGE_GUARDIAN_TITLE, style = MaterialTheme.typography.headlineMedium, modifier = Modifier.semantics { heading() })
+        Body(Texts.Setup.GUARDIAN_BODY, centered = false)
+        Field(guardian, { guardian = it }, Texts.Setup.GUARDIAN_NAME, KeyboardType.Text)
+        Field(email, { email = it }, Texts.Setup.GUARDIAN_EMAIL, KeyboardType.Email)
+        Field(phone, { phone = it }, Texts.Setup.GUARDIAN_PHONE, KeyboardType.Phone)
+        // With no previous guardian there is nobody to let know.
+        BigButton(Texts.Common.SAVE, { if (previousName.isBlank()) onSave(guardian, email, phone) else asking = true }, enabled = valid)
+    }
+    if (asking) {
+        AlertDialog(
+            onDismissRequest = { asking = false },
+            title = { Text(Texts.Settings.CHANGE_GUARDIAN_POPUP_TITLE.format(previousName), style = MaterialTheme.typography.titleLarge) },
+            text = { Text(Texts.Settings.CHANGE_GUARDIAN_POPUP_BODY.format(previousName), style = MaterialTheme.typography.bodyLarge) },
+            confirmButton = { TextButton({ asking = false; onSave(guardian, email, phone) }) { Text(Texts.Settings.CHANGE_GUARDIAN_POPUP_OK, style = MaterialTheme.typography.titleMedium) } },
+            dismissButton = { TextButton({ asking = false }) { Text(Texts.Settings.CHANGE_GUARDIAN_POPUP_BACK, style = MaterialTheme.typography.titleMedium) } },
+        )
     }
 }
 

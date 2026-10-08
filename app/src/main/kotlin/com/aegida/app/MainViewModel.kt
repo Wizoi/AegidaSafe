@@ -6,6 +6,7 @@ import com.aegida.alerts.CheckRunner
 import com.aegida.alerts.DailyCheck
 import com.aegida.alerts.FindingActions
 import com.aegida.alerts.GuardianAlerts
+import com.aegida.alerts.GuardianChange
 import com.aegida.core.alert.FindingStore
 import com.aegida.core.alert.GuardianSettings
 import com.aegida.core.alert.Guardians
@@ -70,6 +71,7 @@ class MainViewModel @Inject constructor(
     private val runner: CheckRunner,
     private val dailyCheck: DailyCheck,
     private val guardianAlerts: GuardianAlerts,
+    private val guardianChange: GuardianChange,
     private val actions: FindingActions,
     private val oem: OemSource,
     private val clock: Clock,
@@ -145,6 +147,13 @@ class MainViewModel @Inject constructor(
         guardianSettings.save(made)
         load()
         return made
+    }
+
+    /** Changes the guardian (the owner decides; nothing is sent to the old one). Returns the new settings to build the invite from. */
+    suspend fun changeGuardian(name: String, email: String, phone: String): Guardians {
+        quietly { guardianChange.change(name, email, phone) }
+        load()
+        return guardianSettings.current()
     }
 
     fun setAlerts(on: Boolean) = change { quietly { guardianAlerts.setAlertsOn(on) } }

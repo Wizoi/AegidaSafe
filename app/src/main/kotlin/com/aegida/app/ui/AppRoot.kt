@@ -45,6 +45,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.aegida.app.MainState
 import com.aegida.app.MainViewModel
 import com.aegida.app.ui.setup.AboutStep
+import com.aegida.app.ui.setup.ChangeGuardianScreen
 import com.aegida.app.ui.setup.AccessStep
 import com.aegida.app.ui.setup.AlertsStep
 import com.aegida.app.ui.setup.BlockerStep
@@ -170,6 +171,7 @@ private sealed interface Page {
     data object None : Page
     data object FilterGuide : Page
     data object ChangePicture : Page
+    data object ChangeGuardian : Page
     data class Advice(val finding: Finding) : Page
 }
 
@@ -178,6 +180,7 @@ private fun MainContent(state: MainState, vm: MainViewModel) {
     val context = LocalContext.current
     var tab by rememberSaveable { mutableStateOf(Tab.Home) }
     var page by remember { mutableStateOf<Page>(Page.None) }
+    val scope = rememberCoroutineScope()
     val zone = ZoneId.systemDefault()
     val locale = Locale.getDefault()
     val pictureId = state.setup.pictureId
@@ -227,6 +230,7 @@ private fun MainContent(state: MainState, vm: MainViewModel) {
                     Tab.Settings -> SettingsScreen(
                         state.setup, state.guardians, state.filterOn,
                         onChangePicture = { page = Page.ChangePicture },
+                        onChangeGuardian = { page = Page.ChangeGuardian },
                         onAlerts = vm::setAlerts,
                         onFilterHelp = { page = Page.FilterGuide },
                     )
@@ -242,6 +246,14 @@ private fun MainContent(state: MainState, vm: MainViewModel) {
                     )
                 }
                 Page.ChangePicture -> PictureStep(pictureId, 0, 0, SafetyPicture.fromId(pictureId), vm::savePicture, onContinue = { page = Page.None }, buttonText = Texts.Common.SAVE)
+                Page.ChangeGuardian -> ChangeGuardianScreen(pictureId, state.guardians.firstGuardianName) { name, email, phone ->
+                    scope.launch {
+                        // The new guardian gets the same email as in setup, with their own new private link.
+                        val intent = InviteEmail.intent(vm.changeGuardian(name, email, phone))
+                        page = Page.None
+                        context.startSafely(intent)
+                    }
+                }
                 is Page.Advice -> AegidaScreen(pictureId) {
                     Headline(current.finding.key.problem.forMom)
                     Body(Texts.Home.SCAM_ADVICE)

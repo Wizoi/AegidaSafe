@@ -127,7 +127,12 @@ object Texts {
         const val OFF = "Off"
         const val CANT_TELL = "Can't tell"
         const val CHANGE = "Change"
-        const val GUARDIANS_NOTIFIED = "Changing your guardian tells your current guardian."
+        const val CHANGE_GUARDIAN = "Pick a different guardian"
+        const val CHANGE_GUARDIAN_TITLE = "Pick a new guardian"
+        const val CHANGE_GUARDIAN_POPUP_TITLE = "Please tell %s"
+        const val CHANGE_GUARDIAN_POPUP_BODY = "Aegida won't tell %s that you changed your guardian. Please let them know yourself, so they aren't left wondering."
+        const val CHANGE_GUARDIAN_POPUP_OK = "I will"
+        const val CHANGE_GUARDIAN_POPUP_BACK = "Go back"
     }
 
     /** The email the owner's phone drafts for her guardian. Filled in by the invite builder. */
