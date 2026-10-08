@@ -26,14 +26,14 @@ Gate (design section 11): guard tests green; emulator scenarios for link check, 
 | 1g | Wiring: `CheckRunner` and `DailyCheck` (`:alerts`, JVM-tested), notification listener that hides fake website warnings, the "Aegida is protecting you" foreground service, daily WorkManager job, boot receiver, Hilt graph | `:alerts`, `:app` | done, proven on the emulator (findings #32) |
 | 1h | Screens: Home, History, My settings and the eight first-run steps, in the storyboard's ten safety pictures; 71 UI tests per variant (light and dark, normal and 200% font); walked on the emulator and looked at in all four display variants (findings #36-#38) | `:app` | done; guardian change not built (decided, see below) |
 | 1i | Feed publishing: daily workflow (`build-feed.yml`) builds, signs, verifies and pushes `feed.bin`/`feed.sig` to the public Aegida-Feed Pages site. First run green Oct 8; live feed verified with the committed public key (findings #28, #29) | `.github/`, `:feedtool`, Aegida-Feed | done |
-| 1j | Emulator scenarios: `emulator-checks.sh scenarios` 10/10 and `failures` 7/7 (offline daily job keeps the last feed and raises no alarm; a phone that never runs its check gets MissedCheck and ListsOld). Still to do: guardian alerts end to end over ntfy (needs pairing and the dead man's switch), process killed mid-check | `emulator-checks.sh` | mostly done |
+| 1j | Emulator scenarios: `emulator-checks.sh scenarios` 10/10 and `failures` 7/7 (offline daily job keeps the last feed and raises no alarm; a phone that never runs its check gets MissedCheck and ListsOld). Guardian transport built and JVM-tested (Oct 8): scheduled and cancellable ntfy messages, dead man's switch (due in 2 days, pushed back by each daily check), alerts switch, outbox with back-off and retry, `GuardianUnreachable` after 24 h. Still to do: first live ntfy send (ask Kevin first; confirm public ntfy.sh honours sequence ids), emulator run of the outbox and heartbeat, mutants for the new classes, process killed mid-check | `emulator-checks.sh` | mostly done |
 
 Open items inside phase 1:
 - **Her picture on banners:** decided (Kevin): the shield with her picture as a watermark. Needs rendering to a bitmap for `setLargeIcon`. To build.
 - **Event warnings that repeat:** a scam message acknowledged and then repeated warns Mom and the guardian again (tested, `FindingActionsTest`); decided (Kevin): needs a back-off so guardians are not told constantly; build with escalation in phase 2.
 - **Home wording:** approved by Kevin. The storyboard says "Everything is as it should be."; Home says "No known problems found." instead, as CLAUDE.md requires.
 - `INTERNET`, `POST_NOTIFICATIONS`, `FOREGROUND_SERVICE` and `FOREGROUND_SERVICE_SPECIAL_USE` are approved but not yet in the manifest; add them with 1f/1g. `ManifestPolicyTest` has no rule against them.
-- Dead man's switch for "Aegida hasn't checked in" through ntfy scheduled delivery (findings #23).
+- Dead man's switch: built (`DeadMansSwitch`); needs the live ntfy check above (findings #23).
 - About screen shows each feed source's licence from the feed itself. Phishing.Database is MIT (verified); URLhaus is excluded until abuse.ch answers (findings #27).
 - Look-alike gap: a name written entirely in Cyrillic or Greek letters that imitates a brand is only caught when its letters map to Latin ones (`LinkSigns` homoglyph table). Check against real internationalised domains from the feed before widening it.
 
@@ -60,4 +60,6 @@ Open items inside phase 1:
 
 ## Later
 Remote-access and banking warning, opt-in call screening, weekly guardian digest, manual "Check this".
+- **Code naming:** the person with the phone is the *owner* in code (decided Oct 8).
+- **Blank owner name:** guardian messages fall back to "Aegida" (reads badly); choose better wording.
 - **Changing the guardian:** decided (Kevin): allowed, with a popup telling her to let the previous guardian know; nothing is sent automatically. To build in My settings.
