@@ -10,10 +10,12 @@ is allowed.
 
 ## What you do once (keys never pass through chat)
 
-1. **Signing key.** On your PC, from the AegidaSafe folder:
+1. **Signing key.** In PowerShell, from the AegidaSafe folder (Gradle and the tool both need Android Studio's
+   Java, which is not on the PATH, so set it first; it lasts only for that window):
    ```
-   ./gradlew :feedtool:installDist
-   feedtool/build/install/feedtool/bin/feedtool.bat keygen --out C:\Users\<you>\aegida-keys
+   $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"
+   .\gradlew.bat :feedtool:installDist
+   .\feedtool\build\install\feedtool\bin\feedtool.bat keygen --out $HOME\aegida-keys
    ```
    - GitHub, repo **AegidaSafe**, Settings, Secrets and variables, Actions, new secret
      `AEGIDA_FEED_SIGNING_KEY` = the contents of `feed-private.txt`.
@@ -23,7 +25,7 @@ is allowed.
      has to be updated with a new public key; phones cannot be re-keyed remotely.**
 2. **Deploy key** (lets the workflow write to Aegida-Feed and nothing else):
    ```
-   ssh-keygen -t ed25519 -N "" -C aegida-feed-deploy -f C:\Users\<you>\aegida-keys\feed_deploy_key
+   ssh-keygen -t ed25519 -N "" -C aegida-feed-deploy -f $HOME\aegida-keys\feed_deploy_key
    ```
    - Repo **Aegida-Feed**, Settings, Deploy keys, add the `.pub` file, tick **Allow write access**.
    - Repo **AegidaSafe**, secret `AEGIDA_FEED_DEPLOY_KEY` = the contents of the private file
