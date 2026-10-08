@@ -25,8 +25,10 @@ is allowed.
      has to be updated with a new public key; phones cannot be re-keyed remotely.**
 2. **Deploy key** (lets the workflow write to Aegida-Feed and nothing else):
    ```
-   ssh-keygen -t ed25519 -N "" -C aegida-feed-deploy -f $HOME\aegida-keys\feed_deploy_key
+   ssh-keygen -t ed25519 -N '""' -C aegida-feed-deploy -f $HOME\aegida-keys\feed_deploy_key
    ```
+   (Windows PowerShell 5.1 drops a bare `""`, hence the `'""'`. Or leave `-N` out and press Enter at both
+   passphrase prompts: the workflow needs a key with no passphrase.)
    - Repo **Aegida-Feed**, Settings, Deploy keys, add the `.pub` file, tick **Allow write access**.
    - Repo **AegidaSafe**, secret `AEGIDA_FEED_DEPLOY_KEY` = the contents of the private file
      (`feed_deploy_key`, including the BEGIN/END lines). Delete the local copies afterwards.
