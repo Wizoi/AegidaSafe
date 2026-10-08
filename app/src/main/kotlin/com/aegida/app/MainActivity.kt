@@ -4,7 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import com.aegida.app.ui.HomeScreen
+import com.aegida.app.ui.AppRoot
 import com.aegida.app.ui.theme.AegidaTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -14,6 +14,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         ProtectionService.start(this)
-        setContent { AegidaTheme { HomeScreen() } }
+        setContent { AegidaTheme { AppRoot() } }
     }
 }

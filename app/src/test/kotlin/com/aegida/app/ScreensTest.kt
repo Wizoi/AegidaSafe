@@ -1,0 +1,267 @@
+package com.aegida.app
+
+import android.app.Application
+import android.content.ComponentName
+import androidx.activity.ComponentActivity
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.unit.Density
+import androidx.test.core.app.ApplicationProvider
+import com.aegida.app.ui.HistoryScreen
+import com.aegida.app.ui.HomeScreen
+import com.aegida.app.ui.SettingsScreen
+import com.aegida.app.ui.setup.AboutStep
+import com.aegida.app.ui.setup.AccessStep
+import com.aegida.app.ui.setup.AlertsStep
+import com.aegida.app.ui.setup.FilterStep
+import com.aegida.app.ui.setup.InviteStep
+import com.aegida.app.ui.setup.PictureStep
+import com.aegida.app.ui.theme.AegidaTheme
+import com.aegida.core.alert.Guardians
+import com.aegida.core.alert.HistoryRow
+import com.aegida.core.health.CheckRun
+import com.aegida.core.health.Trigger
+import com.aegida.core.model.DetectorId
+import com.aegida.core.model.Finding
+import com.aegida.core.model.FindingKey
+import com.aegida.core.model.HomeState
+import com.aegida.core.model.SafetyPicture
+import com.aegida.core.model.Setup
+import com.aegida.core.text.Problem
+import com.aegida.core.text.Texts
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Rule
+import org.junit.Test
+import org.junit.rules.ExternalResource
+import org.junit.rules.RuleChain
+import org.junit.runner.RunWith
+import org.robolectric.ParameterizedRobolectricTestRunner
+import org.robolectric.ParameterizedRobolectricTestRunner.Parameters
+import org.robolectric.Shadows.shadowOf
+import java.time.Duration
+import java.time.Instant
+import java.time.ZoneId
+import java.util.Locale
+
+/**
+ * Every screen in light and dark, at the normal font and at 200% (Mom's reality, CLAUDE.md). Each check
+ * scrolls to the main button, so a button pushed off the bottom by large text fails here.
+ */
+@RunWith(ParameterizedRobolectricTestRunner::class)
+class ScreensTest(private val dark: Boolean, private val fontScale: Float) {
+
+    companion object {
+        @JvmStatic
+        @Parameters(name = "dark={0} font={1}")
+        fun variants() = listOf(arrayOf(false, 1f), arrayOf(true, 1f), arrayOf(false, 2f), arrayOf(true, 2f))
+    }
+
+    // The Compose test activity is declared only in debug builds (and must never ship), so the release unit
+    // tests register it here instead. Findings #35.
+    private val registerTestActivity = object : ExternalResource() {
+        override fun before() {
+            val context = ApplicationProvider.getApplicationContext<Application>()
+            shadowOf(context.packageManager).addActivityIfNotPresent(ComponentName(context.packageName, ComponentActivity::class.java.name))
+        }
+    }
+    private val composeRule = createComposeRule()
+
+    @get:Rule val rules: RuleChain = RuleChain.outerRule(registerTestActivity).around(composeRule)
+    private val compose get() = composeRule
+
+    private val now = Instant.now()
+    private val zone = ZoneId.of("America/Los_Angeles")
+    private val locale = Locale.US
+    private val picture = SafetyPicture.Sunflower.id
+
+    private fun show(content: @Composable () -> Unit) = compose.setContent {
+        val density = LocalDensity.current
+        CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) { AegidaTheme(dark = dark, content = content) }
+    }
+
+    private fun finding(problem: Problem, minutesOld: Long = 5) =
+        Finding(FindingKey(DetectorId.Dns, problem, problem.name), emptyMap(), now.minus(Duration.ofMinutes(minutesOld)), now)
+
+    private fun reachable(text: String) = compose.onNodeWithText(text).performScrollTo().assertIsDisplayed()
+
+    // Home
+
+    @Test fun homeWithNoKnownProblemsSaysSoAndOffersACall() {
+        var called = 0
+        show { HomeScreen(HomeState.NoKnownProblems(now.minus(Duration.ofHours(3))), picture, now, zone, locale, {}, { called++ }) }
+        reachable(Texts.Home.ALL_GOOD)
+        reachable(Texts.Home.NO_KNOWN_PROBLEMS)
+        compose.onNodeWithText(Texts.Home.CALL_A_GUARDIAN).performScrollTo().performClick()
+        assertEquals(1, called)
+    }
+
+    @Test fun homeWithOneProblemShowsItsSentenceAndABigFixButton() {
+        val dns = finding(Problem.WebsiteFilterOff)
+        var fixed: Finding? = null
+        show { HomeScreen(HomeState.NeedsTaps(listOf(dns)), picture, now, zone, locale, { fixed = it }, {}) }
+        reachable(Texts.Home.NEEDS_ONE)
+        reachable(Problem.WebsiteFilterOff.forMom)
+        compose.onNodeWithText(Texts.Home.FIX_MY_PHONE).performScrollTo().performClick()
+        assertEquals(dns, fixed)
+        reachable(Texts.Home.CALL_A_GUARDIAN)
+    }
+
+    @Test fun homeWithSeveralProblemsCountsThemAndStartsWithTheFirst() {
+        val first = finding(Problem.ListenerOff, minutesOld = 60)
+        var fixed: Finding? = null
+        show { HomeScreen(HomeState.NeedsTaps(listOf(first, finding(Problem.WebsiteFilterOff))), picture, now, zone, locale, { fixed = it }, {}) }
+        reachable(Texts.Home.NEEDS_MANY.format(2))
+        compose.onNodeWithText(Texts.Home.FIX_MY_PHONE).performScrollTo().performClick()
+        assertEquals(first, fixed)
+    }
+
+    @Test fun homeThatCouldNotCheckNeverSaysAllGood() {
+        show { HomeScreen(HomeState.CouldntCheck(now.minus(Duration.ofDays(2))), picture, now, zone, locale, {}, {}) }
+        reachable(Texts.Home.COULDNT_CHECK)
+        reachable(Texts.Home.CALL_A_GUARDIAN)
+        compose.onNodeWithText(Texts.Home.ALL_GOOD).assertDoesNotExistOrFail()
+    }
+
+    @Test fun homeThatNeverCheckedSaysSo() {
+        show { HomeScreen(HomeState.CouldntCheck(null), picture, now, zone, locale, {}, {}) }
+        reachable(Texts.Home.NEVER_CHECKED)
+    }
+
+    @Test fun herPictureIsOnTheScreenAndNamedForAScreenReader() {
+        show { HomeScreen(HomeState.NoKnownProblems(now), picture, now, zone, locale, {}, {}) }
+        compose.onNodeWithContentDescription(Texts.Common.YOUR_PICTURE.format("Sunflower")).assertExists()
+        compose.onNodeWithText(Texts.APP_NAME).assertExists()
+    }
+
+    // History
+
+    @Test fun historyListsEventsUnderADayHeadingAndSaysHowLongItIsKept() {
+        val rows = listOf(
+            HistoryRow(now.minus(Duration.ofMinutes(10)), "A website sent fake warnings", "You were warned.", handled = true),
+            HistoryRow(now.minus(Duration.ofDays(1)), "Website protection was off", "You were warned. Fixed.", handled = true),
+        )
+        show { HistoryScreen(rows, picture, now, zone, locale) }
+        reachable(Texts.History.TODAY)
+        reachable("A website sent fake warnings")
+        reachable(Texts.History.YESTERDAY)
+        reachable(Texts.History.KEPT)
+    }
+
+    @Test fun emptyHistorySaysNothingHasHappened() {
+        show { HistoryScreen(emptyList(), picture, now, zone, locale) }
+        reachable(Texts.History.EMPTY)
+    }
+
+    // My settings
+
+    @Test fun settingsShowsHerChoicesAndTheAlertsSwitchWorks() {
+        var alerts: Boolean? = null
+        show {
+            SettingsScreen(
+                Setup(null, emptySet(), pictureId = picture),
+                Guardians(alertsOn = false, momName = "Ruth", firstTopic = null, firstGuardianName = "Kevin"),
+                filterOn = false, onChangePicture = {}, onAlerts = { alerts = it }, onFilterHelp = {},
+            )
+        }
+        reachable("Ruth")
+        reachable("Kevin")
+        compose.onNode(androidx.compose.ui.test.hasClickAction() and androidx.compose.ui.test.isToggleable()).performScrollTo().performClick()
+        assertEquals(true, alerts)
+        reachable(Texts.Settings.OFF)
+        reachable(Texts.Setup.FILTER_TITLE)
+    }
+
+    // First-run steps
+
+    @Test fun aboutStepNeedsAValidNameGuardianAndEmailBeforeContinuing() {
+        var saved: List<String>? = null
+        show { AboutStep(null, 1, 6, Guardians.None) { a, b, c, d -> saved = listOf(a, b, c, d) } }
+        compose.onNodeWithText(Texts.Common.CONTINUE).performScrollTo().assertIsNotEnabled()
+        compose.onNodeWithText(Texts.Setup.YOUR_NAME).performScrollTo().performTextInput("Ruth")
+        compose.onNodeWithText(Texts.Setup.GUARDIAN_NAME).performScrollTo().performTextInput("Kevin")
+        compose.onNodeWithText(Texts.Setup.GUARDIAN_EMAIL).performScrollTo().performTextInput("not an email")
+        compose.onNodeWithText(Texts.Common.CONTINUE).performScrollTo().assertIsNotEnabled()
+        compose.onNodeWithText(Texts.Setup.GUARDIAN_EMAIL).performScrollTo().performTextInput("kevin@example.org")
+        compose.onNodeWithText(Texts.Common.CONTINUE).performScrollTo().assertIsEnabled().performClick()
+        assertTrue(saved!![2].endsWith("kevin@example.org"))
+    }
+
+    @Test fun pictureStepShowsAllTenAndContinuesOnlyAfterOneIsPicked() {
+        var chosen: SafetyPicture? = null
+        show { PictureStep(null, 2, 6, null, { chosen = it }, onContinue = {}) }
+        SafetyPicture.entries.forEach { compose.onNodeWithContentDescription(it.label).performScrollTo().assertIsDisplayed() }
+        compose.onNodeWithText(Texts.Common.CONTINUE).performScrollTo().assertIsNotEnabled()
+        compose.onNodeWithContentDescription("Owl").performScrollTo().performClick()
+        compose.onNodeWithContentDescription("Owl").assertIsSelected()
+        assertEquals(SafetyPicture.Owl, chosen)
+        compose.onNodeWithText(Texts.Common.CONTINUE).performScrollTo().assertIsEnabled()
+    }
+
+    @Test fun inviteStepOnlyLetsHerSayItWasSentAfterTheEmailWasWritten() {
+        var written = 0
+        show { InviteStep(picture, 3, 6, "Kevin", noEmailApp = false, onWrite = { written++ }, onSent = {}) }
+        compose.onNodeWithText(Texts.Setup.INVITE_SENT).performScrollTo().assertIsNotEnabled()
+        compose.onNodeWithText(Texts.Setup.INVITE_WRITE).performScrollTo().performClick()
+        assertEquals(1, written)
+        compose.onNodeWithText(Texts.Setup.INVITE_SENT).performScrollTo().assertIsEnabled()
+    }
+
+    @Test fun inviteStepSaysSoWhenThereIsNoEmailApp() {
+        show { InviteStep(picture, 3, 6, "Kevin", noEmailApp = true, onWrite = {}, onSent = {}) }
+        reachable(Texts.Setup.INVITE_NO_EMAIL_APP)
+    }
+
+    @Test fun alertsStepOffersYesAndNoWithAnExampleOfWhatIsSent() {
+        val answers = mutableListOf<Boolean>()
+        show { AlertsStep(picture, 4, 6) { answers += it } }
+        reachable(Texts.Setup.ALERTS_BODY)
+        compose.onNodeWithText(Texts.Setup.ALERTS_YES).performScrollTo().performClick()
+        compose.onNodeWithText(Texts.Setup.ALERTS_NO).performScrollTo().performClick()
+        assertEquals(listOf(true, false), answers)
+    }
+
+    @Test fun accessStepShowsWhatIsDoneAndOnlyContinuesFullyWhenBothAreOn() {
+        show { AccessStep(picture, 5, 6, listenerOn = true, bannersOn = false, onOpenAccess = {}, onAllowBanners = {}, onContinue = {}) }
+        reachable(Texts.Setup.ACCESS_DONE)
+        reachable(Texts.Setup.ACCESS_ALLOW_BANNERS)
+        reachable(Texts.Common.NOT_NOW)
+    }
+
+    @Test fun filterStepReadsAsNotOnYetAndThenOnOnlyWhenAegidaHasReadItBack() {
+        show { FilterStep(picture, 6, 6, filterOn = false, onOpenSettings = {}, onCheck = {}, onContinue = {}) }
+        reachable(Texts.Setup.FILTER_NOT_YET)
+        reachable(Texts.Common.OPEN_SETTINGS)
+        reachable(Texts.Setup.FILTER_CHECK)
+    }
+
+    @Test fun filterStepOnShowsItAndContinues() {
+        var continued = 0
+        show { FilterStep(picture, 6, 6, filterOn = true, onOpenSettings = {}, onCheck = {}, onContinue = { continued++ }) }
+        reachable(Texts.Setup.FILTER_ON)
+        compose.onNodeWithText(Texts.Common.CONTINUE).performScrollTo().performClick()
+        assertEquals(1, continued)
+    }
+
+    private fun androidx.compose.ui.test.SemanticsNodeInteraction.assertDoesNotExistOrFail() {
+        try {
+            assertExists()
+        } catch (e: AssertionError) {
+            return
+        }
+        throw AssertionError("expected no such node")
+    }
+}
