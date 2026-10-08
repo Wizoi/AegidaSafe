@@ -1,0 +1,51 @@
+package com.aegida.store
+
+import androidx.room.Room
+import androidx.room.testing.MigrationTestHelper
+import androidx.test.core.app.ApplicationProvider
+import androidx.test.platform.app.InstrumentationRegistry
+import com.aegida.core.health.CheckRun
+import com.aegida.core.health.Trigger
+import kotlinx.coroutines.test.runTest
+import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import java.time.Duration
+import java.time.Instant
+import java.time.temporal.ChronoUnit
+
+@RunWith(RobolectricTestRunner::class)
+class RoomCheckLogTest {
+    private val db = Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext(), AegidaDatabase::class.java)
+        .allowMainThreadQueries()
+        .build()
+    private val log = RoomCheckLog(db.checkRuns())
+    private val now = Instant.now().truncatedTo(ChronoUnit.MILLIS)
+
+    @get:Rule val migrations = MigrationTestHelper(
+        InstrumentationRegistry.getInstrumentation(),
+        AegidaDatabase::class.java,
+    )
+
+    @After fun close() = db.close()
+
+    @Test fun emptyLogHasNoLatestRun() = runTest {
+        assertNull(log.latest())
+    }
+
+    @Test fun latestIsTheMostRecentlyStartedRunWithEveryFieldKept() = runTest {
+        val older = CheckRun(Trigger.Daily, now.minus(Duration.ofDays(1)), now.minus(Duration.ofDays(1)).plusSeconds(3))
+        val newer = CheckRun(Trigger.PackageChanged, now.minus(Duration.ofMinutes(5)), null)
+        log.record(newer)
+        log.record(older)
+        assertEquals(newer, log.latest())
+    }
+
+    @Test fun exportedSchemaVersion1Opens() {
+        migrations.createDatabase("schema-check", 1).close()
+    }
+}

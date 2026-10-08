@@ -1,0 +1,31 @@
+// Android adapters behind the :core ports. The only home of OkHttp, the system clock, maker-specific
+// code (oem/) and posted notifications (notify/).
+plugins {
+    alias(libs.plugins.android.library)
+    alias(libs.plugins.kotlin.android)
+}
+
+android {
+    namespace = "com.aegida.platform"
+    compileSdk = 36
+    defaultConfig { minSdk = 29 }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+    kotlinOptions { jvmTarget = "17" }
+    testOptions { unitTests.isIncludeAndroidResources = true }
+}
+
+dependencies {
+    api(project(":core"))
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.okhttp)
+    implementation(libs.coroutines.core)
+
+    testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.okhttp.mockwebserver)
+    testImplementation(libs.coroutines.test)
+}

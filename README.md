@@ -4,7 +4,7 @@ Aegida (from "aegis", a shield) is an Android app that helps an older parent kee
 safely. It hides fake virus pop-ups, spots dangerous apps and links, notices when a safety setting
 changes, and tells family "guardians" when something serious happens.
 
-Status: design phase. No code yet. Research is in [research/](research/), storyboard and logo in [design/](design/README.md).
+Status: Gradle skeleton with guard tests; no features yet. Research is in [research/](research/), storyboard and logo in [design/](design/README.md).
 
 - What it does: [docs/product-brief.md](docs/product-brief.md)
 - How it is built: [docs/aegida-technical-design.md](docs/aegida-technical-design.md)

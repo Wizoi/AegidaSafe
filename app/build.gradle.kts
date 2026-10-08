@@ -1,0 +1,78 @@
+// Wires and draws. No decisions here (LayerTest): logic goes in :detectors / :alerts.
+plugins {
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.kapt)
+    alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.hilt)
+}
+
+android {
+    namespace = "com.aegida.app"
+    compileSdk = 36
+
+    defaultConfig {
+        applicationId = "com.aegida.app"
+        minSdk = 29 // RoleManager (default-app drift) needs Android 10
+        targetSdk = 36 // Play: within one year of the latest Android
+        versionCode = 1
+        versionName = "0.1.0"
+        // Device-test builds report -local so they cannot be mistaken for a Play build.
+        if (project.hasProperty("localBuild")) versionNameSuffix = "-local"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+        }
+    }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+    kotlinOptions { jvmTarget = "17" }
+    buildFeatures { compose = true }
+    packaging { resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" } }
+    testOptions {
+        unitTests {
+            isReturnDefaultValues = true
+            isIncludeAndroidResources = true // Robolectric reads the merged manifest (ManifestPolicyTest)
+        }
+    }
+}
+
+kapt { correctErrorTypes = true }
+
+dependencies {
+    implementation(project(":alerts"))
+    implementation(project(":platform"))
+    implementation(project(":store"))
+
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.activity.compose)
+    implementation(platform(libs.compose.bom))
+    implementation(libs.compose.ui)
+    implementation(libs.compose.ui.tooling.preview)
+    implementation(libs.compose.material3)
+    debugImplementation(libs.compose.ui.tooling)
+
+    implementation(libs.hilt.android)
+    kapt(libs.hilt.compiler)
+    implementation(libs.hilt.work)
+    kapt(libs.hilt.work.compiler)
+    implementation(libs.work.runtime.ktx)
+    implementation(libs.serialization.json)
+
+    testImplementation(libs.junit)
+    testImplementation(libs.mockk)
+    testImplementation(libs.coroutines.test)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.work.testing)
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.androidx.test.runner)
+}
