@@ -29,7 +29,9 @@ is allowed.
    ```
    (Windows PowerShell 5.1 drops a bare `""`, hence the `'""'`. Or leave `-N` out and press Enter at both
    passphrase prompts: the workflow needs a key with no passphrase.)
-   - Repo **Aegida-Feed**, Settings, Deploy keys, add the `.pub` file, tick **Allow write access**.
+   - Repo **Aegida-Feed**, Settings, Deploy keys: GitHub takes text, not a file. Copy the one line with
+     `Get-Content $HOME\aegida-keys\feed_deploy_key.pub | Set-Clipboard`, paste it into **Key**, give it any
+     title, tick **Allow write access**, Add key.
    - Repo **AegidaSafe**, secret `AEGIDA_FEED_DEPLOY_KEY` = the contents of the private file
      (`feed_deploy_key`, including the BEGIN/END lines). Delete the local copies afterwards.
 3. **Aegida-Feed content.** Push the `main` branch of the local `Aegida-Feed` folder (README and `site/`).
