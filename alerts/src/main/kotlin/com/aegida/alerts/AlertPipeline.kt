@@ -40,7 +40,6 @@ class AlertPipeline @Inject constructor(
                 findings.put(stored.copy(lastSeen = finding.lastSeen))
                 return@forEach
             }
-            findings.put(finding.copy(state = FindingState.Open))
             alerted++
             if (finding.severity >= Severity.NeedsTap) {
                 owner.show(finding)
@@ -55,6 +54,8 @@ class AlertPipeline @Inject constructor(
                 }
                 null -> Unit
             }
+            // Last, so a run killed before this point is repeated whole: a duplicate is better than a lost warning.
+            findings.put(finding.copy(state = FindingState.Open))
         }
 
         val stillThere = current.map { it.key }.toSet()

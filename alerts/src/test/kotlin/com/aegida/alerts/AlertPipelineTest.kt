@@ -51,6 +51,21 @@ class AlertPipelineTest {
         assertEquals(listOf(Outcome.OwnerWarned, Outcome.GuardianTold), history.entries.map { it.outcome })
     }
 
+    @Test fun aCheckKilledAfterWarningButBeforeFinishingStillTellsTheGuardianOnTheNextRun() = runTest {
+        val dying = object : HttpClient by http {
+            var die = true
+            override suspend fun post(endpoint: Endpoint, body: String, headers: Map<String, String>): HttpResult {
+                if (die) { die = false; throw IllegalStateException("process killed") }
+                return http.post(endpoint, body, headers)
+            }
+        }
+        val killable = AlertPipeline(findings, owner, history, settings, NtfySender(dying), outbox) { now }
+        try { killable.handle(listOf(scamLink), setOf(DetectorId.Link)) } catch (e: IllegalStateException) { /* the process died here */ }
+        val result = killable.handle(listOf(scamLink), setOf(DetectorId.Link))
+        assertEquals(1, result.alerted)
+        assertEquals(1, http.bodies.size)
+    }
+
     @Test fun theGuardianMessageNeverContainsTheLinkOrEvidence() = runTest {
         pipeline.handle(listOf(scamLink.copy(evidence = mapOf("host" to "evil.example"))), setOf(DetectorId.Link))
         assertTrue(http.bodies.none { "evil.example" in it || "http" in it })
