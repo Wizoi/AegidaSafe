@@ -28,7 +28,7 @@ object ShippedSources {
     }
 
     val buildFiles: List<SourceFile> by lazy {
-        (modules + "guards").map { File(root, "$it/build.gradle.kts") }.filter { it.isFile }.map { read(it) } +
+        (modules + "guards" + "feedtool").map { File(root, "$it/build.gradle.kts") }.filter { it.isFile }.map { read(it) } +
             listOf("build.gradle.kts", "settings.gradle.kts", "gradle.properties").map { File(root, it) }.filter { it.isFile }.map { read(it) }
     }
 

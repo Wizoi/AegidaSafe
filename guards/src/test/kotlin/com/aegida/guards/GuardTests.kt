@@ -80,6 +80,7 @@ class LayerTest {
             "store" to setOf("core"),
             "app" to setOf("alerts", "detectors", "platform", "store", "core"),
             "guards" to setOf("core"),
+            "feedtool" to setOf("core"),
         )
         val projectRef = Regex("""project\(":(\w+)"\)""")
         ShippedSources.buildFiles.filter { it.path.contains('/') }.forEach { file ->

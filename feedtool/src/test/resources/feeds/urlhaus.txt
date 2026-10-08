@@ -1,0 +1,11 @@
+# Excerpt of URLhaus text_online, downloaded 2026-10-08 (test fixture; licence to verify)
+http://37.48.146.38:60557/bin.sh
+http://27.44.145.224:34472/i
+http://178.205.204.128:35972/i
+http://115.206.110.121:47845/i
+http://27.44.145.224:34472/bin.sh
+http://219.157.52.153:49181/i
+https://raw.githubusercontent.com/sorellyc/Swift-Executor/HEAD/Swift.exe
+https://raw.githubusercontent.com/kl1ssfa/C2Panel/HEAD/C2Panel.exe
+https://raw.githubusercontent.com/layssh0/C2Panel/HEAD/C2Panel.exe
+https://raw.githubusercontent.com/missgracess/FortniteSpoofer/HEAD/TempSpoofer.exe
