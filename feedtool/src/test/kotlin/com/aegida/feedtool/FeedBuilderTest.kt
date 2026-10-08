@@ -55,10 +55,18 @@ class FeedBuilderTest {
         assertEquals(ftp, report.unparseable)
     }
 
+    @Test fun urlhausIsLeftOutUnlessGivenAndPhishingDatabaseIsCreditedAsMit() { // findings #27
+        val (without, _) = FeedBuilder.build(Instant.now(), fixture("phishing-domains.txt"), fixture("phishing-links.txt"))
+        assertEquals(listOf("Phishing.Database domains", "Phishing.Database links"), without.sources.map { it.name })
+        assertTrue(without.sources.all { it.licence.startsWith("MIT") })
+        assertNull(without.match(Links.parse(dataLines("urlhaus.txt").first { "raw.githubusercontent.com" in it })!!))
+        assertEquals(listOf("licence to verify"), feed.sources.filter { it.name == "URLhaus" }.map { it.licence })
+    }
+
     @Test fun theBuiltFeedSurvivesEncoding() {
         val decoded = FeedCodec.decode(FeedCodec.encode(feed))
         assertEquals(feed.hostCount, decoded.hostCount)
         assertEquals(feed.urlCount, decoded.urlCount)
-        assertEquals(3, decoded.sources.size)
+        assertEquals(3, decoded.sources.size) // this build passed all three fixtures
     }
 }

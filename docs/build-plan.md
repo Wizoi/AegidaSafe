@@ -25,13 +25,13 @@ Gate (design section 11): guard tests green; emulator scenarios for link check, 
 | 1f | Android adapters: read Private DNS, default browser, listener and notification state into a `Snapshot`; map a notification into a `NotificationEvent`; banners (`NotificationPoster`); feed download with signature check | `:platform` | next |
 | 1g | Wiring: notification listener (hide scam notifications, open the site's switch), "Aegida is protecting you" foreground service, daily WorkManager job (check, feed update, dead man's switch) | `:app` | next |
 | 1h | Screens: Home (pure `HomeState.of`), History, first-run setup, My settings; both themes at 200% font | `:app` | next |
-| 1i | Feed publishing: separate repo with a scheduled GitHub Action and Pages; signing key as a secret; public key in the app | outside this repo | needs Kevin |
+| 1i | Feed publishing: daily workflow (`build-feed.yml`) in this repo pushes `feed.bin`/`feed.sig` to the public Aegida-Feed repo's Pages branch; `feedtool verify` gates the publish. Written and tested locally; **needs Kevin** for the one-time keys, secrets, push and Pages switch (`docs/feed-publishing.md`) | `.github/`, `:feedtool`, Aegida-Feed | written, waiting on Kevin |
 | 1j | Emulator scenarios: link check, pop-up page, website filter turned off, starved worker, offline, killed mid-check | `emulator-checks.sh` | next |
 
 Open items inside phase 1:
 - `INTERNET`, `POST_NOTIFICATIONS`, `FOREGROUND_SERVICE` and `FOREGROUND_SERVICE_SPECIAL_USE` are approved but not yet in the manifest; add them with 1f/1g. `ManifestPolicyTest` has no rule against them.
 - Dead man's switch for "Aegida hasn't checked in" through ntfy scheduled delivery (findings #23).
-- Feed licences (Phishing.Database, URLhaus) are still "to verify" in About.
+- About screen shows each feed source's licence from the feed itself. Phishing.Database is MIT (verified); URLhaus is excluded until abuse.ch answers (findings #27).
 - Look-alike gap: a name written entirely in Cyrillic or Greek letters that imitates a brand is only caught when its letters map to Latin ones (`LinkSigns` homoglyph table). Check against real internationalised domains from the feed before widening it.
 
 ## Phase 2. Drift, new apps, remote-control apps
