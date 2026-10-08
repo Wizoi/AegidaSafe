@@ -77,6 +77,12 @@
 ## Build tooling (Kevin, Oct 8)
 - Annotation processing is **KSP**, not kapt (Room, Hilt, Hilt WorkManager), unlike SmugView; the Gradle **configuration cache** is on. Measurements in findings #41. The standing **mutation checks** (`scripts/mutants.json`, 27) and the **emulator snapshot** (`emulator-checks.sh snapshot` / `boot`) are part of the routine; Windows shell traps are in `docs/windows-notes.md`.
 
+## Open items settled (Kevin, Oct 8)
+- **Changing the guardian:** allowed. The person holding the phone is in charge and there is no way to authorise remotely. Changing it shows a plain popup telling her to let the previous guardian know. (Supersedes the earlier "any guardian change notifies the existing guardians"; nothing is sent automatically.)
+- **Her picture on banners:** the Aegida shield, with her safety picture as a watermark/small overlay.
+- **Repeated event warnings:** need a back-off so the guardian is not told constantly; details with escalation in phase 2.
+- **Home wording:** "No known problems found." is approved.
+
 ## Open / next session
 - Create the Gradle project and run the **emulator spike**: confirm each `adb`/`cmd` scenario works on the API 36 Play image.
 - Kevin: look for an old Samsung phone on One UI 6+; look into Samsung Remote Test Lab.
