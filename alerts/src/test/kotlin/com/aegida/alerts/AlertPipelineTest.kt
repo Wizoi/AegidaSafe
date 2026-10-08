@@ -46,6 +46,12 @@ class AlertPipelineTest {
     private class History : HistoryLog {
         val entries = mutableListOf<HistoryEntry>()
         override suspend fun add(entry: HistoryEntry) { entries += entry }
+        override suspend fun since(from: Instant) = entries.filter { !it.at.isBefore(from) }.sortedByDescending { it.at }
+        override suspend fun prune(before: Instant): Int {
+            val old = entries.filter { it.at.isBefore(before) }
+            entries.removeAll(old)
+            return old.size
+        }
     }
 
     private class Http(var result: HttpResult = HttpResult.Ok(200, "{}")) : HttpClient {
@@ -61,7 +67,10 @@ class AlertPipelineTest {
     private val history = History()
     private val http = Http()
     private var guardians = Guardians(alertsOn = true, momName = "Ruth", firstTopic = topic)
-    private val settings = object : GuardianSettings { override suspend fun current() = guardians }
+    private val settings = object : GuardianSettings {
+        override suspend fun current() = guardians
+        override suspend fun save(guardians: Guardians) { this@AlertPipelineTest.guardians = guardians }
+    }
     private val pipeline = AlertPipeline(findings, mom, history, settings, NtfySender(http)) { now }
 
     private fun finding(problem: Problem, subject: String, detector: DetectorId) =

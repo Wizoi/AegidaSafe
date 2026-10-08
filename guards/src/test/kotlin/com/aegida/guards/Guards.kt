@@ -109,7 +109,8 @@ object Guards {
         "Only detectors create Findings",
         Regex("""\bFinding\("""),
         "one owner for 'is something wrong?': only :detectors constructs a Finding",
-        allowedPrefixes = listOf("detectors/", "core/$KT/core/model/Finding.kt"),
+        // :store only rebuilds findings detectors already made, from their saved rows (findings #26).
+        allowedPrefixes = listOf("detectors/", "core/$KT/core/model/Finding.kt", "store/$KT/store/RoomStores.kt"),
     )
 
     val bannedApis = Rule(

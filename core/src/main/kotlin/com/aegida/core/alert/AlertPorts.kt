@@ -22,6 +22,12 @@ interface MomNotifier {
 /** What happened, newest first, kept about 90 days. Implemented by :store. */
 interface HistoryLog {
     suspend fun add(entry: HistoryEntry)
+
+    /** Newest first. */
+    suspend fun since(from: Instant): List<HistoryEntry>
+
+    /** Removes entries older than [before]; returns how many were removed. */
+    suspend fun prune(before: Instant): Int
 }
 
 data class HistoryEntry(val at: Instant, val problem: Problem, val outcome: Outcome)
@@ -31,6 +37,7 @@ enum class Outcome { MomWarned, GuardianTold, GuardianNotReached, Fixed }
 /** Guardian alerting as Mom set it up. Implemented by :store. */
 interface GuardianSettings {
     suspend fun current(): Guardians
+    suspend fun save(guardians: Guardians)
 }
 
 data class Guardians(

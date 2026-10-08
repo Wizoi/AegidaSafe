@@ -65,6 +65,8 @@ class GuardSelfTest {
         flags(Guards.appMakesNoDecisions, "app/$k/app/X.kt", "if (finding.severity == Severity.Urgent)")
         flags(Guards.onlyDetectorsCreateFindings, "alerts/$k/alerts/X.kt", "val f = Finding(key, s, e, a, b)")
         allows(Guards.onlyDetectorsCreateFindings, "detectors/$k/detectors/X.kt", "val f = Finding(key, s, e, a, b)")
+        flags(Guards.onlyDetectorsCreateFindings, "store/$k/store/OtherStore.kt", "val f = Finding(key, s, e, a, b)")
+        allows(Guards.onlyDetectorsCreateFindings, "store/$k/store/RoomStores.kt", "val f = Finding(key, s, e, a, b)")
     }
 
     @Test fun bannedCapabilities() {

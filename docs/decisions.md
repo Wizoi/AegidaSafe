@@ -61,6 +61,9 @@
 - **Website notification fix:** Aegida hides the notification, shows one calm card and opens that site's own switch for Mom to tap. It does **not** fire Chrome's "Unsubscribe" action itself (findings #18).
 - **`POST_NOTIFICATIONS`** approved (needed for any banner on Android 13+); granted by Mom in setup.
 
+## Storage (Oct 8)
+- Room schema **version 1 is extended in place** while nothing has shipped (only the emulator has ever had it). From the first Play build on, every schema change is a tested Migration, asked first (CLAUDE.md).
+
 ## Open / next session
 - Create the Gradle project and run the **emulator spike**: confirm each `adb`/`cmd` scenario works on the API 36 Play image.
 - Kevin: look for an old Samsung phone on One UI 6+; look into Samsung Remote Test Lab.

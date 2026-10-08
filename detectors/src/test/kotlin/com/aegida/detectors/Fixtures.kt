@@ -1,5 +1,6 @@
 package com.aegida.detectors
 
+import com.aegida.core.feed.FeedCodec
 import com.aegida.core.feed.FeedSource
 import com.aegida.core.feed.ThreatFeed
 import com.aegida.core.health.CheckLog
@@ -53,10 +54,14 @@ object Fixtures {
 
 class FakeSetupStore(var value: Setup = Setup.NotDone) : SetupStore {
     override suspend fun setup() = value
+    override suspend fun save(setup: Setup) { value = setup }
 }
 
+/** Like the file store: keeps what it was given, decoded the same way. */
 class FakeFeedStore(var value: ThreatFeed? = null) : FeedStore {
+    var saves = 0
     override suspend fun current() = value
+    override suspend fun save(verifiedFeed: ByteArray) { value = FeedCodec.decode(verifiedFeed); saves++ }
 }
 
 /** Behaves like the Room log: appends, and latest means most recently started. */
