@@ -4,7 +4,7 @@
 #   scripts/emulator-checks.sh smoke      install the -local debug build and run the instrumented tests
 #   scripts/emulator-checks.sh spike      check each adb/cmd mechanism the scenarios rely on (PASS/FAIL)
 #   scripts/emulator-checks.sh popup-page serve the website-notification-spam fixture and open it in Chrome
-#   scripts/emulator-checks.sh scenarios  feature scenarios (added with each feature)
+#   scripts/emulator-checks.sh scenarios  feature scenarios on a cleared app: pop-up warning, messages, daily feed, listed link
 #   scripts/emulator-checks.sh shots      light and dark screenshots at 100% and 200% font into build/emulator-shots
 # It refuses any serial that is not emulator-*, so it can never touch a real phone by mistake.
 set -u
@@ -67,8 +67,64 @@ popup-page)
   echo "serving on 8765; stop the python http.server and run 'adb reverse --remove tcp:8765' when done"
   ;;
 scenarios)
-  echo "Not written yet: scenarios are added with the features they test (build step 1 onward)."
-  exit 1
+  # Feature scenarios on the emulator (findings #32, #33). Starts from a cleared app so it is repeatable.
+  # Needs the -local debug build: gradlew installDebug -PlocalBuild (done below).
+  FAILS=0; ok() { echo "PASS  $1"; }; no() { echo "FAIL  $1"; FAILS=$((FAILS+1)); }
+  sh_() { adb shell "$@" 2>&1 | tr -d '\r'; }
+  # `cmd notification post` is word-split by adb's shell, so the whole command goes over as one string.
+  post() { adb shell "cmd notification post -S bigtext -t '$1' '$2' '$3'" >/dev/null 2>&1; }
+  tags() { sh_ dumpsys notification --noredact | grep "NotificationRecord" | sed -E 's/.*pkg=([^ ]+) .*id=([-0-9]+) tag=([^ ]*).*/\1 \2 \3/'; }
+  have() { tags | grep -qF "$1"; }
+  wait_for() { for _ in $(seq 1 "${3:-20}"); do eval "$2" && { ok "$1"; return 0; }; sleep 1; done; no "$1"; return 1; }
+  LISTED=$(sed -n '4p' feedtool/src/test/resources/feeds/phishing-domains.txt | tr -d '\r')
+
+  export JAVA_HOME="${JAVA_HOME:-/c/Program Files/Android/Android Studio/jbr}"; export ANDROID_SERIAL="$SERIAL"
+  ./gradlew.bat installDebug -PlocalBuild --console=plain 2>&1 | grep -q "BUILD SUCCESSFUL" || { echo "install failed"; exit 1; }
+  sh_ pm clear $PKG >/dev/null
+  sh_ pm grant $PKG android.permission.POST_NOTIFICATIONS
+  sh_ cmd notification allow_listener "$PKG/$PKG.AegidaListenerService" >/dev/null
+  sh_ am start -n "$PKG/.MainActivity" >/dev/null
+  wait_for "the 'Aegida is protecting you' notice is up" 'have "com.aegida.app 1 null"'
+
+  echo "-- a website sends a fake virus warning (Chrome, host-served fixture page)"
+  adb shell am set-debug-app --persistent com.android.chrome >/dev/null
+  adb shell 'echo "_ --disable-fre --no-default-browser-check --no-first-run" > /data/local/tmp/chrome-command-line'
+  (cd fixtures/web/popup-spam && python -m http.server 8765 >/dev/null 2>&1 &)
+  adb reverse tcp:8765 tcp:8765 >/dev/null
+  sh_ am force-stop com.android.chrome >/dev/null
+  sh_ am start -a android.intent.action.VIEW -d http://localhost:8765/index.html com.android.chrome >/dev/null
+  sleep 8
+  for _ in 1 2 3; do  # the first tap after launch can be lost; Chrome may ask for permission first
+    adb shell input tap 216 644; sleep 3
+    sh_ uiautomator dump /sdcard/ui.xml >/dev/null; adb shell input tap 540 1395 >/dev/null 2>&1 && true
+    have "com.aegida.app 1000 PopupSpam:SiteNotifications:http://localhost:8765" && break
+  done
+  wait_for "Aegida's banner for the website warning is shown" 'have "com.aegida.app 1000 PopupSpam:SiteNotifications:http://localhost:8765"' 10
+  have "com.android.chrome -1 p#http://localhost:8765/#1aegida-fixture" && no "Chrome's fake virus warning was hidden" || ok "Chrome's fake virus warning was hidden"
+
+  echo "-- messages"
+  post Delivery lookalike1 "Your parcel is held. Pay the fee at paypa1-help.example/claim"
+  wait_for "a look-alike link gets a banner" 'have "com.aegida.app 1000 Link:LookalikeLink:paypa1-help.example"' 10
+  have "com.android.shell 2020 lookalike1" && ok "the look-alike message itself was left in place" || no "the look-alike message itself was left in place"
+  post Friend shared1 "Church sale https://sites.google.com/view/church-sale and bit.ly/3abc"
+  post Mum plain1 "Lunch menu https://www.example.org/menu"
+  sleep 4
+  tags | grep -q "Link:.*sites.google.com\|Link:.*bit.ly\|Link:.*example.org" && no "links on shared hosts and plain links are not flagged" || ok "links on shared hosts and plain links are not flagged"
+
+  echo "-- the daily job fetches the live feed, then a listed link is caught"
+  sh_ settings put global auto_time 0
+  sh_ cmd alarm set-time $(( ($(date +%s) + 90000) * 1000 )) >/dev/null   # WorkManager will not run periodic work early
+  JID=$(sh_ dumpsys jobscheduler | grep -oE "JOB #u[0-9a]+/[0-9]+: [a-f0-9]+ com.aegida.app" | head -1 | sed -E 's#JOB \#u[0-9a-z]+/([0-9]+):.*#\1#')
+  sh_ cmd jobscheduler run -f $PKG "$JID" >/dev/null
+  wait_for "the app downloaded and stored the live feed" 'sh_ run-as '$PKG' ls files/feed | grep -q feed.bin' 60
+  sh_ cmd alarm set-time $(( $(date +%s) * 1000 )) >/dev/null; sh_ settings put global auto_time 1
+  post Bank listed1 "Your account is locked. Verify at https://$LISTED/login"
+  wait_for "a link from the real scam list gets a warning" "have \"com.aegida.app 1000 Link:ScamLink:$LISTED\"" 10
+  have "com.android.shell 2020 listed1" && ok "the scam message itself was left in place" || no "the scam message itself was left in place"
+
+  adb reverse --remove tcp:8765 >/dev/null 2>&1
+  powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \"Name='python.exe'\" | Where-Object { \$_.CommandLine -match 'http.server 8765' } | ForEach-Object { Stop-Process -Id \$_.ProcessId }" >/dev/null 2>&1
+  echo "$FAILS failed"; [ "$FAILS" = 0 ]
   ;;
 shots)
   OUT=build/emulator-shots; mkdir -p "$OUT"
