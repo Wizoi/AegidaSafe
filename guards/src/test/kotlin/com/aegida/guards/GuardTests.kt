@@ -63,6 +63,7 @@ class NotificationSingleOwnerTest {
 
 class OemSingleOwnerTest {
     @Test fun makerSpecificCodeOnlyInOemSource() = assertNoViolations(Guards.oem)
+    @Test fun theMakersNameOnlyInOemSourceAndTheCopyFile() = assertNoViolations(Guards.oemWordInCopy)
 }
 
 class LayerTest {

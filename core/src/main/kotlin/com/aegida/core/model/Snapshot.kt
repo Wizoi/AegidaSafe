@@ -38,13 +38,23 @@ sealed interface PrivateDns {
     }
 }
 
+/** What Mom told Aegida about Samsung Auto Blocker. Never a reading: Aegida cannot read it (findings #10). */
+enum class AutoBlockerAnswer { NotAsked, UserSaidOn, NotNow }
+
 /** What Mom chose in setup. Detectors compare the phone against this, never against a guess. */
 data class Setup(
     /** The website filter host she set up, or null if that step is not done yet. */
     val websiteFilterHost: String?,
     /** Sites whose notifications she already had when Aegida took its baseline. */
     val allowedSites: Set<String>,
+    /** Id of her safety picture (SafetyPicture.id), or null before she picks one. */
+    val pictureId: String? = null,
+    val autoBlocker: AutoBlockerAnswer = AutoBlockerAnswer.NotAsked,
+    /** How many first-run steps she has finished; the next one to show is [SetupStep.entries] at this index. */
+    val stepsDone: Int = 0,
 ) {
+    val done: Boolean get() = stepsDone >= SetupStep.entries.size
+
     companion object {
         val NotDone = Setup(websiteFilterHost = null, allowedSites = emptySet())
     }

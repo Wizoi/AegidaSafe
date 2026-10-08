@@ -32,7 +32,13 @@ interface HistoryLog {
 
 data class HistoryEntry(val at: Instant, val problem: Problem, val outcome: Outcome)
 
-enum class Outcome { MomWarned, GuardianTold, GuardianNotReached, Fixed }
+enum class Outcome(val forMom: String) {
+    MomWarned("You were warned."),
+    GuardianTold("Your guardian was told."),
+    GuardianNotReached("Aegida could not reach your guardian."),
+    Fixed("Fixed."),
+    Acknowledged("You saw it."),
+}
 
 /** Guardian alerting as Mom set it up. Implemented by :store. */
 interface GuardianSettings {
@@ -46,6 +52,10 @@ data class Guardians(
     val momName: String,
     /** The first guardian's private topic, or null before pairing. */
     val firstTopic: NtfyTopic?,
+    val firstGuardianName: String = "",
+    val firstGuardianEmail: String = "",
+    /** Optional; "Call a guardian" opens the dialer with it (no call permission needed). */
+    val firstGuardianPhone: String = "",
 ) {
     companion object {
         val None = Guardians(alertsOn = false, momName = "", firstTopic = null)

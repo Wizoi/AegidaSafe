@@ -84,11 +84,20 @@ object Guards {
         allowedPrefixes = listOf("platform/$KT/platform/notify/"),
     )
 
+    /** Maker-specific code: package names, intent actions, manufacturer checks. Only OemSource may hold these. */
     val oem = Rule(
         "OemSingleOwner",
-        Regex("""(?i)samsung|com\.sec\.|\bone ?ui\b|\bBuild\.(MANUFACTURER|BRAND)\b"""),
+        Regex("""com\.sec\.|com\.samsung\.|\bone ?ui\b|\bBuild\.(MANUFACTURER|BRAND)\b"""),
         "maker-specific code lives only in platform/oem (OemSource) and returns NotPresent/Unreadable",
         allowedPrefixes = listOf("platform/$KT/platform/oem/"),
+    )
+
+    /** The plain word in Mom-facing copy ("Some Samsung phones have...") is not code; only Texts.kt may use it (findings #34). */
+    val oemWordInCopy = Rule(
+        "OemSingleOwner (words)",
+        Regex("""(?i)samsung"""),
+        "the word may appear only in the copy file core/.../text/Texts.kt (and OemSource)",
+        allowedPrefixes = listOf("platform/$KT/platform/oem/", "core/$KT/core/text/Texts.kt"),
     )
 
     val androidInPureModules = Rule(

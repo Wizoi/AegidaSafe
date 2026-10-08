@@ -6,12 +6,9 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.provider.Settings
 import com.aegida.core.alert.MomNotifier
-import com.aegida.core.model.Evidence
 import com.aegida.core.model.Finding
 import com.aegida.core.model.FindingKey
-import com.aegida.core.text.Problem
 import com.aegida.core.text.Texts
 import com.aegida.platform.R
 
@@ -65,25 +62,9 @@ class NotificationPoster(private val context: Context) : MomNotifier {
         manager.cancel(tagOf(key), NOTIFICATION_ID)
     }
 
-    /** Where a tap goes. All standard Android screens; Samsung's own wording is validated last (design 8b). */
+    /** Where a tap goes: the screen that fixes the problem, or Aegida itself. */
     private fun tapIntent(finding: Finding): PendingIntent? {
-        val intent = when (finding.key.problem) {
-            Problem.SiteNotifications -> {
-                val pkg = finding.evidence[Evidence.PACKAGE]
-                val channel = finding.evidence[Evidence.CHANNEL_ID]
-                if (pkg != null && channel != null) {
-                    Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
-                        .putExtra(Settings.EXTRA_APP_PACKAGE, pkg)
-                        .putExtra(Settings.EXTRA_CHANNEL_ID, channel)
-                } else {
-                    openApp()
-                }
-            }
-            Problem.ListenerOff -> Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
-            Problem.NotificationsBlocked ->
-                Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
-            else -> openApp()
-        } ?: return null
+        val intent = FixActions.settingsIntentFor(finding, context.packageName) ?: openApp() ?: return null
         return PendingIntent.getActivity(
             context,
             tagOf(finding.key).hashCode(),

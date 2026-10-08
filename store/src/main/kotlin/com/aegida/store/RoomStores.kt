@@ -6,6 +6,7 @@ import com.aegida.core.alert.Guardians
 import com.aegida.core.alert.HistoryEntry
 import com.aegida.core.alert.HistoryLog
 import com.aegida.core.alert.Outcome
+import com.aegida.core.model.AutoBlockerAnswer
 import com.aegida.core.model.DetectorId
 import com.aegida.core.model.Finding
 import com.aegida.core.model.FindingKey
@@ -65,6 +66,9 @@ internal class RoomSettings(private val dao: SettingDao) : SetupStore, GuardianS
         return Setup(
             websiteFilterHost = v[FILTER_HOST]?.takeIf { it.isNotEmpty() },
             allowedSites = v[ALLOWED_SITES].orEmpty().split('\n').filter { it.isNotEmpty() }.toSet(),
+            pictureId = v[PICTURE]?.takeIf { it.isNotEmpty() },
+            autoBlocker = v[AUTO_BLOCKER]?.let { name -> AutoBlockerAnswer.entries.firstOrNull { it.name == name } } ?: AutoBlockerAnswer.NotAsked,
+            stepsDone = v[STEPS_DONE]?.toIntOrNull() ?: 0,
         )
     }
 
@@ -72,6 +76,9 @@ internal class RoomSettings(private val dao: SettingDao) : SetupStore, GuardianS
         listOf(
             SettingEntity(FILTER_HOST, setup.websiteFilterHost.orEmpty()),
             SettingEntity(ALLOWED_SITES, setup.allowedSites.sorted().joinToString("\n")),
+            SettingEntity(PICTURE, setup.pictureId.orEmpty()),
+            SettingEntity(AUTO_BLOCKER, setup.autoBlocker.name),
+            SettingEntity(STEPS_DONE, setup.stepsDone.toString()),
         ),
     )
 
@@ -81,6 +88,9 @@ internal class RoomSettings(private val dao: SettingDao) : SetupStore, GuardianS
             alertsOn = v[ALERTS_ON] == "true",
             momName = v[MOM_NAME].orEmpty(),
             firstTopic = v[FIRST_TOPIC]?.takeIf { it.isNotEmpty() }?.let(::NtfyTopic),
+            firstGuardianName = v[GUARDIAN_NAME].orEmpty(),
+            firstGuardianEmail = v[GUARDIAN_EMAIL].orEmpty(),
+            firstGuardianPhone = v[GUARDIAN_PHONE].orEmpty(),
         )
     }
 
@@ -89,6 +99,9 @@ internal class RoomSettings(private val dao: SettingDao) : SetupStore, GuardianS
             SettingEntity(ALERTS_ON, guardians.alertsOn.toString()),
             SettingEntity(MOM_NAME, guardians.momName),
             SettingEntity(FIRST_TOPIC, guardians.firstTopic?.value.orEmpty()),
+            SettingEntity(GUARDIAN_NAME, guardians.firstGuardianName),
+            SettingEntity(GUARDIAN_EMAIL, guardians.firstGuardianEmail),
+            SettingEntity(GUARDIAN_PHONE, guardians.firstGuardianPhone),
         ),
     )
 
@@ -98,5 +111,11 @@ internal class RoomSettings(private val dao: SettingDao) : SetupStore, GuardianS
         const val ALERTS_ON = "guardians.alertsOn"
         const val MOM_NAME = "guardians.momName"
         const val FIRST_TOPIC = "guardians.firstTopic"
+        const val GUARDIAN_NAME = "guardians.firstName"
+        const val GUARDIAN_EMAIL = "guardians.firstEmail"
+        const val GUARDIAN_PHONE = "guardians.firstPhone"
+        const val PICTURE = "setup.pictureId"
+        const val AUTO_BLOCKER = "setup.autoBlocker"
+        const val STEPS_DONE = "setup.stepsDone"
     }
 }

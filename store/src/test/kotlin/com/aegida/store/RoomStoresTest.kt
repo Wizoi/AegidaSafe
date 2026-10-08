@@ -8,6 +8,7 @@ import com.aegida.core.alert.Outcome
 import com.aegida.core.feed.FeedCodec
 import com.aegida.core.feed.FeedSource
 import com.aegida.core.feed.ThreatFeed
+import com.aegida.core.model.AutoBlockerAnswer
 import com.aegida.core.model.DetectorId
 import com.aegida.core.model.Evidence
 import com.aegida.core.model.Finding
@@ -73,8 +74,14 @@ class RoomStoresTest {
         val settings = RoomSettings(db.settings())
         assertEquals(Setup.NotDone, settings.setup())
         assertEquals(Guardians.None, settings.current())
-        val setup = Setup("security.cloudflare-dns.com", setOf("https://news.example", "https://recipes.example"))
-        val guardians = Guardians(alertsOn = true, momName = "Ruth", firstTopic = NtfyTopic("aegida_" + "r5T6y7U8".repeat(4)))
+        val setup = Setup(
+            "security.cloudflare-dns.com", setOf("https://news.example", "https://recipes.example"),
+            pictureId = "Owl", autoBlocker = AutoBlockerAnswer.NotNow, stepsDone = 8,
+        )
+        val guardians = Guardians(
+            alertsOn = true, momName = "Ruth", firstTopic = NtfyTopic("aegida_" + "r5T6y7U8".repeat(4)),
+            firstGuardianName = "Kevin", firstGuardianEmail = "kevin@example.org", firstGuardianPhone = "+1 555 0100",
+        )
         settings.save(setup)
         settings.save(guardians)
         assertEquals(setup, settings.setup())
@@ -94,5 +101,10 @@ class RoomStoresTest {
 
     @Test fun anEmptyFeedStoreHasNoFeed() = runTest {
         assertNull(FileFeedStore(temp.newFolder("empty")).current())
+    }
+
+    @Test fun anAnswerFromAnOlderOrNewerAppThatIsNotKnownReadsAsNotAsked() = runTest {
+        db.settings().put(listOf(SettingEntity("setup.autoBlocker", "SomethingNew")))
+        assertEquals(AutoBlockerAnswer.NotAsked, RoomSettings(db.settings()).setup().autoBlocker)
     }
 }

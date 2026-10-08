@@ -36,4 +36,13 @@ value class NtfyTopic(val value: String) {
             "topic must be at least 32 letters, digits, _ or -"
         }
     }
+
+    companion object {
+        private const val ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+        private const val RANDOM_LENGTH = 40
+
+        /** "aegida_" plus 40 random letters and digits (about 238 bits). Pass a SecureRandom; the default is one. */
+        fun generate(random: java.util.Random = java.security.SecureRandom()): NtfyTopic =
+            NtfyTopic("aegida_" + String(CharArray(RANDOM_LENGTH) { ALPHABET[random.nextInt(ALPHABET.length)] }))
+    }
 }
