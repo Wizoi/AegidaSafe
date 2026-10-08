@@ -172,10 +172,10 @@ Scenario scripts the emulator can drive through `adb` (each is a repeatable test
 | New app arrives (clean, flagged, remote-control) | `adb install` of **test fixture APKs we build and sign with our own test key**; test feed contains that key's cert hash. Flagged and "AnyDesk-like" apps are our fixtures, never real malware |
 | Special-access grants (notification listener, overlay, device admin) | `cmd notification allow_listener`, `appops set`, device-admin set via `dpm` where permitted |
 | Link checking from message notifications | `cmd notification post` and a small fixture "messages" app posting notifications with known-bad and clean URLs; listener reads, cancels, raises finding |
-| Fake virus pop-up (website notification spam) | Chrome on the emulator opens a **local fixture page served from the host** (`10.0.2.2`) that requests notification permission and sends notifications; verifies detection and cancel |
+| Fake virus pop-up (website notification spam) | Chrome on the emulator opens a **local fixture page served from the host** through `adb reverse` as `http://localhost:8765` (a secure origin, so it may ask for notification permission; `emulator-checks.sh popup-page`) that requests notification permission and sends notifications; verifies detection and cancel. Notification shape recorded in findings #18 |
 | Private DNS check and "switch turned off" drift | `settings put global private_dns_mode` / `private_dns_specifier`; turn it off after baseline and watch the reminders and escalation |
 | Offline / airplane / metered | `cmd connectivity airplane-mode`, host-side network shaping |
-| Daily worker, escalation | `cmd jobscheduler run` / WorkManager test driver; 24 h waits done with the fake `Clock` in JVM tests, plus one emulator run with the clock advanced (`adb shell date`) |
+| Daily worker, escalation | `cmd jobscheduler run` / WorkManager test driver; 24 h waits done with the fake `Clock` in JVM tests, plus one emulator run with the clock advanced (`settings put global auto_time 0` + `cmd alarm set-time`; the Play image has no root, so `date` fails: findings #17) |
 | Battery restrictions (stock Android) | `cmd deviceidle`, `am set-standby-bucket` (rare/restricted), `cmd appops` background restrictions; verifies `HealthDetector` notices a starved worker |
 | ntfy end-to-end incl. "Got it" | Real ntfy.sh topic from the emulator, a second client (host `curl` subscribe, or ntfy app on the emulator) as the guardian; tests the reply action |
 | Samsung-absent path | `OemSource` returns `NotPresent` on the emulator and Pixel; asserts no crash and the right wording, including the Auto Blocker "recommended" setup step and "Not now" |
@@ -266,7 +266,7 @@ Later: remote-access + banking warning, opt-in call screening, weekly digest, ma
 ## 12. Open technical questions
 
 - **Emulator spike first (day 1):** confirm each `adb`/`cmd` mechanism in section 7 works on the API 36 Play image (roles, `allow_listener`, `post` notifications, Private DNS settings, Chrome notification permission from a host-served page, standby buckets). Anything that doesn't moves to the gap table.
-- Exact way to read a browser's per-site notification grants without Accessibility (channel state via `NotificationListener`/`NotificationManager`?). Emulator spike with Chrome, then confirm on the Pixel.
+- ~~Exact way to read a browser's per-site notification grants without Accessibility~~ Answered by the spike (findings #18): Chrome posts each site on its own channel `web:<origin>;<n>`; the listener sees the origin and `ACTION_CHANNEL_NOTIFICATION_SETTINGS` opens that site's switch. Confirm on the Pixel; Samsung Internet still unknown.
 - Will a foreground service + notification listener keep Aegida alive under Samsung's sleeping rules when Mom never opens it? Documentation says foreground services are supported on One UI 6+ but is silent on WorkManager; unknown until tested on a Samsung.
 - Is Auto Blocker readable at all? Only answerable on a Samsung; until then it stays "you told me".
 - Samsung Remote Test Lab: session length, which Galaxy models and One UI versions, whether our own APK installs, adb access (see `samsung-validation-options.md`). Look into it when step 5 comes up.
