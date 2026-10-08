@@ -6,7 +6,16 @@ import com.aegida.core.model.Severity
  * Every kind of finding, with the one sentence Mom sees and the one a guardian gets (written in her name,
  * coarse, no links, no message text; null = guardians are not told). Severity is decided here once.
  */
-enum class Problem(val severity: Severity, val forMom: String, private val guardianTemplate: String?) {
+enum class Problem(
+    val severity: Severity,
+    val forMom: String,
+    private val guardianTemplate: String?,
+    /**
+     * Aegida hides the notification that caused it. Only website notifications: they are the fake virus
+     * pop-ups. A message with a scam link is left in place (it may be from family) and Mom gets a warning.
+     */
+    val hidesNotification: Boolean = false,
+) {
     ScamLink(
         Severity.NeedsTap,
         "A message has a link that looks like a scam. Please don't tap it.",
@@ -21,6 +30,7 @@ enum class Problem(val severity: Severity, val forMom: String, private val guard
         Severity.NeedsTap,
         "A website was sending you warnings. They are not real. Aegida hid them. Tap to stop that website.",
         "A website was sending fake warnings to %s's phone. Aegida hid them.",
+        hidesNotification = true,
     ),
     WebsiteFilterOff(
         Severity.NeedsTap,

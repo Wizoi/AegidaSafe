@@ -29,50 +29,11 @@ class AlertPipelineTest {
     private val now = Instant.now()
     private val topic = NtfyTopic("aegida_" + "p0O9i8U7".repeat(4))
 
-    /** Like Room REPLACE: one row per key. */
-    private class Findings : FindingStore {
-        val rows = linkedMapOf<FindingKey, Finding>()
-        override suspend fun open() = rows.values.filter { it.state == FindingState.Open }
-        override suspend fun get(key: FindingKey) = rows[key]
-        override suspend fun put(finding: Finding) { rows[finding.key] = finding }
-    }
-
-    private class Mom : MomNotifier {
-        val shown = mutableListOf<FindingKey>()
-        val cleared = mutableListOf<FindingKey>()
-        override fun show(finding: Finding) { shown += finding.key }
-        override fun clear(key: FindingKey) { cleared += key }
-    }
-
-    private class History : HistoryLog {
-        val entries = mutableListOf<HistoryEntry>()
-        override suspend fun add(entry: HistoryEntry) { entries += entry }
-        override suspend fun since(from: Instant) = entries.filter { !it.at.isBefore(from) }.sortedByDescending { it.at }
-        override suspend fun prune(before: Instant): Int {
-            val old = entries.filter { it.at.isBefore(before) }
-            entries.removeAll(old)
-            return old.size
-        }
-    }
-
-    private class Http(var result: HttpResult = HttpResult.Ok(200, "{}")) : HttpClient {
-        val bodies = mutableListOf<String>()
-        override suspend fun get(endpoint: Endpoint, maxBytes: Int): BytesResult = error("not used")
-        override suspend fun post(endpoint: Endpoint, body: String, headers: Map<String, String>): HttpResult {
-            bodies += body
-            return result
-        }
-    }
-
     private val findings = Findings()
     private val mom = Mom()
     private val history = History()
     private val http = Http()
-    private var guardians = Guardians(alertsOn = true, momName = "Ruth", firstTopic = topic)
-    private val settings = object : GuardianSettings {
-        override suspend fun current() = guardians
-        override suspend fun save(guardians: Guardians) { this@AlertPipelineTest.guardians = guardians }
-    }
+    private val settings = FakeGuardians(Guardians(alertsOn = true, momName = "Ruth", firstTopic = topic))
     private val pipeline = AlertPipeline(findings, mom, history, settings, NtfySender(http)) { now }
 
     private fun finding(problem: Problem, subject: String, detector: DetectorId) =
@@ -104,7 +65,7 @@ class AlertPipelineTest {
     }
 
     @Test fun guardiansHearNothingWhenMomHasNotTurnedAlertsOn() = runTest {
-        guardians = guardians.copy(alertsOn = false)
+        settings.value = settings.value.copy(alertsOn = false)
         pipeline.handle(listOf(scamLink), setOf(DetectorId.Link))
         assertEquals(emptyList<String>(), http.bodies)
         assertEquals(listOf(scamLink.key), mom.shown)

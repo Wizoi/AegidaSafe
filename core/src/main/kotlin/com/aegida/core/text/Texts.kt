@@ -11,6 +11,7 @@ object Texts {
     const val CANT_CHECK = "Aegida can't check this on your phone"
     const val YOU_TOLD_ME = "You told Aegida this is on"
 
+    const val STATUS_NOTICE = "Aegida is protecting you"
     const val CHANNEL_STATUS = "Aegida is protecting you"
     const val CHANNEL_NEEDS_TAP = "Needs a tap"
 }

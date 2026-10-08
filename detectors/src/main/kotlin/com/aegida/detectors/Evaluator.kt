@@ -3,6 +3,7 @@ package com.aegida.detectors
 import com.aegida.core.health.CheckLog
 import com.aegida.core.health.CheckRun
 import com.aegida.core.health.Trigger
+import com.aegida.core.model.DetectorId
 import com.aegida.core.model.Finding
 import com.aegida.core.model.NotificationEvent
 import com.aegida.core.model.Snapshot
@@ -26,6 +27,9 @@ class Evaluator @Inject constructor(
     private val checkLog: CheckLog,
 ) {
     private val mutex = Mutex()
+
+    /** Every run evaluates every detector, so these are the detectors a run has spoken for. */
+    val detectorIds: Set<DetectorId> = detectors.map { it.id }.toSet()
 
     suspend fun run(trigger: Trigger, snapshot: Snapshot, event: NotificationEvent? = null): List<Finding> = mutex.withLock {
         val started = clock.now()
