@@ -51,10 +51,17 @@ class History : HistoryLog {
 
 class Http(var result: HttpResult = HttpResult.Ok(200, "{}")) : HttpClient {
     val bodies = mutableListOf<String>()
+    val posts = mutableListOf<Triple<Endpoint, String, Map<String, String>>>()
+    val deleted = mutableListOf<Endpoint>()
     var feedResult: (Endpoint) -> BytesResult = { BytesResult.Failed(null, com.aegida.core.net.FailureReason.Offline) }
     override suspend fun get(endpoint: Endpoint, maxBytes: Int): BytesResult = feedResult(endpoint)
     override suspend fun post(endpoint: Endpoint, body: String, headers: Map<String, String>): HttpResult {
         bodies += body
+        posts += Triple(endpoint, body, headers)
+        return result
+    }
+    override suspend fun delete(endpoint: Endpoint): HttpResult {
+        deleted += endpoint
         return result
     }
 }

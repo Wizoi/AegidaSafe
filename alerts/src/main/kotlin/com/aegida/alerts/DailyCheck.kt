@@ -9,7 +9,7 @@ import com.aegida.core.time.Clock
 import java.time.Duration
 import javax.inject.Inject
 
-data class DailyResult(val feed: FeedUpdate, val check: CheckOutcome, val historyPruned: Int)
+data class DailyResult(val feed: FeedUpdate, val check: CheckOutcome, val historyPruned: Int, val heartbeat: SendResult?)
 
 /**
  * The daily job. The check always runs, even offline: a failed or missing feed update only means the lists
@@ -20,13 +20,16 @@ class DailyCheck @Inject constructor(
     private val runner: CheckRunner,
     private val history: HistoryLog,
     private val checkLog: CheckLog,
+    private val switch: DeadMansSwitch,
     private val clock: Clock,
 ) {
     suspend fun run(): DailyResult {
         val feed = feedUpdater.update()
         val check = runner.run(Trigger.Daily)
         val pruned = history.prune(clock.now().minus(HISTORY_KEPT))
-        return DailyResult(feed, check, pruned)
+        // Checked in: push the "hasn't checked in" message two days further out (best effort; offline just leaves the old one).
+        val heartbeat = switch.arm()
+        return DailyResult(feed, check, pruned, heartbeat)
     }
 
     /**

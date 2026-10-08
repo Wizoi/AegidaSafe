@@ -61,7 +61,7 @@ object Guards {
         "NtfySingleOwner (callers)",
         Regex("""\bNtfySender\b"""),
         "only AlertPipeline sends to guardians (it builds the message from a Finding)",
-        allowedPrefixes = listOf("alerts/$KT/alerts/NtfySender.kt", "alerts/$KT/alerts/AlertPipeline.kt"),
+        allowedPrefixes = listOf("alerts/$KT/alerts/NtfySender.kt", "alerts/$KT/alerts/AlertPipeline.kt", "alerts/$KT/alerts/DeadMansSwitch.kt", "alerts/$KT/alerts/GuardianAlerts.kt"),
     )
 
     val sql = Rule(

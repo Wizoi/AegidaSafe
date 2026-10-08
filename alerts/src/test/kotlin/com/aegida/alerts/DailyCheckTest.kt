@@ -14,6 +14,8 @@ import com.aegida.core.model.Snapshot
 import com.aegida.core.net.BytesResult
 import com.aegida.core.net.Endpoint
 import com.aegida.core.net.FailureReason
+import com.aegida.core.net.NtfyTopic
+import com.aegida.core.alert.Guardians
 import com.aegida.core.oem.Reading
 import com.aegida.core.text.Problem
 import com.aegida.detectors.DnsDetector
@@ -38,16 +40,19 @@ class DailyCheckTest {
     private val findings = Findings()
     private val history = History()
     private val http = Http()
+    private val topic = NtfyTopic("aegida_" + "x9Y8z7W6".repeat(4))
+    private val guardians = FakeGuardians(Guardians(alertsOn = true, momName = "Mom", firstTopic = topic, firstGuardianName = "Kevin", firstGuardianEmail = "k@example.com", firstGuardianPhone = ""))
     private val mom = Mom()
 
     private val evaluator = Evaluator(setOf(DnsDetector(), HealthDetector()), { now }, FakeSetupStore(), feedStore, checkLog)
-    private val pipeline = AlertPipeline(findings, mom, history, FakeGuardians(), NtfySender(http)) { now }
+    private val pipeline = AlertPipeline(findings, mom, history, guardians, NtfySender(http)) { now }
     private val snapshot = Snapshot(now, PrivateDns.Automatic, "com.android.chrome", true, true, Reading.NotPresent, Reading.NotPresent)
     private val daily = DailyCheck(
         FeedUpdater(http, FeedVerifier(keys.public.encoded), feedStore) { now },
         CheckRunner({ snapshot }, evaluator, pipeline),
         history,
         checkLog,
+        DeadMansSwitch(guardians, NtfySender(http)),
     ) { now }
 
     private fun publish(generatedAt: Instant) {
@@ -62,6 +67,17 @@ class DailyCheckTest {
         assertEquals(FeedUpdate.NoConnection(FailureReason.Offline), result.feed)
         assertEquals(listOf(Trigger.Daily), checkLog.runs.map { it.trigger })
         assertEquals(listOf(Problem.ListsOld), result.check.findings.map { it.key.problem }) // no feed yet: lists are not current
+    }
+
+    @Test fun everyDailyCheckPushesTheNotCheckedInMessageTwoDaysOutAndAlertsOffSendsNothing() = runTest {
+        daily.run()
+        val (endpoint, _, headers) = http.posts.single()
+        assertEquals("https://ntfy.sh/${topic.value}/heartbeat", endpoint.url)
+        assertEquals("2880m", headers["X-Delay"])
+        guardians.value = guardians.value.copy(alertsOn = false)
+        http.posts.clear()
+        daily.run()
+        assertEquals(0, http.posts.size)
     }
 
     @Test fun aPublishedFeedIsStoredAndThenTheListsAreNoLongerOld() = runTest {

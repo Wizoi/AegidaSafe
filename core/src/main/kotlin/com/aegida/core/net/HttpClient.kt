@@ -10,6 +10,9 @@ package com.aegida.core.net
 interface HttpClient {
     suspend fun post(endpoint: Endpoint, body: String, headers: Map<String, String> = emptyMap()): HttpResult
 
+    /** Cancels something this app published (an ntfy message still waiting to be delivered). */
+    suspend fun delete(endpoint: Endpoint): HttpResult
+
     /** Downloads at most [maxBytes]; a longer answer is [FailureReason.TooBig], never read to the end. */
     suspend fun get(endpoint: Endpoint, maxBytes: Int): BytesResult
 }

@@ -53,6 +53,25 @@ class OkHttpHttpClient internal constructor(
         }
     }
 
+    override suspend fun delete(endpoint: Endpoint): HttpResult {
+        check(endpoint.host in Endpoint.ALLOWED_HOSTS) { "host not allowed" }
+        val request = Request.Builder().url(urlFor(endpoint)).delete().build()
+        return withContext(Dispatchers.IO) {
+            try {
+                client.newCall(request).execute().use { response ->
+                    if (response.isSuccessful) HttpResult.Ok(response.code, response.body?.string().orEmpty())
+                    else HttpResult.Failed(response.code, FailureReason.HttpError)
+                }
+            } catch (e: UnknownHostException) {
+                HttpResult.Failed(null, FailureReason.Offline)
+            } catch (e: InterruptedIOException) {
+                HttpResult.Failed(null, FailureReason.Timeout)
+            } catch (e: IOException) {
+                HttpResult.Failed(null, FailureReason.Unknown)
+            }
+        }
+    }
+
     override suspend fun get(endpoint: Endpoint, maxBytes: Int): BytesResult {
         check(endpoint.host in Endpoint.ALLOWED_HOSTS) { "host not allowed" }
         val request = Request.Builder().url(urlFor(endpoint)).get().build()

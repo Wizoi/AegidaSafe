@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.aegida.alerts.CheckRunner
 import com.aegida.alerts.DailyCheck
 import com.aegida.alerts.FindingActions
+import com.aegida.alerts.GuardianAlerts
 import com.aegida.core.alert.FindingStore
 import com.aegida.core.alert.GuardianSettings
 import com.aegida.core.alert.Guardians
@@ -68,6 +69,7 @@ class MainViewModel @Inject constructor(
     private val snapshotter: Snapshotter,
     private val runner: CheckRunner,
     private val dailyCheck: DailyCheck,
+    private val guardianAlerts: GuardianAlerts,
     private val actions: FindingActions,
     private val oem: OemSource,
     private val clock: Clock,
@@ -145,7 +147,7 @@ class MainViewModel @Inject constructor(
         return made
     }
 
-    fun setAlerts(on: Boolean) = change { guardianSettings.save(guardianSettings.current().copy(alertsOn = on)) }
+    fun setAlerts(on: Boolean) = change { quietly { guardianAlerts.setAlertsOn(on) } }
 
     fun answerBlocker(answer: AutoBlockerAnswer) = change { setupStore.save(setupStore.setup().copy(autoBlocker = answer)) }
 

@@ -7,8 +7,12 @@ package com.aegida.core.net
 sealed class Endpoint(val host: String, val path: String) {
     val url: String get() = "https://$host/$path"
 
-    /** A guardian alert topic on ntfy.sh. Constructed only by NtfySender (NtfySingleOwnerTest). */
-    class Ntfy(topic: NtfyTopic) : Endpoint(NTFY_HOST, topic.value)
+    /**
+     * A guardian alert topic on ntfy.sh, optionally with a sequence id: publishing again to the same
+     * id replaces a message still waiting to be delivered, and a DELETE on it cancels that message.
+     * Constructed only by NtfySender (NtfySingleOwnerTest).
+     */
+    class Ntfy(topic: NtfyTopic, sequenceId: String? = null) : Endpoint(NTFY_HOST, ntfyPath(topic, sequenceId))
 
     /** One of Aegida's own published scam-list files (the Aegida-Feed Pages site). The only two instances are below. */
     class Feed private constructor(file: String) : Endpoint(FEED_HOST, "$FEED_PATH/$file") {
@@ -22,9 +26,16 @@ sealed class Endpoint(val host: String, val path: String) {
         const val NTFY_HOST = "ntfy.sh"
         const val FEED_HOST = "wizoi.github.io"
         private const val FEED_PATH = "Aegida-Feed"
+        private val SEQUENCE_ID = Regex("[A-Za-z0-9_-]{1,64}")
 
         /** Hosts the app may contact. NetworkSingleOwnerTest fails if this changes without the test. */
         val ALLOWED_HOSTS = setOf(NTFY_HOST, FEED_HOST)
+
+        private fun ntfyPath(topic: NtfyTopic, sequenceId: String?): String {
+            if (sequenceId == null) return topic.value
+            require(SEQUENCE_ID.matches(sequenceId)) { "sequence id must be 1 to 64 letters, digits, _ or -" }
+            return "${topic.value}/$sequenceId"
+        }
     }
 }
 

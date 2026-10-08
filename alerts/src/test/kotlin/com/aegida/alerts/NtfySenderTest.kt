@@ -22,6 +22,11 @@ class NtfySenderTest {
             sent += Triple(endpoint, body, headers)
             return result
         }
+        val deleted = mutableListOf<Endpoint>()
+        override suspend fun delete(endpoint: Endpoint): HttpResult {
+            deleted += endpoint
+            return result
+        }
     }
 
     @Test fun postsToTheTopicWithTitleAndUrgentPriority() = runTest {
@@ -31,6 +36,25 @@ class NtfySenderTest {
         assertEquals("https://ntfy.sh/${topic.value}", endpoint.url)
         assertEquals("AnyDesk was installed", body)
         assertEquals(mapOf("Title" to "Mom's phone", "Priority" to "urgent"), headers)
+    }
+
+    @Test fun aDelayedMessageCarriesTheDelayAndReplacesBySequenceId() = runTest {
+        val http = RecordingHttp(HttpResult.Ok(200, "{}"))
+        val waiting = GuardianMessage("Mom", "quiet", urgent = false, delay = java.time.Duration.ofDays(2), sequenceId = "heartbeat")
+        NtfySender(http).send(topic, waiting)
+        val (endpoint, _, headers) = http.sent.single()
+        assertEquals("https://ntfy.sh/${topic.value}/heartbeat", endpoint.url)
+        assertEquals("2880m", headers["X-Delay"])
+    }
+
+    @Test fun cancelDeletesBySequenceIdAndAMissingMessageCountsAsCancelled() = runTest {
+        val http = RecordingHttp(HttpResult.Ok(200, "{}"))
+        assertEquals(SendResult.Delivered, NtfySender(http).cancel(topic, "heartbeat"))
+        assertEquals("https://ntfy.sh/${topic.value}/heartbeat", http.deleted.single().url)
+        val gone = RecordingHttp(HttpResult.Failed(404, FailureReason.HttpError))
+        assertEquals(SendResult.Delivered, NtfySender(gone).cancel(topic, "heartbeat"))
+        val down = RecordingHttp(HttpResult.Failed(null, FailureReason.Offline))
+        assertTrue(NtfySender(down).cancel(topic, "heartbeat") is SendResult.NotDelivered)
     }
 
     @Test fun aFailedPostIsReportedNotDropped() = runTest {

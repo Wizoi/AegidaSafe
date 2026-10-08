@@ -33,6 +33,7 @@ class FeedUpdaterTest {
     private class FakeHttp(var sig: BytesResult, var list: BytesResult) : HttpClient {
         val asked = mutableListOf<Endpoint>()
         override suspend fun post(endpoint: Endpoint, body: String, headers: Map<String, String>): HttpResult = error("not used")
+        override suspend fun delete(endpoint: Endpoint): HttpResult = error("not used")
         override suspend fun get(endpoint: Endpoint, maxBytes: Int): BytesResult {
             asked += endpoint
             return if (endpoint === Endpoint.Feed.SIGNATURE) sig else list

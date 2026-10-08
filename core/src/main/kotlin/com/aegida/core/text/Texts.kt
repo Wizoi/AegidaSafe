@@ -14,6 +14,12 @@ object Texts {
     const val CHANNEL_STATUS = "Aegida is protecting you"
     const val CHANNEL_NEEDS_TAP = "Needs a tap"
 
+    /** What a guardian reads on their phone. Written in Mom's name; no links, no message text, no "safe". */
+    object Guardian {
+        const val SET_UP = "Aegida is set up on %s's phone. You will get a message here if it needs help."
+        const val NOT_CHECKED_IN = "Aegida hasn't checked in on %s's phone for 2 days. The phone may be off or asleep. Please call her."
+    }
+
     object Nav {
         const val HOME = "Home"
         const val HISTORY = "History"
