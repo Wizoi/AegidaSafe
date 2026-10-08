@@ -11,6 +11,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -34,6 +35,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
@@ -194,6 +196,7 @@ private fun MainContent(state: MainState, vm: MainViewModel) {
     }
 
     Scaffold(
+        contentWindowInsets = WindowInsets(0, 0, 0, 0), // AegidaScreen adds the status bar space; the bar handles its own
         bottomBar = {
             NavigationBar {
                 Tab.entries.forEach { entry ->
@@ -201,7 +204,15 @@ private fun MainContent(state: MainState, vm: MainViewModel) {
                         selected = tab == entry && page == Page.None,
                         onClick = { tab = entry; page = Page.None },
                         icon = { TabIcon(entry) },
-                        label = { Text(entry.label, style = androidx.compose.material3.MaterialTheme.typography.labelMedium) },
+                        // At very large text "My settings" wraps; give every label two lines then, so the icons stay level.
+                        label = {
+                            Text(
+                                entry.label,
+                                style = androidx.compose.material3.MaterialTheme.typography.labelMedium,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                minLines = if (LocalDensity.current.fontScale > 1.4f) 2 else 1,
+                            )
+                        },
                     )
                 }
             }

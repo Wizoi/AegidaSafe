@@ -3,6 +3,7 @@ package com.aegida.app
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aegida.alerts.CheckRunner
+import com.aegida.alerts.DailyCheck
 import com.aegida.alerts.FindingActions
 import com.aegida.core.alert.FindingStore
 import com.aegida.core.alert.GuardianSettings
@@ -66,6 +67,7 @@ class MainViewModel @Inject constructor(
     private val checkLog: CheckLog,
     private val snapshotter: Snapshotter,
     private val runner: CheckRunner,
+    private val dailyCheck: DailyCheck,
     private val actions: FindingActions,
     private val oem: OemSource,
     private val clock: Clock,
@@ -77,17 +79,25 @@ class MainViewModel @Inject constructor(
     /** Runs a check (so Home is current when she opens the app or comes back from Settings), then reloads. */
     fun refresh(runCheck: Boolean = true) {
         viewModelScope.launch {
-            if (runCheck) {
-                try {
-                    runner.run(Trigger.AppStart)
-                } catch (e: CancellationException) {
-                    throw e
-                } catch (e: Exception) {
-                    // The screen still shows what is stored; HealthDetector reports a check that keeps failing.
-                }
-            }
+            if (runCheck) quietly { runner.run(Trigger.AppStart) }
             load()
+            // First launch: do the first full check now (feed download included) and show its result.
+            if (runCheck && !firstDailyTried) {
+                firstDailyTried = true
+                if (quietly { dailyCheck.runIfNeverRun() } != null) load()
+            }
         }
+    }
+
+    private var firstDailyTried = false
+
+    /** A failed check must not break the screen: it still shows what is stored, and HealthDetector reports a check that keeps failing. */
+    private suspend fun <T> quietly(block: suspend () -> T): T? = try {
+        block()
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        null
     }
 
     private suspend fun load() {

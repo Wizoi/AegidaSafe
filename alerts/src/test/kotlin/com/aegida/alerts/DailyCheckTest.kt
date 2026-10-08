@@ -47,6 +47,7 @@ class DailyCheckTest {
         FeedUpdater(http, FeedVerifier(keys.public.encoded), feedStore) { now },
         CheckRunner({ snapshot }, evaluator, pipeline),
         history,
+        checkLog,
     ) { now }
 
     private fun publish(generatedAt: Instant) {
@@ -81,5 +82,27 @@ class DailyCheckTest {
         history.add(HistoryEntry(now.minus(Duration.ofDays(89)), Problem.ScamLink, Outcome.MomWarned))
         assertEquals(1, daily.run().historyPruned)
         assertEquals(listOf(now.minus(Duration.ofDays(89))), history.entries.map { it.at })
+    }
+
+    @Test fun theVeryFirstRunDownloadsTheFeedAndChecksButANormalDayDoesNotDoItTwice() = runTest {
+        publish(now.minus(Duration.ofHours(1)))
+        var downloads = 0
+        val serve = http.feedResult
+        http.feedResult = { downloads++; serve(it) }
+
+        val first = daily.runIfNeverRun()
+        assertEquals(FeedUpdate.Updated(now.minus(Duration.ofHours(1))), first!!.feed)
+        assertEquals(listOf(Trigger.Daily), checkLog.runs.map { it.trigger })
+        val downloadsAfterFirst = downloads
+
+        assertEquals(null, daily.runIfNeverRun()) // a Daily check exists now
+        assertEquals(downloadsAfterFirst, downloads)
+        assertEquals(1, checkLog.runs.size)
+    }
+
+    @Test fun aNotificationCheckAloneDoesNotCountAsTheFirstDailyCheck() = runTest {
+        checkLog.record(com.aegida.core.health.CheckRun(Trigger.NotificationPosted, now, now))
+        publish(now)
+        assertEquals(FeedUpdate.Updated(now), daily.runIfNeverRun()!!.feed)
     }
 }

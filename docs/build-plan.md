@@ -24,11 +24,15 @@ Gate (design section 11): guard tests green; emulator scenarios for link check, 
 | 1e | Storage: findings, 90-day history, setup and guardians, feed file | `:store` | done (commit pending) |
 | 1f | Android adapters: Snapshotter (Private DNS, default browser, listener, banner permission), notification mapper, banner poster with the brand icon, feed download and verified update | `:platform`, `:core` | done |
 | 1g | Wiring: `CheckRunner` and `DailyCheck` (`:alerts`, JVM-tested), notification listener that hides fake website warnings, the "Aegida is protecting you" foreground service, daily WorkManager job, boot receiver, Hilt graph | `:alerts`, `:app` | done, proven on the emulator (findings #32) |
-| 1h | Screens: Home (pure `HomeState.of`), History, first-run setup, My settings; both themes at 200% font | `:app` | next |
+| 1h | Screens: Home, History, My settings and the eight first-run steps, in the storyboard's ten safety pictures; 71 UI tests per variant (light and dark, normal and 200% font); walked on the emulator and looked at in all four display variants (findings #36-#38) | `:app` | done; guardian change not built (see below) |
 | 1i | Feed publishing: daily workflow (`build-feed.yml`) builds, signs, verifies and pushes `feed.bin`/`feed.sig` to the public Aegida-Feed Pages site. First run green Oct 8; live feed verified with the committed public key (findings #28, #29) | `.github/`, `:feedtool`, Aegida-Feed | done |
 | 1j | Emulator scenarios: `emulator-checks.sh scenarios` passes 10/10 (pop-up warning hidden and replaced by a banner, look-alike and listed links, shared hosts not flagged, daily job downloads and verifies the live feed). Still to do: website filter turned off (needs 1h), offline, killed mid-check, a starved worker, guardian alerts, both themes at 200% font | `emulator-checks.sh` | partly done |
 
 Open items inside phase 1:
+- **Changing the guardian** (My settings) must tell the current guardian first (brief, design 6). Not built: My settings shows the guardian read-only. Needs Kevin's OK on the wording before anything that sends to guardians.
+- **Her picture on banners:** the brief wants it on every genuine notification. Banners show the Aegida shield only; the picture needs rendering to a bitmap for `setLargeIcon`.
+- **Event warnings that repeat:** a scam message acknowledged and then repeated warns Mom and the guardian again (tested, `FindingActionsTest`); revisit with escalation in phase 2.
+- **Home wording:** the storyboard says "Everything is as it should be."; Home says "No known problems found." instead, as CLAUDE.md requires.
 - `INTERNET`, `POST_NOTIFICATIONS`, `FOREGROUND_SERVICE` and `FOREGROUND_SERVICE_SPECIAL_USE` are approved but not yet in the manifest; add them with 1f/1g. `ManifestPolicyTest` has no rule against them.
 - Dead man's switch for "Aegida hasn't checked in" through ntfy scheduled delivery (findings #23).
 - About screen shows each feed source's licence from the feed itself. Phishing.Database is MIT (verified); URLhaus is excluded until abuse.ch answers (findings #27).

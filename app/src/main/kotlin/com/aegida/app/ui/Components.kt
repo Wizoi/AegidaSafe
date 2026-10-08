@@ -81,7 +81,10 @@ fun PictureTile(picture: SafetyPicture, size: Dp, modifier: Modifier = Modifier,
             .size(size)
             .clip(shape)
             .background(colorResource(Pictures.tileColor(picture)))
-            .then(if (selected) Modifier.border(4.dp, MaterialTheme.colorScheme.outline, shape) else Modifier),
+            .then(
+                if (selected) Modifier.border(4.dp, MaterialTheme.colorScheme.outline, shape)
+                else Modifier.border(2.dp, MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f), shape),
+            ),
         contentAlignment = Alignment.Center,
     ) {
         Image(
