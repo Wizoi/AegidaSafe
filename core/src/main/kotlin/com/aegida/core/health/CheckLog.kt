@@ -2,7 +2,7 @@ package com.aegida.core.health
 
 import java.time.Instant
 
-/** One run of the Evaluator. HealthDetector reads the latest to notice a phone that went quiet. */
+/** One run of the Evaluator. HealthDetector reads the latest daily one to notice a phone that went quiet. */
 data class CheckRun(
     val trigger: Trigger,
     val startedAt: Instant,
@@ -15,4 +15,5 @@ enum class Trigger { AppStart, Daily, PackageChanged, NotificationPosted, Settin
 interface CheckLog {
     suspend fun record(run: CheckRun)
     suspend fun latest(): CheckRun?
+    suspend fun latest(trigger: Trigger): CheckRun?
 }

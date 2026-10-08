@@ -9,6 +9,53 @@ import java.time.Instant
  */
 data class Snapshot(
     val takenAt: Instant,
+    val privateDns: PrivateDns,
+    /** Package holding the default-browser role, or null if none. */
+    val browser: String?,
+    /** Aegida's notification listener is enabled (Mom granted notification access). */
+    val listenerEnabled: Boolean,
+    /** Aegida may post notifications (POST_NOTIFICATIONS granted and not blocked). */
+    val canPostNotifications: Boolean,
     val installBlocker: Reading<Boolean>,
     val neverSleeping: Reading<Boolean>,
+)
+
+/** The Private DNS ("website filter") setting as read from the phone. */
+sealed interface PrivateDns {
+    /** "Automatic": the key is absent on a phone where it was never set (findings #14), or "opportunistic". */
+    data object Automatic : PrivateDns
+    data object Off : PrivateDns
+    data class Hostname(val host: String) : PrivateDns
+
+    companion object {
+        /** From Settings.Global private_dns_mode / private_dns_specifier; null means the key is absent. */
+        fun fromSettings(mode: String?, specifier: String?): PrivateDns = when (mode) {
+            null, "opportunistic" -> Automatic
+            "off" -> Off
+            "hostname" -> specifier?.trim()?.lowercase()?.takeIf { it.isNotEmpty() }?.let(::Hostname) ?: Automatic
+            else -> Automatic
+        }
+    }
+}
+
+/** What Mom chose in setup. Detectors compare the phone against this, never against a guess. */
+data class Setup(
+    /** The website filter host she set up, or null if that step is not done yet. */
+    val websiteFilterHost: String?,
+    /** Sites whose notifications she already had when Aegida took its baseline. */
+    val allowedSites: Set<String>,
+) {
+    companion object {
+        val NotDone = Setup(websiteFilterHost = null, allowedSites = emptySet())
+    }
+}
+
+/** A notification another app posted, as the listener saw it. Text stays on the phone. */
+data class NotificationEvent(
+    val key: String,
+    val packageName: String,
+    val channelId: String?,
+    val title: String,
+    val text: String,
+    val postedAt: Instant,
 )

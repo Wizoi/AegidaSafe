@@ -1,7 +1,11 @@
 package com.aegida.detectors
 
+import com.aegida.core.feed.ThreatFeed
+import com.aegida.core.health.CheckRun
 import com.aegida.core.model.DetectorId
 import com.aegida.core.model.Finding
+import com.aegida.core.model.NotificationEvent
+import com.aegida.core.model.Setup
 import com.aegida.core.model.Snapshot
 import java.time.Instant
 
@@ -11,8 +15,15 @@ interface Detector {
     fun evaluate(input: Inputs): List<Finding>
 }
 
-/** Everything a detector may look at. Baseline, feeds and link events are added with the detectors that need them. */
+/** Everything a detector may look at. */
 data class Inputs(
     val snapshot: Snapshot,
     val now: Instant,
+    val setup: Setup,
+    /** The last good feed, or null before the first download. */
+    val feed: ThreatFeed?,
+    /** The notification that triggered this run, if any. */
+    val event: NotificationEvent?,
+    /** The last daily check before this run, or null if there has never been one. */
+    val lastDailyCheck: CheckRun?,
 )

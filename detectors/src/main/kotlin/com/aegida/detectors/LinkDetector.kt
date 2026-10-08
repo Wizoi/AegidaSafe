@@ -1,0 +1,41 @@
+package com.aegida.detectors
+
+import com.aegida.core.model.Aegida
+import com.aegida.core.model.DetectorId
+import com.aegida.core.model.Evidence
+import com.aegida.core.model.Finding
+import com.aegida.core.model.FindingKey
+import com.aegida.core.text.Problem
+import com.aegida.core.url.LinkSign
+import com.aegida.core.url.LinkSigns
+import com.aegida.core.url.Links
+import javax.inject.Inject
+
+/**
+ * Owns "is a link in a notification known-bad or a look-alike?". Reads the link text only; never fetches
+ * it. A link with no sign and no feed entry makes no finding: that is "no known problems found", not
+ * "safe". A shortener alone makes no finding either, since where it goes cannot be known.
+ */
+class LinkDetector @Inject constructor() : Detector {
+    override val id = DetectorId.Link
+
+    override fun evaluate(input: Inputs): List<Finding> {
+        val event = input.event ?: return emptyList()
+        if (event.packageName == Aegida.PACKAGE) return emptyList()
+        if (event.channelId?.startsWith(PopupSpamDetector.SITE_CHANNEL_PREFIX) == true) return emptyList()
+        return Links.extract(event.title + "\n" + event.text).mapNotNull { link ->
+            val signs = LinkSigns.of(link)
+            val problem = when {
+                input.feed?.match(link) != null -> Problem.ScamLink
+                LinkSign.BrandLookalike in signs || LinkSign.MixedScript in signs -> Problem.LookalikeLink
+                else -> return@mapNotNull null
+            }
+            Finding(
+                FindingKey(id, problem, link.host),
+                mapOf(Evidence.NOTIFICATION_KEY to event.key, Evidence.PACKAGE to event.packageName, Evidence.HOST to link.host),
+                input.now,
+                input.now,
+            )
+        }
+    }
+}
