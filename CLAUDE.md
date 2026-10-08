@@ -1,0 +1,86 @@
+# Aegida — working rules
+
+Short on purpose. Every rule here comes from a lesson in SmugView or TagPup. The reasoning is in
+[docs/aegida-technical-design.md](docs/aegida-technical-design.md); what the app does is in
+[docs/product-brief.md](docs/product-brief.md); why decisions were made is in
+[docs/decisions.md](docs/decisions.md). Findings live in [docs/findings.md](docs/findings.md).
+
+Aegida is an Android app that helps an 80+ parent keep her phone safe and tells her family
+"guardians" when something serious happens. The user cannot follow technical prompts. Plain words, big
+text, never red, never "safe" (say "no known problems found").
+
+## Where code goes
+
+New code goes where design section 2 puts it. Modules (compile-time layering, imports go down only):
+
+```
+:app  ->  :alerts  ->  :detectors  ->  :platform / :store  ->  :core
+```
+
+- `:core` is pure Kotlin/JVM. No `android.*`.
+- `:detectors` is pure logic over a `Snapshot`. No `android.*`. Only detectors create `Finding`s.
+- `:platform` holds the Android adapters (Clock, PackageSource, SettingsSource, NotificationSource,
+  HttpClient, OemSource). `:store` is the only place with Room/SQL.
+- `:app` wires and draws. No decisions.
+- **Everything Samsung-specific lives only in `OemSource`** and returns `NotPresent` / `Unreadable`
+  instead of guessing.
+
+## Rules that keep being broken (each has a guard test that fails the build)
+
+- One owner per concern: time (`Clock`), HTTP (`HttpClient`), ntfy (`NtfySender`), SQL (`:store`),
+  notifications posted (`NotificationPoster`), OEM code (`OemSource`).
+- **Never fetch a URL taken from a message or notification.**
+- **Never say "safe".** Never show a setting as on or fine unless Aegida read it; otherwise "you told me"
+  or "can't check".
+- Every string a user sees lives in `Problem`/`Texts`. No raw exception text.
+- No `AccessibilityService`, SMS permissions, call recording, VPN service, overlays, full-screen intents, or
+  the direct battery-exemption permission.
+- No secrets in source or the APK. Feed keys live on the sync proxy only.
+
+## Before changing behaviour
+
+- **Name where each side gets its data.** When two things disagree, find both sources first.
+- **The second fix for one symptom is a question:** which single place should own this?
+- **Check the premise against real data** (an emulator or phone dump, a real feed) before writing a fix. A
+  premise about "all" or "none" needs a count over the whole set, recorded in the findings row.
+- **Every fix gets a test that fails on the old code first.** Say that it failed, and how. No `git stash`:
+  comment the fix out or use a worktree.
+- **A test's data is made by the code that makes the real thing.** Fixtures come from a real device or
+  emulator, not from imagination. Dates are relative to now. Fakes behave like the real thing (Room
+  `REPLACE` is not append).
+- **Design for how it fails first:** offline, killed mid-check, two triggers at once, permission revoked,
+  put to sleep by the phone. Decide what Mom sees in each state.
+- **Record every review finding in `docs/findings.md` before fixing it.**
+- **Ask before one-way choices:** a Room migration, a new default Mom did not choose, changing what
+  "alert" or "resolved" means, anything that sends to guardians.
+
+## Testing: emulator first
+
+- Order of evidence: JVM -> Robolectric -> emulator -> Kevin's Pixel -> (last) a Samsung.
+- `scripts/emulator-checks.sh` refuses any serial that is not `emulator-*`.
+- The Pixel is only for gaps listed in [docs/emulator-vs-device.md](docs/emulator-vs-device.md). A symptom
+  seen on a device is a finding in the same step, with an emulator reproduction tried before it is deferred.
+- Samsung-specific checks come last (see `docs/samsung-validation-options.md`).
+- Look at every screen in both themes and at 200% font size.
+- Check per-class test times when the suite passes 5 minutes or a class passes 60 s.
+
+## Running things
+
+- Gradle needs the Android Studio JBR. Check for `BUILD SUCCESSFUL`; do not read success from a piped
+  command's exit code (the pipe reports `tail`'s code).
+- Device-test builds use `-PlocalBuild` so they report `-local` and cannot be mistaken for a Play build.
+
+## Working with agents
+
+- Every implementing agent gets a 45-minute wall-clock box and commits or reports by it.
+- The lead runs the full suite before any commit. An agent's "green" is a claim.
+- Name one owner per shared file in a plan. Commit before launching background agents; keep their work in
+  worktrees.
+
+## Before committing or shipping
+
+- Run the full unit suite and the guard tests.
+- Scan staged diffs for secrets. One concern per commit; stage by path.
+- Publishing to Play, `git push`, and destructive git operations each need explicit confirmation.
+- Play requires targetSdk within one year of the latest Android. A rejected upload can still burn its
+  versionCode.

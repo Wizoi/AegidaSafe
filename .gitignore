@@ -1,0 +1,33 @@
+# Gradle / Android
+.gradle/
+build/
+*/build/
+.kotlin/
+local.properties
+*.apk
+*.aab
+*.keystore
+*.jks
+captures/
+.externalNativeBuild/
+.cxx/
+
+# IDE
+.idea/
+*.iml
+.vscode/settings.json
+
+# Secrets (never commit)
+play-service-account.json
+*.pem
+secrets.properties
+.env
+
+# Test output
+test_result.md
+test_details.md
+scratch/
+build-shots/
+
+# Release mapping files are kept per versionCode in release-mappings/ (committed)
+!release-mappings/

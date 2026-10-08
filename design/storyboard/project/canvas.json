@@ -1,0 +1,100 @@
+{
+  "v": 3,
+  "attachments": {},
+  "boards": {
+    "Main.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1280,
+      "h": 1500,
+      "title": "Overview"
+    },
+    "Setup.dc.html": {
+      "x": 1360,
+      "y": 0,
+      "w": 2950,
+      "h": 1180,
+      "title": "0 \u00b7 First run"
+    },
+    "App.dc.html": {
+      "x": 1360,
+      "y": 1300,
+      "w": 2200,
+      "h": 1180,
+      "title": "1 \u00b7 Using the app"
+    },
+    "PopupGuard.dc.html": {
+      "x": 1360,
+      "y": 2600,
+      "w": 2200,
+      "h": 1180,
+      "title": "2 \u00b7 Fake virus warnings"
+    },
+    "NewApp.dc.html": {
+      "x": 1360,
+      "y": 3900,
+      "w": 2200,
+      "h": 1180,
+      "title": "3 \u00b7 A new app changes her defaults"
+    },
+    "Drift.dc.html": {
+      "x": 1360,
+      "y": 5200,
+      "w": 2200,
+      "h": 1180,
+      "title": "4 \u00b7 A safety switch is turned off"
+    },
+    "Remote.dc.html": {
+      "x": 1360,
+      "y": 6500,
+      "w": 2200,
+      "h": 1180,
+      "title": "5 \u00b7 Remote-control apps"
+    },
+    "ScamText.dc.html": {
+      "x": 1360,
+      "y": 7800,
+      "w": 2200,
+      "h": 1180,
+      "title": "6 \u00b7 A scam text is caught"
+    },
+    "Logo.dc.html": {
+      "x": 1360,
+      "y": 9100,
+      "w": 2200,
+      "h": 1180,
+      "title": "Logo ideas"
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-10-07T20:30:00Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {
+    "view": "canvas"
+  },
+  "notes": {
+    "t1": {
+      "kind": "title1",
+      "maxW": 4000,
+      "text": "Aegida \u2014 storyboard for review",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "Setup.dc.html",
+    "App.dc.html",
+    "PopupGuard.dc.html",
+    "NewApp.dc.html",
+    "Drift.dc.html",
+    "Remote.dc.html",
+    "ScamText.dc.html",
+    "Logo.dc.html"
+  ],
+  "pages": [],
+  "title": "Aegida Storyboard"
+}
