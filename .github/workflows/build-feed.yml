@@ -7,6 +7,16 @@ name: Build feed
 on:
   schedule:
     - cron: '17 6 * * *'
+  # Rebuild and publish when something that shapes the feed changes (not on doc or app-only pushes).
+  push:
+    branches: [main]
+    paths:
+      - 'feedtool/**'
+      - 'core/src/main/kotlin/com/aegida/core/feed/**'
+      - 'core/src/main/kotlin/com/aegida/core/url/**'
+      - 'core/build.gradle.kts'
+      - 'gradle/libs.versions.toml'
+      - '.github/workflows/build-feed.yml'
   workflow_dispatch:
 
 permissions:

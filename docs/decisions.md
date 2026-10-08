@@ -65,6 +65,7 @@
 - Public repo **Wizoi/Aegida-Feed** (named after "feed", the code's word; renamed from Aegida-Lists before first push). Served from GitHub Pages at `https://wizoi.github.io/Aegida-Feed/`.
 - The **daily build runs in the private AegidaSafe repo** (`.github/workflows/build-feed.yml`), signs there, and pushes only `feed.bin` and `feed.sig` to Aegida-Feed's `gh-pages` branch with a write-only-to-that-repo deploy key. No private code or signing key near the public repo. (Chosen over a public workflow reading the private repo, and over copying the builder, which would let the link-reading code drift from the phone's copy.)
 - **URLhaus left out** of the public feed until abuse.ch confirms in writing that republishing is allowed (findings #27). Phishing.Database is MIT; its notice ships with the feed. The builder keeps URLhaus as an option.
+- The workflow also runs on a push to `main` that touches the builder, the feed or link code in `:core`, the version catalog or the workflow itself (Kevin, Oct 8), as CardNight's Pages deploy does; docs and app-only pushes do not publish. The verify gate still applies.
 - One-time key and secret setup is Kevin's, so private keys never pass through chat: `docs/feed-publishing.md`.
 
 ## Storage (Oct 8)
