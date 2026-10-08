@@ -9,6 +9,9 @@ package com.aegida.core.net
  */
 interface HttpClient {
     suspend fun post(endpoint: Endpoint, body: String, headers: Map<String, String> = emptyMap()): HttpResult
+
+    /** Downloads at most [maxBytes]; a longer answer is [FailureReason.TooBig], never read to the end. */
+    suspend fun get(endpoint: Endpoint, maxBytes: Int): BytesResult
 }
 
 sealed interface HttpResult {
@@ -16,4 +19,9 @@ sealed interface HttpResult {
     data class Failed(val code: Int?, val reason: FailureReason) : HttpResult
 }
 
-enum class FailureReason { Offline, Timeout, HttpError, Unknown }
+sealed interface BytesResult {
+    class Ok(val bytes: ByteArray) : BytesResult
+    data class Failed(val code: Int?, val reason: FailureReason) : BytesResult
+}
+
+enum class FailureReason { Offline, Timeout, HttpError, TooBig, Unknown }

@@ -10,11 +10,21 @@ sealed class Endpoint(val host: String, val path: String) {
     /** A guardian alert topic on ntfy.sh. Constructed only by NtfySender (NtfySingleOwnerTest). */
     class Ntfy(topic: NtfyTopic) : Endpoint(NTFY_HOST, topic.value)
 
+    /** One of Aegida's own published scam-list files (the Aegida-Feed Pages site). The only two instances are below. */
+    class Feed private constructor(file: String) : Endpoint(FEED_HOST, "$FEED_PATH/$file") {
+        companion object {
+            val LIST = Feed("feed.bin")
+            val SIGNATURE = Feed("feed.sig")
+        }
+    }
+
     companion object {
         const val NTFY_HOST = "ntfy.sh"
+        const val FEED_HOST = "wizoi.github.io"
+        private const val FEED_PATH = "Aegida-Feed"
 
         /** Hosts the app may contact. NetworkSingleOwnerTest fails if this changes without the test. */
-        val ALLOWED_HOSTS = setOf(NTFY_HOST)
+        val ALLOWED_HOSTS = setOf(NTFY_HOST, FEED_HOST)
     }
 }
 

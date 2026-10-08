@@ -1,5 +1,6 @@
 package com.aegida.platform.net
 
+import com.aegida.core.net.BytesResult
 import com.aegida.core.net.Endpoint
 import com.aegida.core.net.FailureReason
 import com.aegida.core.net.HttpClient
@@ -50,5 +51,37 @@ class OkHttpHttpClient internal constructor(
                 HttpResult.Failed(null, FailureReason.Unknown)
             }
         }
+    }
+
+    override suspend fun get(endpoint: Endpoint, maxBytes: Int): BytesResult {
+        check(endpoint.host in Endpoint.ALLOWED_HOSTS) { "host not allowed" }
+        val request = Request.Builder().url(urlFor(endpoint)).get().build()
+        return withContext(Dispatchers.IO) {
+            try {
+                client.newCall(request).execute().use { response ->
+                    val body = response.body
+                    when {
+                        !response.isSuccessful -> BytesResult.Failed(response.code, FailureReason.HttpError)
+                        body == null -> BytesResult.Failed(response.code, FailureReason.Unknown)
+                        body.contentLength() > maxBytes -> BytesResult.Failed(response.code, FailureReason.TooBig)
+                        else -> readAtMost(body.source(), maxBytes, response.code)
+                    }
+                }
+            } catch (e: UnknownHostException) {
+                BytesResult.Failed(null, FailureReason.Offline)
+            } catch (e: InterruptedIOException) {
+                BytesResult.Failed(null, FailureReason.Timeout)
+            } catch (e: IOException) {
+                BytesResult.Failed(null, FailureReason.Unknown)
+            }
+        }
+    }
+
+    /** Reads one byte past the limit to tell "exactly maxBytes" from "more than maxBytes" without buffering the rest. */
+    private fun readAtMost(source: okio.BufferedSource, maxBytes: Int, code: Int): BytesResult {
+        val limit = maxBytes.toLong() + 1
+        source.request(limit) // buffers up to limit bytes, or less at the end of the stream
+        val bytes = source.readByteArray(minOf(source.buffer.size, limit))
+        return if (bytes.size > maxBytes) BytesResult.Failed(code, FailureReason.TooBig) else BytesResult.Ok(bytes)
     }
 }

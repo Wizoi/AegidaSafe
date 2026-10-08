@@ -1,5 +1,6 @@
 package com.aegida.alerts
 
+import com.aegida.core.net.BytesResult
 import com.aegida.core.net.Endpoint
 import com.aegida.core.net.FailureReason
 import com.aegida.core.net.HttpClient
@@ -16,6 +17,7 @@ class NtfySenderTest {
 
     private class RecordingHttp(private val result: HttpResult) : HttpClient {
         val sent = mutableListOf<Triple<Endpoint, String, Map<String, String>>>()
+        override suspend fun get(endpoint: Endpoint, maxBytes: Int): BytesResult = error("not used")
         override suspend fun post(endpoint: Endpoint, body: String, headers: Map<String, String>): HttpResult {
             sent += Triple(endpoint, body, headers)
             return result

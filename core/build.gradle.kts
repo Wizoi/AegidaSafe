@@ -15,4 +15,5 @@ kotlin { compilerOptions { jvmTarget.set(JvmTarget.JVM_17) } }
 dependencies {
     api(libs.javax.inject)
     testImplementation(libs.junit)
+    testImplementation(libs.coroutines.test)
 }

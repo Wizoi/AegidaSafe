@@ -34,7 +34,7 @@ class NetworkSingleOwnerTest {
 
     /** Changing this list changes the Play data-safety form; update both together. */
     @Test fun allowedHostsAreExactlyTheKnownOnes() {
-        assertEquals(setOf("ntfy.sh"), Endpoint.ALLOWED_HOSTS)
+        assertEquals(setOf("ntfy.sh", "wizoi.github.io"), Endpoint.ALLOWED_HOSTS)
     }
 }
 

@@ -11,6 +11,7 @@ import com.aegida.core.model.DetectorId
 import com.aegida.core.model.Finding
 import com.aegida.core.model.FindingKey
 import com.aegida.core.model.FindingState
+import com.aegida.core.net.BytesResult
 import com.aegida.core.net.Endpoint
 import com.aegida.core.net.FailureReason
 import com.aegida.core.net.HttpClient
@@ -56,6 +57,7 @@ class AlertPipelineTest {
 
     private class Http(var result: HttpResult = HttpResult.Ok(200, "{}")) : HttpClient {
         val bodies = mutableListOf<String>()
+        override suspend fun get(endpoint: Endpoint, maxBytes: Int): BytesResult = error("not used")
         override suspend fun post(endpoint: Endpoint, body: String, headers: Map<String, String>): HttpResult {
             bodies += body
             return result
