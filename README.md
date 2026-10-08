@@ -9,6 +9,7 @@ Status: Gradle skeleton with guard tests; no features yet. Research is in [resea
 - What it does: [docs/product-brief.md](docs/product-brief.md)
 - How it is built: [docs/aegida-technical-design.md](docs/aegida-technical-design.md)
 - Why decisions were made: [docs/decisions.md](docs/decisions.md)
+- Build plan and status: [docs/build-plan.md](docs/build-plan.md)
 - Working rules: [CLAUDE.md](CLAUDE.md)
 - Findings log: [docs/findings.md](docs/findings.md)
 - Emulator versus device gaps: [docs/emulator-vs-device.md](docs/emulator-vs-device.md)
