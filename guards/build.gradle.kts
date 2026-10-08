@@ -19,8 +19,8 @@ dependencies {
 
 tasks.test {
     systemProperty("aegida.root", rootDir.absolutePath)
-    // Room writes store/schemas during kapt; read it after that in the same build, not in parallel.
-    mustRunAfter(":store:kaptDebugKotlin", ":store:kaptReleaseKotlin")
+    // Room writes store/schemas during KSP; read it after that in the same build, not in parallel.
+    mustRunAfter(":store:kspDebugKotlin", ":store:kspReleaseKotlin")
     // Inputs are every file the guards read (ShippedSources.allText is the widest: the whole repo
     // minus build output), so editing a doc or script re-runs the secrets scan too (findings #9).
     inputs.files(

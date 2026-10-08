@@ -2,7 +2,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.kotlin.kapt)
+    alias(libs.plugins.ksp)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.hilt)
@@ -45,8 +45,6 @@ android {
     }
 }
 
-kapt { correctErrorTypes = true }
-
 dependencies {
     implementation(project(":alerts"))
     implementation(project(":platform"))
@@ -65,9 +63,9 @@ dependencies {
     implementation(libs.lifecycle.runtime.compose)
     implementation(libs.hilt.navigation.compose)
     implementation(libs.hilt.android)
-    kapt(libs.hilt.compiler)
+    ksp(libs.hilt.compiler)
     implementation(libs.hilt.work)
-    kapt(libs.hilt.work.compiler)
+    ksp(libs.hilt.work.compiler)
     implementation(libs.work.runtime.ktx)
     implementation(libs.serialization.json)
 

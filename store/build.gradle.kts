@@ -3,7 +3,7 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.kotlin.kapt)
+    alias(libs.plugins.ksp)
     alias(libs.plugins.kotlin.serialization)
 }
 
@@ -21,15 +21,15 @@ android {
     sourceSets.getByName("test").assets.srcDir("$projectDir/schemas")
 }
 
-kapt {
-    arguments { arg("room.schemaLocation", "$projectDir/schemas") }
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 dependencies {
     api(project(":core"))
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
-    kapt(libs.room.compiler)
+    ksp(libs.room.compiler)
     implementation(libs.serialization.json)
     implementation(libs.coroutines.core)
 
