@@ -7,7 +7,7 @@
 # It refuses any serial that is not emulator-*, so it can never touch a real phone by mistake.
 set -u
 SDK="${ANDROID_SDK_ROOT:-$LOCALAPPDATA/Android/Sdk}"
-ADB="$SDK/platform-tools/adb.exe"; [ -x "$ADB" ] || ADB="$SDK/platform-tools/adb"
+ADB="$SDK/platform-tools/adb.exe"; [ -f "$ADB" ] || ADB="$SDK/platform-tools/adb"
 SERIAL="${SERIAL:-emulator-5554}"
 case "$SERIAL" in emulator-*) ;; *) echo "refusing: $SERIAL is not an emulator"; exit 2;; esac
 adb() { MSYS_NO_PATHCONV=1 "$ADB" -s "$SERIAL" "$@"; }
@@ -18,8 +18,8 @@ IMAGE="system-images;android-36;google_apis_playstore;x86_64"
 
 case "${1:-}" in
 avd)
-  SDKMANAGER="$SDK/cmdline-tools/latest/bin/sdkmanager.bat"; [ -x "$SDKMANAGER" ] || SDKMANAGER="$SDK/cmdline-tools/latest/bin/sdkmanager"
-  AVDMANAGER="$SDK/cmdline-tools/latest/bin/avdmanager.bat"; [ -x "$AVDMANAGER" ] || AVDMANAGER="$SDK/cmdline-tools/latest/bin/avdmanager"
+  SDKMANAGER="$SDK/cmdline-tools/latest/bin/sdkmanager.bat"; [ -f "$SDKMANAGER" ] || SDKMANAGER="$SDK/cmdline-tools/latest/bin/sdkmanager"
+  AVDMANAGER="$SDK/cmdline-tools/latest/bin/avdmanager.bat"; [ -f "$AVDMANAGER" ] || AVDMANAGER="$SDK/cmdline-tools/latest/bin/avdmanager"
   "$SDKMANAGER" "$IMAGE" || exit 1
   echo no | "$AVDMANAGER" create avd -n "$AVD_NAME" -k "$IMAGE" -d pixel_7 --force || exit 1
   echo "start it with: \"$SDK/emulator/emulator\" -avd $AVD_NAME -no-snapshot-save &"
