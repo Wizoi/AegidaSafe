@@ -46,6 +46,15 @@
 - **Research findings (docs, unverified on device):** (1) Samsung puts apps **not opened for ~3 days** to sleep (jobs, alarms, foreground services restricted) and long-unused apps (~16 days) into deep sleep with no notifications; Mom may never open Aegida, so this is the biggest Samsung risk. Responses: foreground service, a setup deep-link to Samsung's "Never sleeping" list, a "hasn't checked in" guardian alert. (2) **Auto Blocker** blocks installs from unauthorized sources (Play is fine); its Maximum restrictions block device-admin apps and **hide links in messages**, which would starve link checks; Samsung doesn't say apps can read it. (3) Nothing found in documentation about how Samsung Internet handles website notification spam.
 - Oct 8: repo created at `C:\src\kidzi\GitHub\AegidaSafe`, private GitHub repository `Wizoi/AegidaSafe`. Docs, research and design artifacts copied into it.
 
+## Gradle skeleton (Oct 8)
+- Skeleton built: `:core`, `:detectors`, `:alerts` (pure JVM), `:platform`, `:store` (Android libraries), `:app`, plus `:guards` for the guard tests. Stack as SmugView. The local repo was found nested in an unrelated outer repo at `C:\src\kidzi\GitHub`; Kevin moved that outer `.git` aside and AegidaSafe is now its own repo.
+- **Approved by Kevin (Oct 8):**
+  - Layering correction (findings #3): ports and `Texts` live in `:core`; `:detectors`/`:alerts` depend only on `:core`. Design section 2 and CLAUDE.md updated.
+  - Application ID **`com.aegida.app`** (permanent after the first Play upload).
+  - **`INTERNET` permission** approved for build step 1 (ntfy sending); added when the first sender is wired in, not before.
+  - Download the **API 36 Google Play** system image and create the `Aegida36` AVD for the emulator spike.
+  - Push `main` to github.com/Wizoi/AegidaSafe.
+
 ## Open / next session
 - Create the Gradle project and run the **emulator spike**: confirm each `adb`/`cmd` scenario works on the API 36 Play image.
 - Kevin: look for an old Samsung phone on One UI 6+; look into Samsung Remote Test Lab.

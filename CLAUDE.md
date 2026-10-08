@@ -14,10 +14,14 @@ text, never red, never "safe" (say "no known problems found").
 New code goes where design section 2 puts it. Modules (compile-time layering, imports go down only):
 
 ```
-:app  ->  :alerts  ->  :detectors  ->  :platform / :store  ->  :core
+:app  ->  :alerts  ->  :detectors  ->  :core
+:app  ->  :platform / :store       ->  :core
 ```
 
-- `:core` is pure Kotlin/JVM. No `android.*`.
+- `:core` is pure Kotlin/JVM. No `android.*`. It holds the models, the user text (`Texts`) and the ports
+  (`Clock`, `HttpClient`, `OemSource`, `CheckLog`, ...) that `:platform` and `:store` implement.
+- `:detectors` and `:alerts` are pure JVM too and depend only on `:core`, never on `:platform`/`:store`.
+  `LayerTest` checks this graph against every `build.gradle.kts`. Guard tests live in `:guards`.
 - `:detectors` is pure logic over a `Snapshot`. No `android.*`. Only detectors create `Finding`s.
 - `:platform` holds the Android adapters (Clock, PackageSource, SettingsSource, NotificationSource,
   HttpClient, OemSource). `:store` is the only place with Room/SQL.

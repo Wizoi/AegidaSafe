@@ -33,19 +33,29 @@ Draft 3: Samsung items researched and moved to the end; Auto Blocker recommended
 :app               Android entry points: Activity, Compose UI, Services, Receivers,
                    WorkManager workers, AppGraph (composition root). Depends on all.
    |
-:alerts            AlertPipeline, ntfy client, escalation, Problem texts
-:detectors         One detector per concern (section 5). Pure Kotlin + small interfaces
-:platform          Android adapters behind interfaces: PackageSource, SettingsSource,
-                   NotificationSource, PlayProtectSource, Clock, HttpClient,
-                   OemSource (Samsung-only readings; returns NotPresent on a Pixel)
-:store             Room database, DAOs, migrations, DataStore, feed cache (the only SQL)
-   |
+   +--> :alerts      AlertPipeline, ntfy sender, escalation. Pure JVM
+   |      |
+   |    :detectors   One detector per concern (section 5). Pure JVM
+   |      |
+   +--> :platform    Android adapters implementing the :core ports: PackageSource,
+   |      |          SettingsSource, NotificationSource, PlayProtectSource, Clock,
+   |      |          HttpClient, NotificationPoster, OemSource (Samsung-only readings;
+   |      |          NotPresent on a Pixel)
+   +--> :store       Room database, DAOs, migrations, DataStore, feed cache (the only SQL);
+          |          exposes only :core ports (AegidaStore), never Room types
+          v
 :core              Pure Kotlin/JVM, no Android imports: models, Baseline, Snapshot,
-                   Finding, Severity, UrlRules, Domain matching, HomeState, Result
+                   Finding, Severity, UrlRules, Domain matching, HomeState, Result,
+                   user text (Texts/Problem) and the ports (Clock, HttpClient,
+                   OemSource, CheckLog, ...)
+
+:guards            Guard tests only (section 4); ships nothing
 ```
 
+`:detectors` and `:alerts` depend only on `:core`, never on `:platform`/`:store`: a JVM module cannot depend on an Android library, so the interfaces they need live in `:core` and the Android modules implement them (findings #3, Oct 8). User text lives in `:core` because `NotificationPoster` in `:platform` needs it too.
+
 Rules (all enforced, see section 4):
-- Dependencies point down only. `:core` is a JVM module, so any Android import there fails to compile.
+- Dependencies point down only (`LayerTest` checks every `build.gradle.kts`). `:core`, `:detectors` and `:alerts` are JVM modules, so any Android import there fails to compile.
 - `:detectors` never touches Android types: it receives `Snapshot` objects from `:platform` adapters. This is what makes ~90% of the logic runnable as fast JVM tests.
 - `:app` contains no decisions, only wiring and drawing. A ViewModel facade plus per-concern controllers, as in SmugView; new logic goes in the controller, never back in the facade.
 - Port/adapter used **only where it pays** (TagPup option C): the seams are the ones that need a fake in tests — Clock, PackageSource, SettingsSource, NotificationSource, HttpClient, NtfySender, OemSource. Everything else is a plain class.
