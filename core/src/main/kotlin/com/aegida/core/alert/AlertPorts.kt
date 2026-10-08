@@ -1,0 +1,46 @@
+package com.aegida.core.alert
+
+import com.aegida.core.model.Finding
+import com.aegida.core.model.FindingKey
+import com.aegida.core.net.NtfyTopic
+import com.aegida.core.text.Problem
+import java.time.Instant
+
+/** Findings with their state, one row per FindingKey. Implemented by :store. */
+interface FindingStore {
+    suspend fun open(): List<Finding>
+    suspend fun get(key: FindingKey): Finding?
+    suspend fun put(finding: Finding)
+}
+
+/** Heads-up banners on Mom's phone. Implemented by NotificationPoster (the only notification owner). */
+interface MomNotifier {
+    fun show(finding: Finding)
+    fun clear(key: FindingKey)
+}
+
+/** What happened, newest first, kept about 90 days. Implemented by :store. */
+interface HistoryLog {
+    suspend fun add(entry: HistoryEntry)
+}
+
+data class HistoryEntry(val at: Instant, val problem: Problem, val outcome: Outcome)
+
+enum class Outcome { MomWarned, GuardianTold, GuardianNotReached, Fixed }
+
+/** Guardian alerting as Mom set it up. Implemented by :store. */
+interface GuardianSettings {
+    suspend fun current(): Guardians
+}
+
+data class Guardians(
+    /** Mom turned on "Let Aegida tell my guardians about serious problems". */
+    val alertsOn: Boolean,
+    val momName: String,
+    /** The first guardian's private topic, or null before pairing. */
+    val firstTopic: NtfyTopic?,
+) {
+    companion object {
+        val None = Guardians(alertsOn = false, momName = "", firstTopic = null)
+    }
+}
