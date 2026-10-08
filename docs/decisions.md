@@ -55,6 +55,12 @@
   - Download the **API 36 Google Play** system image and create the `Aegida36` AVD for the emulator spike.
   - Push `main` to github.com/Wizoi/AegidaSafe.
 
+## Build step 1 choices (Oct 8, Kevin)
+- **Feeds:** a scheduled GitHub Action downloads the feeds daily, builds one compact file, signs it and publishes it on GitHub Pages; the app downloads that one file and verifies the signature. No server. The signing key lives only as a GitHub secret. (Chosen over the app fetching keyless feeds directly, and over a bundled-only list.)
+- **Persistent notice:** a foreground service of type `specialUse` shows "Aegida is protecting you" (adds `FOREGROUND_SERVICE` + `FOREGROUND_SERVICE_SPECIAL_USE`; needs a Play Console justification). Chosen over listener-only.
+- **Website notification fix:** Aegida hides the notification, shows one calm card and opens that site's own switch for Mom to tap. It does **not** fire Chrome's "Unsubscribe" action itself (findings #18).
+- **`POST_NOTIFICATIONS`** approved (needed for any banner on Android 13+); granted by Mom in setup.
+
 ## Open / next session
 - Create the Gradle project and run the **emulator spike**: confirm each `adb`/`cmd` scenario works on the API 36 Play image.
 - Kevin: look for an old Samsung phone on One UI 6+; look into Samsung Remote Test Lab.
