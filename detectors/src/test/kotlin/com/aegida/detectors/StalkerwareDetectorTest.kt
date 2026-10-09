@@ -16,14 +16,34 @@ class StalkerwareDetectorTest {
         packageNames = listOf("com.thetruth"), certificateSha1s = listOf("31a6ececd97cf39bc4126b8745cd94a7c30bf81c"),
     )
 
-    private fun app(pkg: String, certs: Set<String> = emptySet(), system: Boolean = false) =
-        InstalledApp(pkg, pkg.substringAfterLast('.'), "com.android.vending", system, certs)
+    private fun app(pkg: String, certs: Set<String> = emptySet(), system: Boolean = false, installer: String? = null) =
+        InstalledApp(pkg, pkg.substringAfterLast('.'), installer, system, certs)
+
+    private val listedCert = "31a6ececd97cf39bc4126b8745cd94a7c30bf81c"
 
     private fun found(vararg apps: InstalledApp, withFeed: ThreatFeed? = feed) =
         StalkerwareDetector().evaluate(inputs(snapshot = snapshot().copy(apps = apps.toList()), feed = withFeed)).map { it.key.problem to it.key.subject }
 
-    @Test fun aListedPackageIsRaisedWhereverItCameFrom() =
-        assertEquals(listOf(Problem.StalkerwareApp to "com.thetruth"), found(app("com.android.chrome"), app("com.thetruth")))
+    @Test fun aListedPackageIsRaisedWhenItWasSideloadedOrHasNoRecordedInstaller() =
+        assertEquals(
+            listOf(Problem.StalkerwareApp to "com.thetruth"),
+            found(app("com.android.chrome"), app("com.thetruth", installer = "com.android.packageinstaller")),
+        )
+
+    @Test fun aListedPackageNameAloneIsNotEnoughForAnAppInstalledFromPlay() =
+        assertEquals(emptyList<Pair<Problem, String>>(), found(app("com.thetruth", certs = setOf("abcd"), installer = "com.android.vending")))
+
+    @Test fun anAppFromPlayIsRaisedWhenItsCertificateIsListedToo() =
+        assertEquals(
+            listOf(Problem.StalkerwareApp to "com.thetruth"),
+            found(app("com.thetruth", certs = setOf(listedCert), installer = "com.android.vending")),
+        )
+
+    @Test fun aSystemAppIsNeverRaisedEvenIfListed() =
+        assertEquals(
+            emptyList<Pair<Problem, String>>(),
+            found(app("com.thetruth", system = true), app("org.renamed.app", certs = setOf(listedCert), system = true)),
+        )
 
     @Test fun anAppSignedWithAListedCertificateIsRaisedEvenUnderAnotherName() =
         assertEquals(listOf(Problem.StalkerwareApp to "org.renamed.app"), found(app("org.renamed.app", certs = setOf("0000", "31A6ECECD97CF39BC4126B8745CD94A7C30BF81C"))))

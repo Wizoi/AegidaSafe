@@ -23,7 +23,7 @@ class LinkDetector @Inject constructor() : Detector {
         val event = input.event ?: return emptyList()
         if (event.packageName == Aegida.PACKAGE) return emptyList()
         if (event.channelId?.startsWith(PopupSpamDetector.SITE_CHANNEL_PREFIX) == true) return emptyList()
-        return Links.extract(event.title + "\n" + event.text).mapNotNull { link ->
+        return Links.extractParts(event.title, event.text).mapNotNull { link ->
             val signs = LinkSigns.of(link)
             val problem = when {
                 input.feed?.match(link) != null -> Problem.ScamLink

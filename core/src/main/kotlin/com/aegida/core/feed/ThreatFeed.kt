@@ -44,9 +44,12 @@ class ThreatFeed(
      */
     fun matchApp(packageName: String, certificateSha1s: Set<String>): AppMatch? {
         if (packages.binarySearch(FeedHash.of(PACKAGE_PREFIX + packageName.lowercase())) >= 0) return AppMatch.Package
-        if (certificateSha1s.any { certificates.binarySearch(FeedHash.of(CERTIFICATE_PREFIX + it.lowercase())) >= 0 }) return AppMatch.Certificate
-        return null
+        return if (matchesCertificate(certificateSha1s)) AppMatch.Certificate else null
     }
+
+    /** Is the app signed with a certificate the feed lists (SHA-1 hex, any case)? */
+    fun matchesCertificate(certificateSha1s: Set<String>): Boolean =
+        certificateSha1s.any { certificates.binarySearch(FeedHash.of(CERTIFICATE_PREFIX + it.lowercase())) >= 0 }
 
     companion object {
         /** Keeps the three kinds of entry apart: a package name never equals a website's hash. */
@@ -69,7 +72,14 @@ class ThreatFeed(
             certificateSha1s.map { FeedHash.of(CERTIFICATE_PREFIX + it.lowercase()) }.toLongArray(),
         )
 
-        private fun LongArray.sortedDistinct(): LongArray = distinct().toLongArray().also { it.sort() }
+        /** Sorted copy without duplicates, made without boxing (a real feed has about 1.1 million entries). */
+        private fun LongArray.sortedDistinct(): LongArray {
+            val sorted = copyOf().also { it.sort() }
+            if (sorted.isEmpty()) return sorted
+            var kept = 1
+            for (i in 1 until sorted.size) if (sorted[i] != sorted[kept - 1]) sorted[kept++] = sorted[i]
+            return if (kept == sorted.size) sorted else sorted.copyOf(kept)
+        }
     }
 }
 

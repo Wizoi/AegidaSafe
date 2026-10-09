@@ -81,19 +81,30 @@ class FeedVerifier(publicKeyX509: ByteArray) {
 }
 
 /** Why a downloaded feed is not used; the last good one stays (design section 6). */
-enum class FeedRejection { BadSignature, Malformed, TooSmall, FromTheFuture, OlderThanCurrent, ShrankTooMuch }
+enum class FeedRejection { BadSignature, Malformed, TooSmall, FromTheFuture, OlderThanCurrent, ShrankTooMuch, TooManyEntries }
 
 object FeedSanity {
     private const val MIN_ENTRIES = 1_000
+
+    /** Echap lists a few thousand spying apps; anything near this is a broken or hostile feed (R18). */
+    private const val MAX_APP_ENTRIES = 100_000
+
+    /** The app lists are only compared for shrinking once the current feed has at least this many of them. */
+    private const val APP_SHRINK_FLOOR = 100
+
+    private fun shrankTooMuch(candidate: Int, current: Int) = current >= APP_SHRINK_FLOOR && candidate < current / 2
 
     /** Null when [candidate] may replace [current]. */
     fun check(candidate: ThreatFeed, current: ThreatFeed?, now: Instant): FeedRejection? {
         val size = candidate.hostCount + candidate.urlCount
         return when {
             size < MIN_ENTRIES -> FeedRejection.TooSmall
+            candidate.packageCount > MAX_APP_ENTRIES || candidate.certificateCount > MAX_APP_ENTRIES -> FeedRejection.TooManyEntries
             candidate.generatedAt.isAfter(now.plus(Duration.ofHours(1))) -> FeedRejection.FromTheFuture
             current != null && !candidate.generatedAt.isAfter(current.generatedAt) -> FeedRejection.OlderThanCurrent
             current != null && size < (current.hostCount + current.urlCount) / 2 -> FeedRejection.ShrankTooMuch
+            current != null && shrankTooMuch(candidate.packageCount, current.packageCount) -> FeedRejection.ShrankTooMuch
+            current != null && shrankTooMuch(candidate.certificateCount, current.certificateCount) -> FeedRejection.ShrankTooMuch
             else -> null
         }
     }
