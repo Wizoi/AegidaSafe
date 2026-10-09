@@ -1,6 +1,8 @@
 package com.aegida.app
 
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
@@ -15,7 +17,8 @@ import java.util.concurrent.TimeUnit
 
 /**
  * Runs the daily check. It has no network constraint on purpose: the check must run offline, and a failed
- * feed update only makes the lists older (HealthDetector says so after 3 days).
+ * feed update only makes the lists older (HealthDetector says so after 3 days). The 9 MB feed is only downloaded
+ * on an unmetered network (Wi-Fi), unless the lists are already more than 3 days old (DailyCheck decides that).
  */
 @HiltWorker
 class DailyCheckWorker @AssistedInject constructor(
@@ -25,12 +28,21 @@ class DailyCheckWorker @AssistedInject constructor(
 ) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result = try {
-        dailyCheck.run()
+        dailyCheck.run(downloadFeed = onUnmeteredNetwork())
         Result.success()
     } catch (e: CancellationException) {
         throw e
     } catch (e: Exception) {
         if (runAttemptCount < MAX_ATTEMPTS) Result.retry() else Result.failure()
+    }
+
+    /** False when the network is metered, unknown or unreadable: then DailyCheck skips the download while the lists are fresh. */
+    private fun onUnmeteredNetwork(): Boolean = try {
+        val manager = applicationContext.getSystemService(ConnectivityManager::class.java)
+        val capabilities = manager?.getNetworkCapabilities(manager.activeNetwork)
+        capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED) == true
+    } catch (e: SecurityException) {
+        false
     }
 
     companion object {

@@ -24,4 +24,10 @@ interface CheckRunDao {
 
     @Query("SELECT * FROM check_run WHERE trigger = :trigger ORDER BY startedAtMillis DESC, id DESC LIMIT 1")
     suspend fun latest(trigger: String): CheckRunEntity?
+
+    @Query(
+        "DELETE FROM check_run WHERE startedAtMillis < :beforeMillis AND id NOT IN " +
+            "(SELECT id FROM check_run WHERE trigger = :keepNewestOf ORDER BY startedAtMillis DESC, id DESC LIMIT 1)",
+    )
+    suspend fun deleteOlderThan(beforeMillis: Long, keepNewestOf: String): Int
 }

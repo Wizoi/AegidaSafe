@@ -53,6 +53,22 @@ class RoomCheckLogTest {
         assertNull(log.latest(Trigger.SettingChanged))
     }
 
+    @Test fun pruneDropsRunsOlderThanTheCutoffButNeverTheNewestDailyOne() = runTest {
+        val oldDaily = CheckRun(Trigger.Daily, now.minus(Duration.ofDays(50)), now.minus(Duration.ofDays(50)))
+        val olderDaily = CheckRun(Trigger.Daily, now.minus(Duration.ofDays(60)), null)
+        val oldOther = CheckRun(Trigger.NotificationPosted, now.minus(Duration.ofDays(45)), null)
+        val recent = CheckRun(Trigger.NotificationPosted, now.minus(Duration.ofDays(2)), null)
+        listOf(olderDaily, oldOther, oldDaily, recent).forEach { log.record(it) }
+        assertEquals(2, log.prune(now.minus(Duration.ofDays(30)))) // olderDaily and oldOther
+        assertEquals(oldDaily, log.latest(Trigger.Daily))
+        assertEquals(recent, log.latest())
+        assertEquals(0, log.prune(now.minus(Duration.ofDays(30))))
+    }
+
+    @Test fun pruneOnAnEmptyLogDoesNothing() = runTest {
+        assertEquals(0, log.prune(now))
+    }
+
     @Test fun exportedSchemaVersion1Opens() {
         migrations.createDatabase("schema-check", 1).close()
     }

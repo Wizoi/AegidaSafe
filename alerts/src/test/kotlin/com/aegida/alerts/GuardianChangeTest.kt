@@ -16,7 +16,7 @@ class GuardianChangeTest {
         Guardians(alertsOn = true, ownerName = "Mom", firstTopic = oldTopic, firstGuardianName = "Kevin", firstGuardianEmail = "k@example.com", firstGuardianPhone = "555"),
     )
     private val sender = NtfySender(http)
-    private val switch = DeadMansSwitch(guardians, sender)
+    private val switch = DeadMansSwitch(guardians, sender) { java.time.Instant.EPOCH }
     private val change = GuardianChange(guardians, GuardianAlerts(guardians, sender, switch, AlertGate()), switch, AlertGate())
 
     @Test fun theNewGuardianGetsTheirOwnPrivateTopicAndTheOldGuardiansWaitingMessageIsCancelled() = runTest {

@@ -79,6 +79,13 @@ class FakeCheckLog : CheckLog {
     override suspend fun record(run: CheckRun) { runs += run }
     override suspend fun latest() = runs.maxByOrNull { it.startedAt }
     override suspend fun latest(trigger: Trigger) = runs.filter { it.trigger == trigger }.maxByOrNull { it.startedAt }
+    override suspend fun prune(before: Instant): Int {
+        val keep = latestDaily()
+        val old = runs.filter { it.startedAt.isBefore(before) && it !== keep }
+        runs.removeAll(old)
+        return old.size
+    }
+    private fun latestDaily() = runs.filter { it.trigger == Trigger.Daily }.maxByOrNull { it.startedAt }
 }
 
 class FakeOutbox : com.aegida.core.alert.Outbox {
