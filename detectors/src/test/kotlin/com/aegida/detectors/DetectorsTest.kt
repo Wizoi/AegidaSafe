@@ -4,6 +4,7 @@ import com.aegida.core.model.Aegida
 import com.aegida.core.model.Evidence
 import com.aegida.core.model.PrivateDns
 import com.aegida.core.model.Setup
+import com.aegida.core.model.SetupStep
 import com.aegida.core.text.Problem
 import com.aegida.detectors.Fixtures.chromeSiteNotification
 import com.aegida.detectors.Fixtures.inputs
@@ -86,9 +87,22 @@ class HealthDetectorTest {
 
     @Test fun allWellSaysNothing() = assertEquals(emptySet<Problem>(), problems(inputs()))
 
+    private val finished = Setup.NotDone.copy(stepsDone = SetupStep.entries.size)
+
     @Test fun lostPermissionsAreFindings() {
-        assertEquals(setOf(Problem.ListenerOff), problems(inputs(snapshot(listenerEnabled = false))))
-        assertEquals(setOf(Problem.NotificationsBlocked), problems(inputs(snapshot(canPostNotifications = false))))
+        assertEquals(setOf(Problem.ListenerOff), problems(inputs(snapshot(listenerEnabled = false), setup = finished)))
+        assertEquals(setOf(Problem.NotificationsBlocked), problems(inputs(snapshot(canPostNotifications = false), setup = finished)))
+    }
+
+    /**
+     * Before setup is finished she has not been asked yet, or is half way through the step that asks. Raising "Aegida can no
+     * longer see your notifications" then is untrue and alarming (findings #65). If she skips the step, it is raised the
+     * moment setup finishes, and her guardian is told then.
+     */
+    @Test fun lostPermissionsAreNotRaisedWhileSetupIsStillBeingDone() {
+        val notDone = Setup.NotDone.copy(stepsDone = SetupStep.Access.ordinal)
+        assertEquals(emptySet<Problem>(), problems(inputs(snapshot(listenerEnabled = false, canPostNotifications = false), setup = notDone)))
+        assertEquals(emptySet<Problem>(), problems(inputs(snapshot(listenerEnabled = false), setup = Setup.NotDone)))
     }
 
     @Test fun aMissedDailyCheckIsNoticedAfter26Hours() {

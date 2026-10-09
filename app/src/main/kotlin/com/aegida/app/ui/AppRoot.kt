@@ -254,6 +254,7 @@ private fun MainContent(state: MainState, vm: MainViewModel) {
                         },
                         onAlerts = vm::setAlerts,
                         onFilterHelp = { page = Page.FilterGuide },
+                        listsUpdatedAt = state.listsUpdatedAt, zone = zone, locale = locale,
                     )
                 }
                 Page.FilterGuide -> AegidaScreen(pictureId) {

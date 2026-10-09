@@ -16,8 +16,12 @@ class HealthDetector @Inject constructor() : Detector {
 
     override fun evaluate(input: Inputs): List<Finding> = buildList {
         fun add(problem: Problem) = add(Finding(FindingKey(id, problem, "aegida"), emptyMap(), input.now, input.now))
-        if (!input.snapshot.listenerEnabled) add(Problem.ListenerOff)
-        if (!input.snapshot.canPostNotifications) add(Problem.NotificationsBlocked)
+        // Not before setup is finished: she has not been asked yet, or is half way through the step that asks. A skipped
+        // step is raised when setup ends, and her guardian is told then (findings #65).
+        if (input.setup.done) {
+            if (!input.snapshot.listenerEnabled) add(Problem.ListenerOff)
+            if (!input.snapshot.canPostNotifications) add(Problem.NotificationsBlocked)
+        }
         val lastDaily = input.lastDailyCheck
         if (lastDaily != null && Duration.between(lastDaily.startedAt, input.now) > MISSED_DAILY) add(Problem.MissedCheck)
         val feed = input.feed

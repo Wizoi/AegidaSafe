@@ -29,6 +29,7 @@ import com.aegida.core.model.WebsiteFilter
 import com.aegida.core.net.NtfyTopic
 import com.aegida.core.oem.OemSource
 import com.aegida.core.oem.Reading
+import com.aegida.core.store.FeedStore
 import com.aegida.core.store.SetupStore
 import com.aegida.core.time.Clock
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -56,6 +57,8 @@ data class MainState(
     val snapshot: Snapshot? = null,
     /** The phone may have a maker feature worth asking about (Auto Blocker); false on a Pixel or the emulator. */
     val blockerRelevant: Boolean = false,
+    /** When the scam lists on the phone were built (the feed's own date), or null before the first download. */
+    val listsUpdatedAt: Instant? = null,
 ) {
     val filterOn: Boolean get() = snapshot?.privateDns == PrivateDns.Hostname(WebsiteFilter.HOST)
 }
@@ -80,6 +83,7 @@ class MainViewModel @Inject constructor(
     private val oem: OemSource,
     private val clock: Clock,
     private val banner: PictureBanner,
+    private val feedStore: FeedStore,
 ) : ViewModel() {
 
     /**
@@ -128,6 +132,7 @@ class MainViewModel @Inject constructor(
             history = HistoryRows.of(historyLog.since(now.minus(HISTORY_SHOWN))),
             snapshot = snapshot,
             blockerRelevant = oem.installBlocker() != Reading.NotPresent,
+            listsUpdatedAt = feedStore.current()?.generatedAt,
         )
     }
 

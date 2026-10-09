@@ -81,9 +81,7 @@ fun AboutStep(pictureId: String?, number: Int, total: Int, initial: Guardians, o
     var phone by rememberSaveable { mutableStateOf(initial.firstGuardianPhone) }
     val valid = name.isNotBlank() && guardian.isNotBlank() && email.contains('@') && email.substringAfter('@').contains('.')
     StepScreen(pictureId, number, total, Texts.Setup.ABOUT_TITLE) {
-        Body(Texts.Setup.ABOUT_BODY, centered = false)
         Field(name, { name = it }, Texts.Setup.YOUR_NAME, KeyboardType.Text)
-        Text(Texts.Setup.GUARDIAN_TITLE, style = MaterialTheme.typography.titleLarge)
         Body(Texts.Setup.GUARDIAN_BODY, centered = false)
         Field(guardian, { guardian = it }, Texts.Setup.GUARDIAN_NAME, KeyboardType.Text)
         Field(email, { email = it }, Texts.Setup.GUARDIAN_EMAIL, KeyboardType.Email)
@@ -184,6 +182,8 @@ fun AccessStep(
     listenerOn: Boolean, bannersOn: Boolean,
     onOpenAccess: () -> Unit, onAllowBanners: () -> Unit, onContinue: () -> Unit,
 ) {
+    // Skipping this step turns off Aegida's main job, so she is asked first (findings #65).
+    var askingToSkip by rememberSaveable { mutableStateOf(false) }
     StepScreen(pictureId, number, total, Texts.Setup.ACCESS_TITLE) {
         Body(Texts.Setup.ACCESS_BODY, centered = false)
         Text(Texts.Setup.ACCESS_PART_1, style = MaterialTheme.typography.titleLarge)
@@ -196,7 +196,16 @@ fun AccessStep(
             if (!listenerOn) Body(Texts.Setup.ACCESS_FIRST, centered = false)
             BigButton(Texts.Setup.ACCESS_ALLOW_BANNERS, onAllowBanners, enabled = listenerOn)
         }
-        if (listenerOn && bannersOn) BigButton(Texts.Common.CONTINUE, onContinue) else QuietButton(Texts.Common.NOT_NOW, onContinue)
+        if (listenerOn && bannersOn) BigButton(Texts.Common.CONTINUE, onContinue) else QuietButton(Texts.Common.NOT_NOW, { askingToSkip = true })
+    }
+    if (askingToSkip) {
+        AlertDialog(
+            onDismissRequest = { askingToSkip = false },
+            title = { Text(Texts.Setup.ACCESS_SKIP_TITLE, style = MaterialTheme.typography.titleLarge) },
+            text = { Text(Texts.Setup.ACCESS_SKIP_BODY, style = MaterialTheme.typography.bodyLarge) },
+            confirmButton = { TextButton({ askingToSkip = false; onContinue() }) { Text(Texts.Setup.ACCESS_SKIP_ANYWAY, style = MaterialTheme.typography.titleMedium) } },
+            dismissButton = { TextButton({ askingToSkip = false }) { Text(Texts.Setup.ACCESS_SKIP_BACK, style = MaterialTheme.typography.titleMedium) } },
+        )
     }
 }
 

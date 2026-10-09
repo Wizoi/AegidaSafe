@@ -105,18 +105,16 @@ object Texts {
 
     object Setup {
         const val WELCOME_TITLE = "Welcome to Aegida"
-        const val WELCOME_BODY = "Aegida looks out for scams on your phone. It works quietly, tells you in plain words if something looks wrong, and, if you want, can let someone you trust know. Setting up takes about five minutes."
-        const val WELCOME_START = "Let's start"
+        const val WELCOME_BODY = "Set up Aegida in about five minutes. It quietly looks out for scams, and keeps you and a guardian you trust aware."
+        const val WELCOME_START = "Let's go"
         const val STEP = "Step %s of %s"
 
         const val ABOUT_TITLE = "Let's set up your helper"
-        const val ABOUT_BODY = "Aegida looks out for scams on your phone. If you want, it can also tell someone you trust when something serious happens."
-        const val YOUR_NAME = "Your first name"
-        const val GUARDIAN_TITLE = "Who should we tell?"
-        const val GUARDIAN_BODY = "Pick one person you trust. We call them your guardian."
+        const val YOUR_NAME = "How shall I address you?"
+        const val GUARDIAN_BODY = "Pick one person you trust. We'll call them your guardian."
         const val GUARDIAN_NAME = "Their name"
         const val GUARDIAN_EMAIL = "Their email"
-        const val GUARDIAN_PHONE = "Their phone number (so you can call them)"
+        const val GUARDIAN_PHONE = "Their phone (one tap to call)"
 
         const val PICTURE_TITLE = "Pick your safety picture"
         const val PICTURE_BODY = "You'll see it every time it's really me. If you don't see it, it isn't me."
@@ -142,6 +140,10 @@ object Texts {
         const val ACCESS_STEP = "Find Aegida in the list and turn it on."
         const val ACCESS_DONE = "Aegida can see your notifications."
         const val BANNERS_DONE = "Aegida can warn you."
+        const val ACCESS_SKIP_TITLE = "Skip this step?"
+        const val ACCESS_SKIP_BODY = "Without this, Aegida can't see scam links in your messages. If you chose to tell your guardian about problems, they will be told this is off."
+        const val ACCESS_SKIP_BACK = "Go back"
+        const val ACCESS_SKIP_ANYWAY = "Skip anyway"
 
         const val FILTER_TITLE = "Block scam websites"
         const val FILTER_BODY = "Your phone can refuse to open known scam websites. It takes one setting."
@@ -173,6 +175,8 @@ object Texts {
         const val CANT_TELL = "Can't tell"
         const val CHANGE = "Change"
         const val CREDITS_TITLE = "Where the lists come from"
+        const val LISTS_UPDATED = "Lists updated %s."
+        const val LISTS_NOT_YET = "The lists have not been downloaded yet."
         const val CREDITS = "Scam websites: Phishing.Database (MIT licence). Spying apps: Stalkerware Indicators by Echap (CC BY 4.0). Both are stored in a shortened, scrambled form."
         const val RESEND_INVITE = "Send the invitation again"
         const val CHANGE_GUARDIAN = "Pick a different guardian"

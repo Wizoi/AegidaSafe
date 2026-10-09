@@ -179,6 +179,7 @@ class ScreensTest(private val dark: Boolean, private val fontScale: Float) {
                 Setup(null, emptySet(), pictureId = picture),
                 Guardians(alertsOn = false, ownerName = "Ruth", firstTopic = null, firstGuardianName = "Kevin"),
                 filterOn = false, onChangePicture = {}, onChangeGuardian = {}, onResendInvite = {}, onAlerts = { alerts = it }, onFilterHelp = {},
+                listsUpdatedAt = now.minus(Duration.ofDays(2)), zone = zone, locale = locale,
             )
         }
         reachable("Ruth")
@@ -186,6 +187,7 @@ class ScreensTest(private val dark: Boolean, private val fontScale: Float) {
         reachable(Texts.Settings.CHANGE_GUARDIAN)
         reachable(Texts.Settings.RESEND_INVITE)
         reachable(Texts.Settings.CREDITS) // CC BY 4.0 asks for credit
+        reachable(com.aegida.app.ui.TimeText.listsLine(now.minus(Duration.ofDays(2)), zone, locale)) // how fresh the lists are (Kevin, Oct 9)
         compose.onNode(androidx.compose.ui.test.hasClickAction() and androidx.compose.ui.test.isToggleable()).performScrollTo().performClick()
         assertEquals(true, alerts)
         reachable(Texts.Settings.OFF)
@@ -227,6 +229,21 @@ class ScreensTest(private val dark: Boolean, private val fontScale: Float) {
         assertEquals(0, started)
         compose.onNodeWithText(Texts.Setup.WELCOME_START).performScrollTo().performClick()
         assertEquals(1, started)
+    }
+
+    /**
+     * Kevin, Oct 9: the second screen "looks messy still": a long intro, her name, a second heading, a sentence, three boxes.
+     * Now: the title, one question for her name, one sentence about the guardian, and their name, email and phone, in that order.
+     */
+    @Test fun aboutStepIsHerNameThenOneSentenceThenTheGuardiansThreeDetailsAndNothingElse() {
+        show { AboutStep(null, 1, 6, Guardians.None) { _, _, _, _ -> } }
+        compose.onNodeWithText(Texts.Setup.ABOUT_TITLE).assertIsDisplayed()
+        compose.onNodeWithText("How shall I address you?").assertIsDisplayed()
+        compose.onNodeWithText("Aegida looks out for scams", substring = true).assertDoesNotExist()
+        compose.onNodeWithText("Who should we tell?").assertDoesNotExist()
+        val tops = listOf(Texts.Setup.YOUR_NAME, Texts.Setup.GUARDIAN_BODY, Texts.Setup.GUARDIAN_NAME, Texts.Setup.GUARDIAN_EMAIL, Texts.Setup.GUARDIAN_PHONE)
+            .map { compose.onNodeWithText(it).fetchSemanticsNode().positionInRoot.y }
+        assertEquals("her name, the sentence, then name, email and phone", tops.sorted(), tops)
     }
 
     @Test fun aboutStepNeedsAValidNameGuardianAndEmailBeforeContinuing() {
@@ -281,6 +298,22 @@ class ScreensTest(private val dark: Boolean, private val fontScale: Float) {
         reachable(Texts.Setup.ACCESS_DONE)
         reachable(Texts.Setup.ACCESS_ALLOW_BANNERS)
         reachable(Texts.Common.NOT_NOW)
+    }
+
+    /** Findings #65: skipping the step that lets Aegida see notifications turns off its main job, so she is asked first. */
+    @Test fun skippingTheNotificationStepAsksAreYouSureFirst() {
+        var continued = 0
+        show { AccessStep(picture, 5, 6, listenerOn = false, bannersOn = false, onOpenAccess = {}, onAllowBanners = {}, onContinue = { continued++ }) }
+        compose.onNodeWithText(Texts.Common.NOT_NOW).performScrollTo().performClick()
+        compose.onNodeWithText(Texts.Setup.ACCESS_SKIP_TITLE).assertIsDisplayed()
+        compose.onNodeWithText(Texts.Setup.ACCESS_SKIP_BODY).assertIsDisplayed()
+        assertEquals("nothing happens until she answers", 0, continued)
+        compose.onNodeWithText(Texts.Setup.ACCESS_SKIP_BACK).performClick()
+        compose.onNodeWithText(Texts.Setup.ACCESS_SKIP_TITLE).assertDoesNotExist()
+        assertEquals(0, continued)
+        compose.onNodeWithText(Texts.Common.NOT_NOW).performScrollTo().performClick()
+        compose.onNodeWithText(Texts.Setup.ACCESS_SKIP_ANYWAY).performClick()
+        assertEquals(1, continued)
     }
 
     @Test fun accessStepIsTwoNumberedPartsAndTheSecondWaitsForTheFirst() { // findings #74: two blue buttons, which first?

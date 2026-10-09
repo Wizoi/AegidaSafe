@@ -17,6 +17,10 @@ object TimeText {
     fun date(date: LocalDate, locale: Locale): String =
         DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale).format(date)
 
+    /** How fresh the scam lists are: the day they were built, or that none have been downloaded. */
+    fun listsLine(builtAt: Instant?, zone: ZoneId, locale: Locale): String =
+        if (builtAt == null) Texts.Settings.LISTS_NOT_YET else Texts.Settings.LISTS_UPDATED.format(date(builtAt.atZone(zone).toLocalDate(), locale))
+
     fun checkedLine(at: Instant, now: Instant, zone: ZoneId, locale: Locale): String = when (val day = DayLabel.of(at, now, zone)) {
         DayLabel.Today -> Texts.Home.CHECKED_TODAY.format(time(at, zone, locale))
         DayLabel.Yesterday -> Texts.Home.CHECKED_YESTERDAY.format(time(at, zone, locale))

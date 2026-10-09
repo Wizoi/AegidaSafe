@@ -32,6 +32,9 @@ fun SettingsScreen(
     onResendInvite: () -> Unit,
     onAlerts: (Boolean) -> Unit,
     onFilterHelp: () -> Unit,
+    listsUpdatedAt: java.time.Instant?,
+    zone: java.time.ZoneId,
+    locale: java.util.Locale,
 ) {
     val picture = SafetyPicture.fromId(setup.pictureId)
     AegidaScreen(setup.pictureId) {
@@ -64,6 +67,7 @@ fun SettingsScreen(
         }
         SettingCard {
             ValueRow(Texts.Settings.CREDITS_TITLE, Texts.Settings.CREDITS)
+            Text(TimeText.listsLine(listsUpdatedAt, zone, locale), style = MaterialTheme.typography.bodyLarge)
         }
     }
 }
