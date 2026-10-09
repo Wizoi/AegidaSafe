@@ -89,4 +89,48 @@ class ThreatFeedTest {
         assertEquals(FeedRejection.OlderThanCurrent, FeedSanity.check(sized(4_100, now.minus(Duration.ofDays(2))), current, now))
         assertEquals(FeedRejection.ShrankTooMuch, FeedSanity.check(sized(1_900, now), current, now))
     }
+
+    private fun withApps(packages: Int, certificates: Int, at: Instant) = ThreatFeed(
+        at, sources, LongArray(2_000) { it.toLong() }, LongArray(0),
+        LongArray(packages) { it.toLong() * 7 + 1 }, LongArray(certificates) { it.toLong() * 7 + 2 },
+    )
+
+    @Test fun sanityRejectsAnAbsurdNumberOfAppEntries() {
+        assertNull(FeedSanity.check(withApps(100_000, 100_000, now), null, now))
+        assertEquals(FeedRejection.TooManyEntries, FeedSanity.check(withApps(100_001, 10, now), null, now))
+        assertEquals(FeedRejection.TooManyEntries, FeedSanity.check(withApps(10, 100_001, now), null, now))
+    }
+
+    @Test fun sanityRejectsAppListsThatShrankByMoreThanHalf() {
+        val current = withApps(200, 150, now.minus(Duration.ofDays(1)))
+        assertNull(FeedSanity.check(withApps(100, 75, now), current, now))
+        assertEquals(FeedRejection.ShrankTooMuch, FeedSanity.check(withApps(99, 150, now), current, now))
+        assertEquals(FeedRejection.ShrankTooMuch, FeedSanity.check(withApps(200, 74, now), current, now))
+        assertEquals(FeedRejection.ShrankTooMuch, FeedSanity.check(withApps(0, 0, now), current, now))
+    }
+
+    @Test fun smallAppListsMayShrinkFreely() {
+        val current = withApps(99, 99, now.minus(Duration.ofDays(1)))
+        assertNull(FeedSanity.check(withApps(0, 0, now), current, now))
+    }
+
+    @Test fun duplicateHashesCollapseToOneAndTheDecodedFeedMatchesTheOriginal() {
+        val dup = ThreatFeed(
+            now, sources,
+            hostHashes = longArrayOf(5, 3, 5, 9, 3), urlHashes = longArrayOf(-1, -1, 4),
+            packageHashes = longArrayOf(8, 8, 8), certificateHashes = longArrayOf(),
+        )
+        assertEquals(listOf(3L, 5L, 9L), dup.hosts.toList())
+        assertEquals(listOf(-1L, 4L), dup.urls.toList())
+        assertEquals(listOf(8L), dup.packages.toList())
+        val decoded = FeedCodec.decode(FeedCodec.encode(dup))
+        assertArrayEquals(dup.hosts, decoded.hosts)
+        assertArrayEquals(dup.urls, decoded.urls)
+        assertArrayEquals(dup.packages, decoded.packages)
+        assertEquals(dup.generatedAt, decoded.generatedAt)
+        // Same answers as the original for real keys, too.
+        val decodedFeed = FeedCodec.decode(FeedCodec.encode(feed))
+        assertNotNull(decodedFeed.match(Links.parse("https://www.evil.example/x")!!))
+        assertNull(decodedFeed.match(Links.parse("https://fine.example/x")!!))
+    }
 }
