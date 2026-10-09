@@ -18,7 +18,7 @@ class EvaluatorTest {
     private val outbox = FakeOutbox()
     private val all = setOf(LinkDetector(), PopupSpamDetector(), DnsDetector(), HealthDetector())
     private fun evaluator(detectors: Set<Detector> = all) =
-        Evaluator(detectors, { now }, FakeSetupStore(), FakeFeedStore(Fixtures.feed()), log, outbox)
+        Evaluator(detectors, { now }, FakeSetupStore(), FakeFeedStore(Fixtures.feed()), log, outbox, FakeBaselines())
 
     @Test fun runningTwiceGivesTheSameFindings() = runTest {
         val e = evaluator()

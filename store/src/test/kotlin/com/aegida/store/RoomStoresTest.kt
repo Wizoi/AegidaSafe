@@ -88,6 +88,19 @@ class RoomStoresTest {
         assertEquals(guardians, settings.current())
     }
 
+    @Test fun baselineStartsAsNoneAndRoundTripsIncludingUnsetDefaults() = runTest {
+        val settings = RoomSettings(db.settings())
+        assertNull(settings.baseline())
+        val baseline = com.aegida.core.model.Baseline(
+            browser = "com.android.chrome", smsApp = null, dialerApp = "com.google.android.dialer",
+            notificationListeners = setOf("app.b", "app.a"), accessibilityApps = emptySet(), deviceAdmins = setOf("app.admin"),
+        )
+        settings.save(baseline)
+        assertEquals(baseline, settings.baseline())
+        settings.save(baseline.copy(browser = null, accessibilityApps = setOf("app.screen")))
+        assertEquals(baseline.copy(browser = null, accessibilityApps = setOf("app.screen")), settings.baseline())
+    }
+
     private fun feedBytes(at: Instant) =
         FeedCodec.encode(ThreatFeed.of(at, listOf(FeedSource("test", "test", 1)), listOf("evil.example"), emptyList()))
 

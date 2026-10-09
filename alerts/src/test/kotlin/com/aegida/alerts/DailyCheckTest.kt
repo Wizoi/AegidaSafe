@@ -45,12 +45,12 @@ class DailyCheckTest {
     private val guardians = FakeGuardians(Guardians(alertsOn = true, ownerName = "Mom", firstTopic = topic, firstGuardianName = "Kevin", firstGuardianEmail = "k@example.com", firstGuardianPhone = ""))
     private val owner = Owner()
 
-    private val evaluator = Evaluator(setOf(DnsDetector(), HealthDetector()), { now }, FakeSetupStore(), feedStore, checkLog, outbox)
+    private val evaluator = Evaluator(setOf(DnsDetector(), HealthDetector()), { now }, FakeSetupStore(), feedStore, checkLog, outbox, FakeBaselines())
     private val pipeline = AlertPipeline(findings, owner, history, guardians, NtfySender(http), outbox) { now }
     private val snapshot = Snapshot(now, PrivateDns.Automatic, "com.android.chrome", true, true, Reading.NotPresent, Reading.NotPresent)
     private val daily = DailyCheck(
         FeedUpdater(http, FeedVerifier(keys.public.encoded), feedStore) { now },
-        CheckRunner({ snapshot }, evaluator, pipeline, OutboxFlusher(outbox, NtfySender(http), history, { now })),
+        CheckRunner({ snapshot }, evaluator, pipeline, BaselineKeeper(FakeSetupStore(), FakeBaselines()), OutboxFlusher(outbox, NtfySender(http), history, { now })),
         history,
         checkLog,
         DeadMansSwitch(guardians, NtfySender(http)),

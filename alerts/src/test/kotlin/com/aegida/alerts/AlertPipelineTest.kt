@@ -66,6 +66,15 @@ class AlertPipelineTest {
         assertEquals(1, http.bodies.size)
     }
 
+    @Test fun aDefaultAppChangedBackIsResolvedAndTheQuestionDisappears() = runTest {
+        val changed = finding(Problem.BrowserChanged, "org.other.browser", DetectorId.Drift)
+        pipeline.handle(listOf(changed), setOf(DetectorId.Drift))
+        val result = pipeline.handle(emptyList(), setOf(DetectorId.Drift))
+        assertEquals(1, result.resolved)
+        assertEquals(FindingState.Resolved, findings.rows[changed.key]!!.state)
+        assertEquals(listOf(changed.key), owner.cleared)
+    }
+
     @Test fun theGuardianMessageNeverContainsTheLinkOrEvidence() = runTest {
         pipeline.handle(listOf(scamLink.copy(evidence = mapOf("host" to "evil.example"))), setOf(DetectorId.Link))
         assertTrue(http.bodies.none { "evil.example" in it || "http" in it })

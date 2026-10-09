@@ -93,7 +93,7 @@ class AlertPipeline @Inject constructor(
          * Detectors that look at the phone's settings on every run, so a missing finding means "fixed".
          * Event detectors (links, site notifications) only speak when a notification arrives.
          */
-        val SETTING_BASED = setOf(DetectorId.Dns, DetectorId.Health, DetectorId.Delivery)
+        val SETTING_BASED = setOf(DetectorId.Dns, DetectorId.Health, DetectorId.Delivery, DetectorId.Drift)
     }
 }
 

@@ -99,3 +99,8 @@ class FakeOutbox : com.aegida.core.alert.Outbox {
         rows[i] = rows[i].copy(attempts = rows[i].attempts + 1, lastTriedAt = at)
     }
 }
+
+class FakeBaselines(var value: com.aegida.core.model.Baseline? = null) : com.aegida.core.store.BaselineStore {
+    override suspend fun baseline() = value
+    override suspend fun save(baseline: com.aegida.core.model.Baseline) { value = baseline }
+}

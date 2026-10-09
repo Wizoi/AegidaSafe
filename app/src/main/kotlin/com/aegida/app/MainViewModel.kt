@@ -120,6 +120,14 @@ class MainViewModel @Inject constructor(
         )
     }
 
+    /** "Yes, that was me" to a was-that-you question: the baseline takes the change, and Home stops asking. */
+    fun acceptChange(finding: Finding) {
+        viewModelScope.launch {
+            quietly { actions.acceptChange(finding.key) }
+            load()
+        }
+    }
+
     /** Marks a finding seen ("Got it", or after she has been to the screen that fixes it). */
     fun acknowledge(finding: Finding) {
         viewModelScope.launch {

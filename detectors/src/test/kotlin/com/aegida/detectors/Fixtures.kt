@@ -24,7 +24,16 @@ object Fixtures {
         privateDns: PrivateDns = PrivateDns.Automatic,
         listenerEnabled: Boolean = true,
         canPostNotifications: Boolean = true,
-    ) = Snapshot(now, privateDns, "com.android.chrome", listenerEnabled, canPostNotifications, Reading.NotPresent, Reading.NotPresent)
+        browser: String? = "com.android.chrome",
+        smsApp: String? = "com.google.android.apps.messaging",
+        dialerApp: String? = "com.google.android.dialer",
+        notificationListeners: Set<String> = emptySet(),
+        accessibilityApps: Set<String> = emptySet(),
+        deviceAdmins: Set<String> = emptySet(),
+    ) = Snapshot(
+        now, privateDns, browser, listenerEnabled, canPostNotifications, Reading.NotPresent, Reading.NotPresent,
+        smsApp, dialerApp, notificationListeners, accessibilityApps, deviceAdmins,
+    )
 
     fun feed(age: Duration = Duration.ofHours(3), hosts: List<String> = listOf("evil.example")) =
         ThreatFeed.of(now.minus(age), listOf(FeedSource("test", "test", hosts.size)), hosts, emptyList())
@@ -82,4 +91,9 @@ class FakeOutbox : com.aegida.core.alert.Outbox {
         val i = rows.indexOfFirst { it.id == id }
         rows[i] = rows[i].copy(attempts = rows[i].attempts + 1, lastTriedAt = at)
     }
+}
+
+class FakeBaselines(var value: com.aegida.core.model.Baseline? = null) : com.aegida.core.store.BaselineStore {
+    override suspend fun baseline() = value
+    override suspend fun save(baseline: com.aegida.core.model.Baseline) { value = baseline }
 }

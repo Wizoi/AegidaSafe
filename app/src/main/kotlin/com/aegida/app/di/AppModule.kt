@@ -51,6 +51,7 @@ abstract class AppModule {
     @Binds @IntoSet abstract fun dnsDetector(impl: DnsDetector): Detector
     @Binds @IntoSet abstract fun healthDetector(impl: HealthDetector): Detector
     @Binds @IntoSet abstract fun deliveryDetector(impl: DeliveryDetector): Detector
+    @Binds @IntoSet abstract fun driftDetector(impl: com.aegida.detectors.DriftDetector): Detector
 
     companion object {
         @Provides @Singleton
@@ -62,6 +63,7 @@ abstract class AppModule {
         @Provides fun outbox(store: AegidaStore): Outbox = store.outbox
         @Provides fun setup(store: AegidaStore): SetupStore = store.setup
         @Provides fun guardians(store: AegidaStore): GuardianSettings = store.guardians
+        @Provides fun baselines(store: AegidaStore): com.aegida.core.store.BaselineStore = store.baselines
         @Provides fun feed(store: AegidaStore): FeedStore = store.feed
 
         @Provides @Singleton

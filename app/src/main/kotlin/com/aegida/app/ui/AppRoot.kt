@@ -173,6 +173,7 @@ private sealed interface Page {
     data object ChangePicture : Page
     data object ChangeGuardian : Page
     data class Advice(val finding: Finding) : Page
+    data class Confirm(val finding: Finding) : Page
 }
 
 @Composable
@@ -194,6 +195,7 @@ private fun MainContent(state: MainState, vm: MainViewModel) {
             Fix.SettingsThenAcknowledge -> { context.startSafely(screen); vm.acknowledge(finding) }
             Fix.WebsiteFilterGuide -> page = Page.FilterGuide
             Fix.Acknowledge -> page = Page.Advice(finding)
+            Fix.ConfirmChange -> page = Page.Confirm(finding)
             Fix.CallGuardian -> context.startSafely(FixActions.callGuardian(state.guardians.firstGuardianPhone))
             Fix.None -> Unit
         }
@@ -253,6 +255,15 @@ private fun MainContent(state: MainState, vm: MainViewModel) {
                         page = Page.None
                         context.startSafely(intent)
                     }
+                }
+                is Page.Confirm -> AegidaScreen(pictureId) {
+                    Headline(current.finding.key.problem.forMom)
+                    BigButton(Texts.Home.CONFIRM_YES, { vm.acceptChange(current.finding); page = Page.None })
+                    QuietButton(Texts.Home.CONFIRM_NO, {
+                        context.startSafely(FixActions.settingsIntentFor(current.finding, context.packageName))
+                        page = Page.None
+                    })
+                    Body(Texts.Home.CONFIRM_NO_HELP)
                 }
                 is Page.Advice -> AegidaScreen(pictureId) {
                     Headline(current.finding.key.problem.forMom)

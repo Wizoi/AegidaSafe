@@ -107,4 +107,32 @@ class AndroidSnapshotterTest {
         assertEquals(Reading.Unreadable, snapshot.installBlocker)
         assertEquals(Reading.Present(true), snapshot.neverSleeping)
     }
+
+    // Special access, as the emulator's settings strings look (package/Class, colon separated).
+
+    @Test fun appsWithNotificationAccessAreReadWithoutAegidaItself() {
+        Settings.Secure.putString(
+            context.contentResolver, "enabled_notification_listeners",
+            "${context.packageName}/com.aegida.app.AegidaListenerService:org.other.app/org.other.Listener",
+        )
+        assertEquals(setOf("org.other.app"), take().notificationListeners)
+    }
+
+    @Test fun appsWithScreenControlAreReadAndNoneMeansEmpty() {
+        assertEquals(emptySet<String>(), take().accessibilityApps)
+        Settings.Secure.putString(context.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, "org.helper/org.helper.Service:org.other/org.other.Svc")
+        assertEquals(setOf("org.helper", "org.other"), take().accessibilityApps)
+    }
+
+    @Test fun deviceAdminsAreReadByPackage() {
+        val admin = android.content.ComponentName("org.mdm", "org.mdm.Admin")
+        shadowOf(context.getSystemService(android.app.admin.DevicePolicyManager::class.java)).setActiveAdmin(admin)
+        assertEquals(setOf("org.mdm"), take().deviceAdmins)
+    }
+
+    @Test fun theDefaultTextAppIsReadFromTheSetting() {
+        assertEquals(null, take().smsApp)
+        Settings.Secure.putString(context.contentResolver, "sms_default_application", "org.texts")
+        assertEquals("org.texts", take().smsApp)
+    }
 }

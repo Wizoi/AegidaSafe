@@ -1,12 +1,14 @@
 package com.aegida.platform.snapshot
 
 import android.app.NotificationManager
+import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.Settings
+import android.telecom.TelecomManager
 import com.aegida.core.model.PrivateDns
 import com.aegida.core.model.Snapshot
 import com.aegida.core.model.Snapshotter
@@ -37,8 +39,17 @@ class AndroidSnapshotter(
             canPostNotifications = canPost(notifications),
             installBlocker = oem.installBlocker(),
             neverSleeping = oem.neverSleeping(),
+            smsApp = Settings.Secure.getString(context.contentResolver, DEFAULT_TEXT_APP)?.takeIf { it.isNotEmpty() },
+            dialerApp = context.getSystemService(TelecomManager::class.java)?.defaultDialerPackage,
+            notificationListeners = packagesIn(Settings.Secure.getString(context.contentResolver, ENABLED_LISTENERS)) - context.packageName,
+            accessibilityApps = packagesIn(Settings.Secure.getString(context.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES)),
+            deviceAdmins = context.getSystemService(DevicePolicyManager::class.java)?.activeAdmins.orEmpty().map { it.packageName }.toSet(),
         )
     }
+
+    /** The settings that list enabled services hold "package/Class:package/Class"; only the packages matter. */
+    internal fun packagesIn(raw: String?): Set<String> =
+        raw.orEmpty().split(':').mapNotNull { ComponentName.unflattenFromString(it)?.packageName }.toSet()
 
     /** An absent key is Android's default (Automatic), not "off" (findings #14). */
     private fun readPrivateDns(): PrivateDns {
@@ -67,6 +78,9 @@ class AndroidSnapshotter(
     }
 
     private companion object {
+        // The default text-message app is read from the setting, not through the SMS classes (no SMS capability, ever).
+        const val DEFAULT_TEXT_APP = "sms_default_application"
+        const val ENABLED_LISTENERS = "enabled_notification_listeners"
         const val PRIVATE_DNS_MODE = "private_dns_mode"
         const val PRIVATE_DNS_SPECIFIER = "private_dns_specifier"
     }

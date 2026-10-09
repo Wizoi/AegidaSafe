@@ -71,6 +71,48 @@ enum class Problem(
         whatHappened = "Aegida could not reach your guardian",
         fix = Fix.CallGuardian,
     ),
+    BrowserChanged(
+        Severity.NeedsTap,
+        "The app that opens websites on your phone was changed. Was that you?",
+        null,
+        whatHappened = "The app that opens websites was changed",
+        fix = Fix.ConfirmChange,
+    ),
+    SmsAppChanged(
+        Severity.NeedsTap,
+        "The app that handles your text messages was changed. Was that you?",
+        null,
+        whatHappened = "The app that handles text messages was changed",
+        fix = Fix.ConfirmChange,
+    ),
+    DialerChanged(
+        Severity.NeedsTap,
+        "The app that makes your phone calls was changed. Was that you?",
+        null,
+        whatHappened = "The app that makes phone calls was changed",
+        fix = Fix.ConfirmChange,
+    ),
+    ListenerAdded(
+        Severity.Urgent,
+        "An app can now read your notifications. Was that you?",
+        "An app was given access to read notifications on %s's phone. Aegida asked her if that was her.",
+        whatHappened = "An app was given access to read notifications",
+        fix = Fix.ConfirmChange,
+    ),
+    AccessibilityAdded(
+        Severity.Urgent,
+        "An app can now see and press things on your screen. Was that you?",
+        "An app was given control of the screen on %s's phone. Aegida asked her if that was her.",
+        whatHappened = "An app was given control of the screen",
+        fix = Fix.ConfirmChange,
+    ),
+    AdminAdded(
+        Severity.Urgent,
+        "An app was given special control over your phone. Was that you?",
+        "An app was given special control over %s's phone. Aegida asked her if that was her.",
+        whatHappened = "An app was given special control over the phone",
+        fix = Fix.ConfirmChange,
+    ),
     MissedCheck(Severity.Info, "Aegida missed its daily check.", null, whatHappened = "Aegida missed its daily check"),
     ListsOld(
         Severity.Info,
@@ -99,6 +141,9 @@ enum class Fix {
 
     /** Open the phone dialer with the guardian's number, if she gave one. */
     CallGuardian,
+
+    /** "Was that you?": yes moves the baseline to what the phone has now; no opens the screen to change it back. */
+    ConfirmChange,
 
     /** Say what it is and let her mark it seen ("Messages like this are scams. You can delete it."). */
     Acknowledge,

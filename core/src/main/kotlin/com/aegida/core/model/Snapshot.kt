@@ -18,6 +18,16 @@ data class Snapshot(
     val canPostNotifications: Boolean,
     val installBlocker: Reading<Boolean>,
     val neverSleeping: Reading<Boolean>,
+    /** Package holding the default text-message role, or null. */
+    val smsApp: String? = null,
+    /** Package holding the default phone-call role, or null. */
+    val dialerApp: String? = null,
+    /** Packages with notification access switched on, other than Aegida itself. */
+    val notificationListeners: Set<String> = emptySet(),
+    /** Packages with an accessibility service switched on (an app that can see and press things on the screen). */
+    val accessibilityApps: Set<String> = emptySet(),
+    /** Packages that are active device administrators. */
+    val deviceAdmins: Set<String> = emptySet(),
 )
 
 /** The Private DNS ("website filter") setting as read from the phone. */

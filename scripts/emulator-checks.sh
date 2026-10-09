@@ -9,6 +9,7 @@
 #   scripts/emulator-checks.sh scenarios  feature scenarios on a cleared app: pop-up warning, messages, daily feed, listed link
 #   scripts/emulator-checks.sh failures   offline daily job, and a phone that never runs its daily check (reads the app's database)
 #   scripts/emulator-checks.sh guardian-offline  a warning that cannot reach the guardian is kept, retried, then reported (offline: nothing is sent)
+#   scripts/emulator-checks.sh drift  access given to another app after setup is noticed, asked about, and cleared when removed (offline)
 #   scripts/emulator-checks.sh shots      light and dark screenshots at 100% and 200% font into build/emulator-shots
 # It refuses any serial that is not emulator-*, so it can never touch a real phone by mistake.
 set -u
@@ -273,6 +274,68 @@ PYEOF
   wait_for "the oldest message was retried and failed again (the rest wait their turn)" '[ "$(db_query "$Q_TRIES")" = 2 ]' 60
   wait_for "'couldn't reach your guardian' becomes a problem" '[ "$(db_query "select count(*) from finding where problem = '"'"'GuardianUnreachable'"'"' and state = '"'"'Open'"'"'")" = 1 ] 2>/dev/null' 30
   have "com.aegida.app 1000 Delivery:GuardianUnreachable" && ok "she is told to call her guardian" || no "she is told to call her guardian"
+
+  echo "$FAILS failed"; [ "$FAILS" = 0 ]
+  ;;
+drift)
+  # Special access that appears after setup (findings #45). The phone's own Accessibility Menu stands in for a stranger's app. Offline, so nothing is sent. Setup is marked finished
+  # in the app's database (see guardian-offline for why the file is edited with the listener switched off).
+  FAILS=0
+  export JAVA_HOME="${JAVA_HOME:-/c/Program Files/Android/Android Studio/jbr}"; export ANDROID_SERIAL="$SERIAL"
+  ./gradlew.bat installDebug -PlocalBuild --console=plain 2>&1 | grep -q "BUILD SUCCESSFUL" || { echo "install failed"; exit 1; }
+  sh_ pm clear $PKG >/dev/null
+  sh_ pm grant $PKG android.permission.POST_NOTIFICATIONS
+  sh_ cmd notification allow_listener "$PKG/$PKG.AegidaListenerService" >/dev/null
+  sh_ am start -n "$PKG/.MainActivity" >/dev/null
+  wait_for "the 'Aegida is protecting you' notice is up" 'have "com.aegida.app 1 null"'
+  restore() {
+    sh_ cmd connectivity airplane-mode disable >/dev/null; sh_ settings delete secure enabled_accessibility_services >/dev/null
+    sh_ settings delete secure enabled_notification_listeners >/dev/null; [ -n "${KEEP:-}" ] || sh_ pm clear $PKG >/dev/null
+  }
+  trap restore EXIT
+  DB="$TEMP/aegida-drift-db"; rm -rf "$DB"; mkdir -p "$DB"
+  pull_db() { for f in aegida.db aegida.db-wal aegida.db-shm; do adb exec-out run-as $PKG cat databases/$f > "$DB/$f" 2>/dev/null; done; }
+  db_query() { pull_db; python -I - "$DB/aegida.db" "$1" <<'PYEOF'
+import sqlite3, sys
+for row in sqlite3.connect(sys.argv[1]).execute(sys.argv[2]):
+    print("|".join("" if c is None else str(c) for c in row))
+PYEOF
+  }
+  Q_OPEN="select group_concat(problem || ':' || subject) from finding where state = 'Open'"
+  Q_BASE="select value from setting where name = 'baseline.taken'"
+  wait_for "the first daily check ran by itself" '[ "$(db_query "select count(*) from check_run where \"trigger\" = '"'"'Daily'"'"'")" -ge 1 ] 2>/dev/null' 90
+
+  echo "-- setup is finished: the next check takes the baseline"
+  sh_ cmd connectivity airplane-mode enable >/dev/null; sleep 5
+  sh_ cmd notification disallow_listener "$PKG/$PKG.AegidaListenerService" >/dev/null; sh_ am force-stop $PKG >/dev/null; sleep 2
+  [ -z "$(sh_ pidof $PKG)" ] || { sh_ am force-stop $PKG >/dev/null; sleep 2; }
+  pull_db
+  python -I - "$DB/aegida.db" <<'PYEOF'
+import sqlite3, sys
+c = sqlite3.connect(sys.argv[1])
+c.execute("insert or replace into setting(name, value) values ('setup.stepsDone', '8')")
+c.commit(); c.execute("pragma wal_checkpoint(truncate)"); c.execute("pragma journal_mode=delete"); c.close()
+PYEOF
+  adb push "$DB/aegida.db" /data/local/tmp/seed.db >/dev/null
+  sh_ "chmod 666 /data/local/tmp/seed.db; run-as $PKG sh -c 'rm -f databases/aegida.db-wal databases/aegida.db-shm; cp /data/local/tmp/seed.db databases/aegida.db'; rm /data/local/tmp/seed.db"
+  sh_ am start -n "$PKG/.MainActivity" >/dev/null; sleep 4
+  sh_ cmd notification disallow_listener "$PKG/$PKG.AegidaListenerService" >/dev/null; sh_ cmd notification allow_listener "$PKG/$PKG.AegidaListenerService" >/dev/null; sleep 10
+  wait_for "the baseline was taken" '[ "$(db_query "$Q_BASE")" = true ]' 30
+  [ -z "$(db_query "$Q_OPEN")" ] && ok "nothing is flagged on the phone as it was at setup" || no "nothing is flagged at setup (open: $(db_query "$Q_OPEN"))"
+
+  echo "-- an app is given control of the screen and another can read notifications"
+  sh_ settings put secure enabled_accessibility_services "com.android.systemui.accessibility.accessibilitymenu/com.android.systemui.accessibility.accessibilitymenu.AccessibilityMenuService"
+  sh_ settings put secure enabled_notification_listeners "$PKG/$PKG.AegidaListenerService:org.spy.app/org.spy.app.Listener"
+  sh_ am force-stop $PKG; sh_ am start -n "$PKG/.MainActivity" >/dev/null
+  wait_for "both are noticed" '[ "$(db_query "$Q_OPEN")" = "AccessibilityAdded:com.android.systemui.accessibility.accessibilitymenu,ListenerAdded:org.spy.app" ] || [ "$(db_query "$Q_OPEN")" = "ListenerAdded:org.spy.app,AccessibilityAdded:com.android.systemui.accessibility.accessibilitymenu" ]' 40
+  have "com.aegida.app 1000 Drift:AccessibilityAdded:com.android.systemui.accessibility.accessibilitymenu" && ok "she gets a banner for the screen control" || no "she gets a banner for the screen control"
+
+  echo "-- the access is switched off again"
+  sh_ settings delete secure enabled_accessibility_services >/dev/null
+  sh_ settings put secure enabled_notification_listeners "$PKG/$PKG.AegidaListenerService"
+  sh_ am force-stop $PKG; sh_ am start -n "$PKG/.MainActivity" >/dev/null
+  wait_for "the questions are gone" '[ -z "$(db_query "$Q_OPEN")" ]' 40
+  have "com.aegida.app 1000 Drift:AccessibilityAdded" && no "the banners were cleared" || ok "the banners were cleared"
 
   echo "$FAILS failed"; [ "$FAILS" = 0 ]
   ;;

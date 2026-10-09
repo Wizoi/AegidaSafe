@@ -22,10 +22,13 @@ class CheckRunner @Inject constructor(
     private val snapshotter: Snapshotter,
     private val evaluator: Evaluator,
     private val pipeline: AlertPipeline,
+    private val baseline: BaselineKeeper,
     private val outbox: OutboxFlusher,
 ) {
     suspend fun run(trigger: Trigger, event: NotificationEvent? = null): CheckOutcome {
-        val findings = evaluator.run(trigger, snapshotter.take(), event)
+        val snapshot = snapshotter.take()
+        baseline.keep(snapshot)
+        val findings = evaluator.run(trigger, snapshot, event)
         val result = pipeline.handle(findings, evaluator.detectorIds)
         outbox.flush()
         return CheckOutcome(findings, result)

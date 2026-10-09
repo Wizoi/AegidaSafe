@@ -27,7 +27,10 @@ object FixActions {
                 null
             }
         }
-        Problem.ListenerOff -> notificationAccess()
+        Problem.ListenerOff, Problem.ListenerAdded -> notificationAccess()
+        Problem.BrowserChanged, Problem.SmsAppChanged, Problem.DialerChanged -> Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS)
+        Problem.AccessibilityAdded -> Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+        Problem.AdminAdded -> Intent(Settings.ACTION_SECURITY_SETTINGS)
         Problem.NotificationsBlocked -> Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, ownPackage)
         else -> null
     }?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

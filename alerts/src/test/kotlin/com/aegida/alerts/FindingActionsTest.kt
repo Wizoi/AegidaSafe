@@ -3,7 +3,11 @@ package com.aegida.alerts
 import com.aegida.core.alert.Guardians
 import com.aegida.core.alert.HistoryRows
 import com.aegida.core.alert.Outcome
+import com.aegida.core.model.Baseline
 import com.aegida.core.model.DetectorId
+import com.aegida.core.model.PrivateDns
+import com.aegida.core.model.Snapshot
+import com.aegida.core.oem.Reading
 import com.aegida.core.model.Finding
 import com.aegida.core.model.FindingKey
 import com.aegida.core.model.FindingState
@@ -28,7 +32,9 @@ class FindingActionsTest {
     private val topic = NtfyTopic.generate(java.util.Random(3))
     private val guardians = FakeGuardians(Guardians(alertsOn = true, ownerName = "Ruth", firstTopic = topic))
     private val pipeline = AlertPipeline(findings, owner, history, guardians, NtfySender(http), FakeOutbox()) { now }
-    private val actions = FindingActions(findings, history, owner) { now }
+    private val baselines = FakeBaselines()
+    private var phone = Snapshot(now, PrivateDns.Automatic, "com.android.chrome", true, true, Reading.NotPresent, Reading.NotPresent)
+    private val actions = FindingActions(findings, history, owner, baselines, { phone }) { now }
 
     private val scam = Finding(FindingKey(DetectorId.Link, Problem.ScamLink, "evil.example"), emptyMap(), now.minus(Duration.ofMinutes(1)), now)
 
@@ -67,5 +73,25 @@ class FindingActionsTest {
         assertEquals(setOf(Problem.ScamLink, Problem.LookalikeLink, Problem.SiteNotifications), eventProblems.toSet())
         assertTrue(Problem.entries.filter { it.severity >= com.aegida.core.model.Severity.NeedsTap }.none { it.fix == Fix.None })
         assertTrue(Problem.entries.filter { it.severity == com.aegida.core.model.Severity.Info }.all { it.fix == Fix.None })
+    }
+
+    @Test fun sayingAChangeWasHersMovesTheBaselineAndClearsTheQuestion() = runTest {
+        baselines.value = Baseline.of(phone)
+        phone = phone.copy(browser = "org.other.browser")
+        val changed = Finding(FindingKey(DetectorId.Drift, Problem.BrowserChanged, "org.other.browser"), emptyMap(), now, now)
+        pipeline.handle(listOf(changed), setOf(DetectorId.Drift))
+
+        assertTrue(actions.acceptChange(changed.key))
+
+        assertEquals("org.other.browser", baselines.value!!.browser)
+        assertEquals(FindingState.Acknowledged, findings.get(changed.key)!!.state)
+        assertFalse(actions.acceptChange(changed.key)) // nothing open any more
+    }
+
+    @Test fun onlyAWasThatYouQuestionCanBeAcceptedIntoTheBaseline() = runTest {
+        baselines.value = Baseline.of(phone)
+        pipeline.handle(listOf(scam), setOf(DetectorId.Link))
+        assertFalse(actions.acceptChange(scam.key))
+        assertEquals(FindingState.Open, findings.get(scam.key)!!.state)
     }
 }

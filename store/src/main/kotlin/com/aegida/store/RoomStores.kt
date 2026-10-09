@@ -2,6 +2,8 @@ package com.aegida.store
 
 import com.aegida.core.alert.FindingStore
 import com.aegida.core.alert.GuardianSettings
+import com.aegida.core.model.Baseline
+import com.aegida.core.store.BaselineStore
 import com.aegida.core.alert.Guardians
 import com.aegida.core.alert.HistoryEntry
 import com.aegida.core.alert.HistoryLog
@@ -60,7 +62,7 @@ internal class RoomHistoryLog(private val dao: HistoryDao) : HistoryLog {
 }
 
 /** Setup and guardian choices, stored as named values. */
-internal class RoomSettings(private val dao: SettingDao) : SetupStore, GuardianSettings {
+internal class RoomSettings(private val dao: SettingDao) : SetupStore, GuardianSettings, BaselineStore {
     private suspend fun values(): Map<String, String> = dao.all().associate { it.name to it.value }
 
     override suspend fun setup(): Setup {
@@ -107,7 +109,40 @@ internal class RoomSettings(private val dao: SettingDao) : SetupStore, GuardianS
         ),
     )
 
+    override suspend fun baseline(): Baseline? {
+        val v = values()
+        if (v[BASELINE_TAKEN] != "true") return null
+        fun set(name: String) = v[name].orEmpty().split('\n').filter { it.isNotEmpty() }.toSet()
+        return Baseline(
+            browser = v[BASELINE_BROWSER]?.takeIf { it.isNotEmpty() },
+            smsApp = v[BASELINE_SMS]?.takeIf { it.isNotEmpty() },
+            dialerApp = v[BASELINE_DIALER]?.takeIf { it.isNotEmpty() },
+            notificationListeners = set(BASELINE_LISTENERS),
+            accessibilityApps = set(BASELINE_ACCESSIBILITY),
+            deviceAdmins = set(BASELINE_ADMINS),
+        )
+    }
+
+    override suspend fun save(baseline: Baseline) = dao.put(
+        listOf(
+            SettingEntity(BASELINE_TAKEN, "true"),
+            SettingEntity(BASELINE_BROWSER, baseline.browser.orEmpty()),
+            SettingEntity(BASELINE_SMS, baseline.smsApp.orEmpty()),
+            SettingEntity(BASELINE_DIALER, baseline.dialerApp.orEmpty()),
+            SettingEntity(BASELINE_LISTENERS, baseline.notificationListeners.sorted().joinToString("\n")),
+            SettingEntity(BASELINE_ACCESSIBILITY, baseline.accessibilityApps.sorted().joinToString("\n")),
+            SettingEntity(BASELINE_ADMINS, baseline.deviceAdmins.sorted().joinToString("\n")),
+        ),
+    )
+
     private companion object {
+        const val BASELINE_TAKEN = "baseline.taken"
+        const val BASELINE_BROWSER = "baseline.browser"
+        const val BASELINE_SMS = "baseline.smsApp"
+        const val BASELINE_DIALER = "baseline.dialerApp"
+        const val BASELINE_LISTENERS = "baseline.notificationListeners"
+        const val BASELINE_ACCESSIBILITY = "baseline.accessibilityApps"
+        const val BASELINE_ADMINS = "baseline.deviceAdmins"
         const val FILTER_HOST = "setup.websiteFilterHost"
         const val ALLOWED_SITES = "setup.allowedSites"
         const val ALERTS_ON = "guardians.alertsOn"

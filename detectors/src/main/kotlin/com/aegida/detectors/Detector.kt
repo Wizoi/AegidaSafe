@@ -2,6 +2,7 @@ package com.aegida.detectors
 
 import com.aegida.core.feed.ThreatFeed
 import com.aegida.core.health.CheckRun
+import com.aegida.core.model.Baseline
 import com.aegida.core.model.DetectorId
 import com.aegida.core.model.Finding
 import com.aegida.core.model.NotificationEvent
@@ -28,4 +29,6 @@ data class Inputs(
     val lastDailyCheck: CheckRun?,
     /** When the oldest guardian message still waiting to be delivered was first held back, or null. */
     val oldestUndelivered: Instant? = null,
+    /** What the phone looked like when setup finished (plus changes she accepted), or null before then. */
+    val baseline: Baseline? = null,
 )

@@ -37,8 +37,9 @@ Open items inside phase 1:
 - Look-alike gap: a name written entirely in Cyrillic or Greek letters that imitates a brand is only caught when its letters map to Latin ones (`LinkSigns` homoglyph table). Check against real internationalised domains from the feed before widening it.
 
 ## Phase 2. Drift, new apps, remote-control apps
-- [ ] Snapshotter reads roles, installed apps (installer, signing cert), special-access grants
-- [ ] `DriftDetector`, `NewAppDetector`, `RemoteControlDetector`, with fixture APKs signed by our own test key (a second browser, an AnyDesk-like app)
+- [x] Snapshotter reads default browser/text/phone apps and who has notification access, screen control or device-admin rights (installed apps with installer and signing cert: still to do, needs `QUERY_ALL_PACKAGES`, which Kevin has not approved yet)
+- [x] `DriftDetector` with a baseline taken after setup and "Was that you?" (JVM-tested, emulator `drift` scenario, findings #45)
+- [ ] `NewAppDetector`, `RemoteControlDetector`, with fixture APKs signed by our own test key (a second browser, an AnyDesk-like app)
 - [ ] Escalation: guardian 1 at 24 h, guardian 2 24 h after the first alert (WorkManager, fake-clock tests)
 - [ ] Emulator scenarios for drift, new app, remote control, device-admin and overlay grants (findings #19, #20)
 

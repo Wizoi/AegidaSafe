@@ -6,6 +6,7 @@ import com.aegida.core.alert.GuardianSettings
 import com.aegida.core.alert.HistoryLog
 import com.aegida.core.alert.Outbox
 import com.aegida.core.health.CheckLog
+import com.aegida.core.store.BaselineStore
 import com.aegida.core.store.FeedStore
 import com.aegida.core.store.SetupStore
 import java.io.File
@@ -24,5 +25,6 @@ class AegidaStore(context: Context) {
     val outbox: Outbox = RoomOutbox(db.outbox())
     val setup: SetupStore = settings
     val guardians: GuardianSettings = settings
+    val baselines: BaselineStore = settings
     val feed: FeedStore = FileFeedStore(File(context.applicationContext.filesDir, "feed"))
 }

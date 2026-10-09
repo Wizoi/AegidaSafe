@@ -43,6 +43,9 @@ object Texts {
         const val LAST_CHECKED = "Last checked %s."
         const val SCAM_ADVICE = "Messages like this are scams. You can delete it."
         const val GOT_IT = "Got it"
+        const val CONFIRM_YES = "Yes, that was me"
+        const val CONFIRM_NO = "No, show me"
+        const val CONFIRM_NO_HELP = "If you did not do this, change it back, or call your guardian."
     }
 
     object History {

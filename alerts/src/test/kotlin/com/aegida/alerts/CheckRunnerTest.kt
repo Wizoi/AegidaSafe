@@ -40,12 +40,13 @@ class CheckRunnerTest {
     private val http = Http()
     private val outbox = FakeOutbox()
     private val guardians = FakeGuardians(Guardians(alertsOn = true, ownerName = "Ruth", firstTopic = topic))
+    private val baselines = FakeBaselines()
 
     private val evaluator = Evaluator(
-        setOf(LinkDetector(), PopupSpamDetector(), DnsDetector(), HealthDetector()), { now }, setupStore, feedStore, checkLog, outbox,
+        setOf(LinkDetector(), PopupSpamDetector(), DnsDetector(), HealthDetector()), { now }, setupStore, feedStore, checkLog, outbox, baselines,
     )
     private val pipeline = AlertPipeline(findings, owner, history, guardians, NtfySender(http), outbox) { now }
-    private val runner = CheckRunner({ snapshot() }, evaluator, pipeline, OutboxFlusher(outbox, NtfySender(http), history, { now }))
+    private val runner = CheckRunner({ snapshot() }, evaluator, pipeline, BaselineKeeper(setupStore, baselines), OutboxFlusher(outbox, NtfySender(http), history, { now }))
 
     private fun snapshot() = Snapshot(now, dns, "com.android.chrome", true, true, Reading.NotPresent, Reading.NotPresent)
 
