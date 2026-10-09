@@ -136,7 +136,7 @@ enum class Problem(
     ),
     StalkerwareApp(
         Severity.Urgent,
-        "An app on your phone can secretly watch what you do. Tap to see it and remove it.",
+        "A spying app is on your phone. Tap to see it and remove it.",
         "An app that can secretly spy was found on %s's phone. Aegida warned her.",
         whatHappened = "An app that can secretly spy was found",
         fix = Fix.Settings,

@@ -86,6 +86,10 @@ class GuardSelfTest {
         flags(Guards.bannedWords, "core/$k/core/text/Texts.kt", "const val P = \"You are protected from scams\"")
         allows(Guards.bannedWords, "core/$k/core/text/Texts.kt", "const val P = \"Pick your safety picture\"")
         flags(Guards.noRed, "app/$k/app/ui/X.kt", "color = Color.Red")
+        flags(Guards.noAllCapsText, "core/$k/core/text/Texts.kt", "const val TODAY = \"TODAY\"")
+        flags(Guards.noAllCapsText, "core/$k/core/text/Texts.kt", "const val STEP = \"STEP %s OF %s\"")
+        allows(Guards.noAllCapsText, "core/$k/core/text/Texts.kt", "const val F = \"Find Private DNS in the list\"")
+        allows(Guards.noAllCapsText, "core/$k/core/text/Texts.kt", "const val F = \"Step %s of %s\"")
     }
 
     @Test fun userText() {

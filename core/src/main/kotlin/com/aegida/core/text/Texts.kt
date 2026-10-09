@@ -10,8 +10,8 @@ object Texts {
     const val CANT_CHECK = "Aegida can't check this on your phone"
     const val YOU_TOLD_ME = "You told Aegida this is on"
 
-    const val STATUS_NOTICE = "Aegida is protecting you"
-    const val CHANNEL_STATUS = "Aegida is protecting you"
+    const val STATUS_NOTICE = "Aegida is looking out for you"
+    const val CHANNEL_STATUS = "Aegida is looking out for you"
     const val CHANNEL_NEEDS_TAP = "Needs a tap"
 
     /** What a guardian reads on their phone. Written in the owner's name; no links, no message text, no "safe". */
@@ -87,8 +87,8 @@ object Texts {
         const val TITLE = "History"
         const val EMPTY = "Nothing has happened yet. When Aegida does something for you, it will show here."
         const val KEPT = "Kept on this phone for 90 days."
-        const val TODAY = "TODAY"
-        const val YESTERDAY = "YESTERDAY"
+        const val TODAY = "Today"
+        const val YESTERDAY = "Yesterday"
         const val HANDLED = "Handled"
         const val NEEDS_YOU = "Needs you"
     }
@@ -105,12 +105,12 @@ object Texts {
 
     object Setup {
         const val WELCOME_TITLE = "Welcome to Aegida"
-        const val WELCOME_BODY = "Aegida looks out for scams on your phone. It watches quietly, tells you in plain words if something looks wrong, and can let someone you trust know. Setting up takes about five minutes."
+        const val WELCOME_BODY = "Aegida looks out for scams on your phone. It works quietly, tells you in plain words if something looks wrong, and, if you want, can let someone you trust know. Setting up takes about five minutes."
         const val WELCOME_START = "Let's start"
-        const val STEP = "STEP %s OF %s"
+        const val STEP = "Step %s of %s"
 
         const val ABOUT_TITLE = "Let's set up your helper"
-        const val ABOUT_BODY = "Aegida watches for scams on your phone. It also tells someone you trust if something serious happens."
+        const val ABOUT_BODY = "Aegida looks out for scams on your phone. If you want, it can also tell someone you trust when something serious happens."
         const val YOUR_NAME = "Your first name"
         const val GUARDIAN_TITLE = "Who should we tell?"
         const val GUARDIAN_BODY = "Pick one person you trust. We call them your guardian."
@@ -157,7 +157,7 @@ object Texts {
         const val BLOCKER_IS_ON = "I turned it on"
 
         const val DONE_TITLE = "All set."
-        const val DONE_BODY = "Aegida is watching now. You don't need to do anything."
+        const val DONE_BODY = "Aegida is looking out for you now. You don't need to do anything."
     }
 
     object Settings {

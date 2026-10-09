@@ -95,7 +95,7 @@ scenarios)
   sh_ pm grant $PKG android.permission.POST_NOTIFICATIONS
   sh_ cmd notification allow_listener "$PKG/$PKG.AegidaListenerService" >/dev/null
   sh_ am start -n "$PKG/.MainActivity" >/dev/null
-  wait_for "the 'Aegida is protecting you' notice is up" 'have "com.aegida.app 1 null"'
+  wait_for "the 'Aegida is looking out for you' notice is up" 'have "com.aegida.app 1 null"'
 
   echo "-- a website sends a fake virus warning (Chrome, host-served fixture page)"
   adb shell am set-debug-app --persistent com.android.chrome >/dev/null
@@ -172,7 +172,7 @@ failures)
   sh_ pm grant $PKG android.permission.POST_NOTIFICATIONS
   sh_ cmd notification allow_listener "$PKG/$PKG.AegidaListenerService" >/dev/null
   sh_ am start -n "$PKG/.MainActivity" >/dev/null
-  wait_for "the 'Aegida is protecting you' notice is up" 'have "com.aegida.app 1 null"'
+  wait_for "the 'Aegida is looking out for you' notice is up" 'have "com.aegida.app 1 null"'
 
   restore() { sh_ cmd connectivity airplane-mode disable >/dev/null; sh_ cmd alarm set-time $(( $(date +%s) * 1000 )) >/dev/null; sh_ settings put global auto_time 1; }
   trap restore EXIT
@@ -226,7 +226,7 @@ guardian-offline)
   sh_ pm grant $PKG android.permission.POST_NOTIFICATIONS
   sh_ cmd notification allow_listener "$PKG/$PKG.AegidaListenerService" >/dev/null
   sh_ am start -n "$PKG/.MainActivity" >/dev/null
-  wait_for "the 'Aegida is protecting you' notice is up" 'have "com.aegida.app 1 null"'
+  wait_for "the 'Aegida is looking out for you' notice is up" 'have "com.aegida.app 1 null"'
   restore() { sh_ cmd connectivity airplane-mode disable >/dev/null; sh_ cmd alarm set-time $(( $(date +%s) * 1000 )) >/dev/null; sh_ settings put global auto_time 1; [ -n "${KEEP:-}" ] || sh_ pm clear $PKG >/dev/null; }
   trap restore EXIT
   job_id() { sh_ dumpsys jobscheduler | grep -oE "JOB #u[0-9a-z]+/[0-9]+: [a-f0-9]+ com.aegida.app" | head -1 | sed -E 's#JOB \#u[0-9a-z]+/([0-9]+):.*#\1#'; }
@@ -290,7 +290,7 @@ drift)
   sh_ pm grant $PKG android.permission.POST_NOTIFICATIONS
   sh_ cmd notification allow_listener "$PKG/$PKG.AegidaListenerService" >/dev/null
   sh_ am start -n "$PKG/.MainActivity" >/dev/null
-  wait_for "the 'Aegida is protecting you' notice is up" 'have "com.aegida.app 1 null"'
+  wait_for "the 'Aegida is looking out for you' notice is up" 'have "com.aegida.app 1 null"'
   restore() {
     sh_ cmd connectivity airplane-mode disable >/dev/null; sh_ settings delete secure enabled_accessibility_services >/dev/null
     sh_ settings delete secure enabled_notification_listeners >/dev/null; [ -n "${KEEP:-}" ] || sh_ pm clear $PKG >/dev/null
@@ -353,7 +353,7 @@ new-apps)
   sh_ pm grant $PKG android.permission.POST_NOTIFICATIONS
   sh_ cmd notification allow_listener "$PKG/$PKG.AegidaListenerService" >/dev/null
   sh_ am start -n "$PKG/.MainActivity" >/dev/null
-  wait_for "the 'Aegida is protecting you' notice is up" 'have "com.aegida.app 1 null"'
+  wait_for "the 'Aegida is looking out for you' notice is up" 'have "com.aegida.app 1 null"'
   restore() {
     sh_ cmd connectivity airplane-mode disable >/dev/null; sh_ pm uninstall org.fixture.sideloaded >/dev/null; sh_ pm uninstall com.anydesk.anydeskandroid >/dev/null
     [ -n "${KEEP:-}" ] || sh_ pm clear $PKG >/dev/null
@@ -416,7 +416,7 @@ stalkerware)
   sh_ pm grant $PKG android.permission.POST_NOTIFICATIONS
   sh_ cmd notification allow_listener "$PKG/$PKG.AegidaListenerService" >/dev/null
   sh_ am start -n "$PKG/.MainActivity" >/dev/null
-  wait_for "the 'Aegida is protecting you' notice is up" 'have "com.aegida.app 1 null"'
+  wait_for "the 'Aegida is looking out for you' notice is up" 'have "com.aegida.app 1 null"'
   restore() {
     sh_ cmd connectivity airplane-mode disable >/dev/null; sh_ pm uninstall com.spyzee >/dev/null
     [ -n "${KEEP:-}" ] || sh_ pm clear $PKG >/dev/null

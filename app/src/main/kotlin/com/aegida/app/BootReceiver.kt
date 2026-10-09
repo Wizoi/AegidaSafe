@@ -4,7 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 
-/** After a restart or an update, bring the "Aegida is protecting you" notice back. */
+/** After a restart or an update, bring the "Aegida is looking out for you" notice back. */
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         when (intent.action) {

@@ -29,5 +29,5 @@ Aegida never opens a link taken from a message, never uses an accessibility serv
 overlays or full-screen takeovers, and never says a phone is "safe".
 
 ## Permissions (all approved individually)
-Internet, post notifications, foreground service (the visible "Aegida is protecting you" notice), run at boot, query all
+Internet, post notifications, foreground service (the visible "Aegida is looking out for you" notice), run at boot, query all
 packages (to notice a new or remote-control app).

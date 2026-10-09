@@ -135,6 +135,20 @@ object Guards {
         "never say \"safe\" (or \"secure\", \"protected from\"); say \"no known problems found\"",
     )
 
+    /**
+     * A whole sentence or label in capitals ("STEP 1 OF 8", "TODAY"). The National Institute on Aging advises against
+     * all-caps text for older readers because it is harder to read. Acronyms inside a normal sentence ("Private DNS")
+     * are fine: the literal has to have no lowercase letter at all (a %s placeholder does not count).
+     */
+    val noAllCapsText = Rule(
+        "CopyRules: no all-caps text",
+        Regex(""""(?:%s|[^"a-z
+])*[A-Z]{3,}(?:%s|[^"a-z
+])*""""),
+        "write labels in sentence case (\"Step 1 of 8\", \"Today\"); all-caps text is harder to read",
+        onlyIn = { it.path.contains("/core/text/") },
+    )
+
     val noRed = Rule(
         "CopyRules: never red",
         Regex("""Color\.Red|0x[fF]{2}[fF][fF0-9]0{4}\b|#[fF][fF]0000"""),

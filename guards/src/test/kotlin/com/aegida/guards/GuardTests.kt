@@ -100,6 +100,7 @@ class ManifestSourcePolicyTest {
 class CopyRulesTest {
     @Test fun neverSaySafe() = assertNoViolations(Guards.bannedWords)
     @Test fun neverRed() = assertNoViolations(Guards.noRed)
+    @Test fun noAllCapsText() = assertNoViolations(Guards.noAllCapsText)
 }
 
 class UserTextTest {

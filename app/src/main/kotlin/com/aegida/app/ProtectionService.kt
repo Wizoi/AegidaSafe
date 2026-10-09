@@ -11,7 +11,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 
 /**
- * Keeps the persistent "Aegida is protecting you" notice up. It is visible, has Aegida's own icon and
+ * Keeps the persistent "Aegida is looking out for you" notice up. It is visible, has Aegida's own icon and
  * can be swiped away by the owner; it is also what keeps the phone from putting Aegida to sleep when she never
  * opens it (design section 8b, Samsung validation still to do).
  */
