@@ -23,3 +23,6 @@ At https://tmsearch.uspto.gov, Basic Word Mark Search, filter to live records an
 `AEGIDA`, `AEGIDA SAFE`, `AEGIDASAFE`, `AEGID*`, `EGIDA`, `AEGIS*` (live, classes 9/42/45), and the sound-alikes `AEJIDA`, `EGEDA`,
 `AIGIDA`. Then a registrar lookup of aegida.com / .app / .org / .net / .io, the Apple App Store, Google Play searches for "Aegis",
 "Egida" and "Aigis" in security and senior categories, and who is behind hydrogen81/aegida-website.
+
+## Result of Kevin's hand check (Oct 9)
+Kevin ran the USPTO searches above himself and they looked clean. He is **not applying for a trademark for now**: Aegida is a small free app, and he will revisit it if it takes hold and he puts more into it. Nothing is registered; the name rests on use. Re-check the live USPTO records before any serious push (paid placement, a company, a rename of the Play listing).
