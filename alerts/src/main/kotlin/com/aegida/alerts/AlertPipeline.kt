@@ -12,6 +12,7 @@ import com.aegida.core.model.DetectorId
 import com.aegida.core.model.Finding
 import com.aegida.core.model.FindingState
 import com.aegida.core.model.Severity
+import com.aegida.core.text.Problem
 import com.aegida.core.net.NtfyTopic
 import com.aegida.core.text.Texts
 import com.aegida.core.time.Clock
@@ -71,6 +72,25 @@ class AlertPipeline @Inject constructor(
         }
         notReached += remindAboutOldWarnings(now)
         return PipelineResult(alerted = alerted, resolved = resolved.size, guardiansNotReached = notReached)
+    }
+
+    /**
+     * She said a change was hers. A guardian who was told about it hears that, so an alarm about a family-approved
+     * install does not need a phone call to settle. A guardian who was never told hears nothing.
+     */
+    suspend fun tellConfirmed(problem: Problem) {
+        val settings = guardians.current()
+        val topic = settings.firstTopic?.takeIf { settings.alertsOn } ?: return
+        if (problem.forGuardian(settings.ownerName) == null) return
+        val now = clock.now()
+        val message = GuardianMessage(title = settings.ownerName, body = Texts.Guardian.CONFIRMED.format(settings.ownerName), urgent = false)
+        when (ntfy.send(topic, message)) {
+            SendResult.Delivered -> history.add(HistoryEntry(now, problem, Outcome.GuardianTold))
+            is SendResult.NotDelivered -> {
+                outbox.add(QueuedMessage(0, topic.value, message.title, message.body, message.urgent, problem, now, 1, now))
+                history.add(HistoryEntry(now, problem, Outcome.GuardianNotReached))
+            }
+        }
     }
 
     /**

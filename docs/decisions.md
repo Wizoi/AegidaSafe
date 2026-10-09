@@ -87,6 +87,7 @@
 - **`QUERY_ALL_PACKAGES` approved**, so new-app and remote-control detection can list every installed app. Needs the Play Console declaration (phase 4).
 - **The 24 hour step:** a warning still not dealt with after 24 hours reminds the *same* guardian once ("hasn't dealt with a warning yet"). A second guardian is a later feature with its own setup step. The finding becomes `Escalated`, which still counts as open and stays on Home.
 - **Repeat back-off (built):** a repeat of the same kind of warning still warns the owner but messages the guardian only after 1, 2, 4, then 7 days since the last message about that kind (by what was told in the last 7 days). Urgent problems are never held back.
+- **"She said it was hers" follow-up (Kevin, Oct 8):** when the owner taps "Yes, that was me" on a was-that-you question, a guardian who was told about it gets one short message saying so. A guardian who was never told (default app changes) hears nothing; nothing is sent with the alerts switch off. Plain "Got it" on a scam warning sends nothing.
 
 ## Naming (Kevin, Oct 8)
 - In code the person who holds the phone is the **owner** (`ownerName`, `OwnerNotifier`, `Outcome.OwnerWarned`), not "Mom". What people read uses the name she saved. Product docs may still say Mom as the persona.

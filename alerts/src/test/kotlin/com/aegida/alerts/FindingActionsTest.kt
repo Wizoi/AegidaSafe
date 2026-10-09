@@ -30,11 +30,12 @@ class FindingActionsTest {
     private val history = History()
     private val http = Http()
     private val topic = NtfyTopic.generate(java.util.Random(3))
+    private val outbox = FakeOutbox()
     private val guardians = FakeGuardians(Guardians(alertsOn = true, ownerName = "Ruth", firstTopic = topic))
-    private val pipeline = AlertPipeline(findings, owner, history, guardians, NtfySender(http), FakeOutbox()) { now }
+    private val pipeline = AlertPipeline(findings, owner, history, guardians, NtfySender(http), outbox) { now }
     private val baselines = FakeBaselines()
     private var phone = Snapshot(now, PrivateDns.Automatic, "com.android.chrome", true, true, Reading.NotPresent, Reading.NotPresent)
-    private val actions = FindingActions(findings, history, owner, baselines, { phone }) { now }
+    private val actions = FindingActions(findings, history, owner, baselines, { phone }, pipeline) { now }
 
     private val scam = Finding(FindingKey(DetectorId.Link, Problem.ScamLink, "evil.example"), emptyMap(), now.minus(Duration.ofMinutes(1)), now)
 
@@ -93,5 +94,53 @@ class FindingActionsTest {
         pipeline.handle(listOf(scam), setOf(DetectorId.Link))
         assertFalse(actions.acceptChange(scam.key))
         assertEquals(FindingState.Open, findings.get(scam.key)!!.state)
+    }
+
+    private suspend fun listenerAdded(): Finding {
+        baselines.value = Baseline.of(phone)
+        phone = phone.copy(notificationListeners = setOf("org.spy.app"))
+        val f = Finding(FindingKey(DetectorId.Drift, Problem.ListenerAdded, "org.spy.app"), emptyMap(), now, now)
+        pipeline.handle(listOf(f), setOf(DetectorId.Drift))
+        http.posts.clear(); http.bodies.clear()
+        return f
+    }
+
+    @Test fun whenSheSaysItWasHersTheGuardianWhoWasToldHearsThat() = runTest {
+        val f = listenerAdded()
+        assertTrue(actions.acceptChange(f.key))
+        assertEquals(listOf("Ruth said the change Aegida asked about was hers. Nothing more to do."), http.bodies)
+        assertEquals(listOf(Outcome.OwnerWarned, Outcome.GuardianTold, Outcome.Acknowledged, Outcome.GuardianTold), history.entries.map { it.outcome })
+    }
+
+    @Test fun aGuardianWhoWasNeverToldAboutItHearsNothingAboutHerAnswer() = runTest {
+        baselines.value = Baseline.of(phone)
+        phone = phone.copy(browser = "org.other.browser")
+        val f = Finding(FindingKey(DetectorId.Drift, Problem.BrowserChanged, "org.other.browser"), emptyMap(), now, now)
+        pipeline.handle(listOf(f), setOf(DetectorId.Drift))
+        assertEquals(0, http.bodies.size)
+        assertTrue(actions.acceptChange(f.key))
+        assertEquals(0, http.bodies.size)
+    }
+
+    @Test fun withGuardianAlertsOffNothingIsSent() = runTest {
+        val f = listenerAdded()
+        guardians.value = guardians.value.copy(alertsOn = false)
+        assertTrue(actions.acceptChange(f.key))
+        assertEquals(0, http.bodies.size)
+    }
+
+    @Test fun aFollowUpThatCannotBeSentIsKeptForRetryAndShownInHistory() = runTest {
+        val f = listenerAdded()
+        http.result = com.aegida.core.net.HttpResult.Failed(null, com.aegida.core.net.FailureReason.Offline)
+        assertTrue(actions.acceptChange(f.key))
+        assertEquals(1, outbox.rows.size)
+        assertEquals(Outcome.GuardianNotReached, history.entries.last().outcome)
+    }
+
+    @Test fun justSeeingAScamWarningSendsNoFollowUp() = runTest {
+        pipeline.handle(listOf(scam), setOf(DetectorId.Link))
+        http.posts.clear(); http.bodies.clear()
+        actions.acknowledge(scam.key)
+        assertEquals(0, http.bodies.size)
     }
 }

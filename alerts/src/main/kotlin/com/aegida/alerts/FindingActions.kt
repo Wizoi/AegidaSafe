@@ -23,12 +23,14 @@ class FindingActions @Inject constructor(
     private val owner: OwnerNotifier,
     private val baselines: BaselineStore,
     private val snapshotter: Snapshotter,
+    private val pipeline: AlertPipeline,
     private val clock: Clock,
 ) {
     /** Marks an open finding as seen: off Home, banner cleared, one History line. False if there is nothing open to mark. */
-    suspend fun acknowledge(key: FindingKey): Boolean {
+    suspend fun acknowledge(key: FindingKey): Boolean = acknowledge(key, clock.now())
+
+    private suspend fun acknowledge(key: FindingKey, now: java.time.Instant): Boolean {
         val finding = findings.get(key)?.takeIf { it.state.needsHer } ?: return false
-        val now = clock.now()
         findings.put(finding.copy(state = FindingState.Acknowledged, lastSeen = now))
         owner.clear(key)
         history.add(HistoryEntry(now, key.problem, Outcome.Acknowledged))
@@ -37,13 +39,15 @@ class FindingActions @Inject constructor(
 
     /**
      * "Yes, that was me": the part of the baseline this finding is about moves to what the phone has now, then the
-     * finding is marked seen. False if it is not open or is not a "was that you?" finding.
+     * finding is marked seen, and the guardian who was told about it hears she said so. False if it is not open or is not a "was that you?" finding.
      */
     suspend fun acceptChange(key: FindingKey): Boolean {
         if (key.problem.fix != Fix.ConfirmChange) return false
         if (findings.get(key)?.state?.needsHer != true) return false
         val baseline = baselines.baseline() ?: return false
         baselines.save(baseline.accepting(key.problem, snapshotter.take()))
-        return acknowledge(key)
+        val seen = acknowledge(key, clock.now())
+        if (seen) pipeline.tellConfirmed(key.problem)
+        return seen
     }
 }
