@@ -50,7 +50,7 @@ class DailyCheckTest {
     private val snapshot = Snapshot(now, PrivateDns.Automatic, "com.android.chrome", true, true, Reading.NotPresent, Reading.NotPresent)
     private val daily = DailyCheck(
         FeedUpdater(http, FeedVerifier(keys.public.encoded), feedStore) { now },
-        CheckRunner({ snapshot }, evaluator, pipeline, BaselineKeeper(FakeSetupStore(), FakeBaselines()), OutboxFlusher(outbox, NtfySender(http), history, { now }), AlertGate()),
+        CheckRunner({ snapshot }, evaluator, pipeline, BaselineKeeper(FakeSetupStore(), FakeBaselines()), OutboxFlusher(outbox, NtfySender(http), history, guardians, { now }), AlertGate()),
         history,
         checkLog,
         DeadMansSwitch(guardians, NtfySender(http)),
