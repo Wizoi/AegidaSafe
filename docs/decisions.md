@@ -97,6 +97,7 @@
 - **Play store title is "Aegida"**, not "Aegida Safe" (the Console title was "Aegida Safe" from app creation; `publishListing` will change it). Keeps the store page under the never-say-safe rule; `PlayListingTest` enforces it.
 - **The always-on notice reads "Aegida is looking out for you"**, not "Aegida is protecting you" (Kevin, Oct 8; the earlier wording is in Build step 1 above). "Protecting" promises more than Aegida can; the welcome text already says "looks out for scams". Same reason the store text and the app avoid "watches".
 - **Free, MIT licence.** Distribution starts on Internal testing (versionCode 1, 0.1.0 uploaded Oct 8); the same service account as SmugView publishes through Gradle Play Publisher.
+- **Nothing public says the code is open while the repo is private** (Kevin, Oct 9). The store description and the privacy page do not mention open source or the MIT licence; `PlayListingTest.nothingPublicClaimsOpenSourceWhileTheRepoIsPrivate` fails if they do. When the repo is opened: delete that test, add "Aegida is free and open source under the MIT licence. Anyone can read how it works." back to the end of `full-description.txt`, and the licence sentence back to `docs/site/privacy.html`, then publish the listing and push.
 - **R8 mapping files are git-ignored** (25 MB each; the bundle carries them for Play), not committed as the old `.gitignore` comment said. Keep a copy per release outside the repo.
 
 ## Open / next session

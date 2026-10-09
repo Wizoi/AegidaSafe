@@ -34,4 +34,4 @@ No app can catch every scam. Aegida is one helper, and you and the people you tr
 - Someone you do not know who rushes you is a reason to slow down.
 - Before you do anything, talk to someone you trust.
 
-Aegida is free. Anyone can read how it works, because the code is open under the MIT licence.
+Aegida is free.

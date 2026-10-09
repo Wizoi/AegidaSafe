@@ -32,6 +32,19 @@ class PlayListingTest {
         }
     }
 
+    /**
+     * The repo is private until Kevin opens it, so nothing public may say the code can be read. When he opens it,
+     * delete this test and add the sentence back (docs/PUBLISH.md, decisions.md).
+     */
+    @Test fun nothingPublicClaimsOpenSourceWhileTheRepoIsPrivate() {
+        val claim = Regex("""open[ -]source|code is open|MIT licen[cs]e|read how it works""", RegexOption.IGNORE_CASE)
+        val files = listOf("full-description.txt", "short-description.txt", "title.txt").map { File(listing, it) } +
+            File("../docs/site/privacy.html") + File(play, "release-notes/en-US").listFiles().orEmpty().toList()
+        for (file in files) {
+            assertEquals("${file.path} claims the code is open while the repo is private", emptyList<String>(), claim.findAll(file.readText()).map { it.value }.toList())
+        }
+    }
+
     /** Play Console needs a public URL for this page. It is published by the feed workflow (docs/site/privacy.html). */
     @Test fun thePrivacyPolicyPageExistsAndNeverSaysSafe() {
         val page = File("../docs/site/privacy.html")
