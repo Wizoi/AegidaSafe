@@ -66,7 +66,11 @@ class AndroidSnapshotter(
     private fun apps(): List<InstalledApp> {
         val now = clock.now()
         val readAt = appsReadAt
-        if (readAt != null && Duration.between(readAt, now) < APPS_FRESH_FOR) return appsRead
+        // A negative elapsed time (the wall clock was set back) counts as stale, so the list is re-read (R14).
+        if (readAt != null) {
+            val age = Duration.between(readAt, now)
+            if (!age.isNegative && age < APPS_FRESH_FOR) return appsRead
+        }
         appsRead = readApps()
         appsReadAt = now
         return appsRead

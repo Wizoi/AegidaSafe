@@ -180,6 +180,16 @@ class AndroidSnapshotterTest {
         assertTrue(snapshotter.take().apps.any { it.packageName == "org.second.app" })
     }
 
+    @Test fun aClockSetBackwardsDoesNotFreezeTheList() { // R14: wall clock set ahead, then corrected
+        var at = now.plus(Duration.ofDays(2))
+        val snapshotter = AndroidSnapshotter(context, { at }, FixedOem(Reading.NotPresent, Reading.NotPresent), listener)
+        install("org.first.app", "First", "com.android.vending")
+        assertTrue(snapshotter.take().apps.any { it.packageName == "org.first.app" })
+        install("org.second.app", "Second", null)
+        at = now // two days earlier than when the list was read
+        assertTrue(snapshotter.take().apps.any { it.packageName == "org.second.app" })
+    }
+
     @Test fun anAppsSigningCertificateIsReadAsTheSha1HexEchapListsAndSystemAppsAreNotChecked() {
         val certificate = ByteArray(40) { (it * 7).toByte() }
         val expected = java.security.MessageDigest.getInstance("SHA-1").digest(certificate).joinToString("") { "%02x".format(it) }
