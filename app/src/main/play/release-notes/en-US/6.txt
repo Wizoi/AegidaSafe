@@ -1,0 +1,6 @@
+What's new:
+• A website that wants to send you notifications for the first time now gets one question: "Was that you?"
+• Saying yes remembers the website
+• Old finished records are cleared out after 90 days
+• "How does this work?" moved to the bottom of My settings
+• Fixed the spelling of "license" in My settings

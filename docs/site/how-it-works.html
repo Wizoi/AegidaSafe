@@ -80,7 +80,7 @@
   code { font-family:Consolas, "Courier New", monospace; font-size:.9em; background:var(--card); border:1px solid var(--line); border-radius:6px; padding:0 .3em; word-break:break-word; }
   .note { color:var(--soft); font-size:.95rem; }
   footer { max-width:60rem; margin:0 auto; padding:1.5rem 16px 3rem; border-top:2px solid var(--line); color:var(--soft); font-size:1rem; }
-  /* diagram marks: the figure panel is always cream, so these colours are fixed */
+  /* diagram marks: the figure panel is always cream, so these colors are fixed */
   .box { fill:#FFFBEA; stroke:#0F6B73; stroke-width:2; }
   .box-out { fill:#FFFFFF; stroke:#4A4640; stroke-width:2; }
   .box-opt { fill:#FFFBEA; stroke:#0F6B73; stroke-width:2; stroke-dasharray:7 5; }
@@ -291,7 +291,7 @@
 <div id="detailed-view">
 
   <h1>How Aegida works, in detail</h1>
-  <p class="lead">For readers who want to check the mechanism. This page describes Aegida 0.3.2 and was checked against the app's code. Where something has not been tested on a real device, it says so.</p>
+  <p class="lead">For readers who want to check the mechanism. This page describes Aegida 0.3.3 and was checked against the app's code. Where something has not been tested on a real device, it says so.</p>
 
   <h2>In two lines</h2>
   <p>Aegida reads the title and text of notifications through Android's notification-access service, checks them on the phone against fixed rules and a signed list of known bad hosts, and tells the owner in plain words. If the owner turned it on, it sends one fixed sentence to one chosen person through ntfy.sh.</p>
@@ -340,7 +340,7 @@
     <tbody>
       <tr><td data-label="Check">Scam link</td><td data-label="What triggers it">A link in a notification whose host (or any parent domain) is in the host list, or whose exact host and path is in the URL list.</td><td data-label="What the owner sees">"A message has a link that looks like a scam. Please don't tap it."</td></tr>
       <tr><td data-label="Check">Look-alike link</td><td data-label="What triggers it">A word in the host that equals one of 21 brand words once look-alike letters and digits are swapped (for example Cyrillic or Greek letters, 0 for o, rn for m), when the host is not that brand's own domain; or one label that mixes alphabets.</td><td data-label="What the owner sees">"A message has a link pretending to be a company you know. Please don't tap it."</td></tr>
-      <tr><td data-label="Check">Website pop-ups</td><td data-label="What triggers it">A notification on a website channel (Chrome's per-site channels). Every such notification is treated as unwanted.</td><td data-label="What the owner sees">The notification is hidden, and Aegida says so and offers the site's own switch.</td></tr>
+      <tr><td data-label="Check">Website pop-ups</td><td data-label="What triggers it">A notification from a website the owner has not already said is fine. Words like &quot;virus&quot; or &quot;infected&quot; are hidden at once; any other website is asked about the first time it sends one.</td><td data-label="What the owner sees">The notification is hidden and Aegida asks &quot;Was that you?&quot; Yes remembers the site; No opens the site's own switch.</td></tr>
       <tr><td data-label="Check">Default apps changed</td><td data-label="What triggers it">The default browser, text, phone or assistant app differs from what the phone had when setup ended.</td><td data-label="What the owner sees">"Was that you?" with "Yes, that was me" and "No, show me".</td></tr>
       <tr><td data-label="Check">Special access added</td><td data-label="What triggers it">A new app with notification access, screen control (accessibility) or device-administrator rights. Urgent.</td><td data-label="What the owner sees">"Was that you?"</td></tr>
       <tr><td data-label="Check">New app from outside Google Play</td><td data-label="What triggers it">After setup, a non-system app whose installer is not Google Play. Apps already on the phone at setup are not flagged.</td><td data-label="What the owner sees">"Was that you?"</td></tr>
@@ -350,7 +350,7 @@
       <tr><td data-label="Check">Health</td><td data-label="What triggers it">After setup: notification access switched off, notifications blocked, no daily check for 26 hours, or lists built more than 3 days ago.</td><td data-label="What the owner sees">"Aegida can no longer see your notifications. Tap to fix it." or "I couldn't check today."</td></tr>
     </tbody>
   </table>
-  <p class="note">Link shorteners are recognised but do not make a finding on their own. A link that matches nothing makes no finding.</p>
+  <p class="note">Link shorteners are recognized but do not make a finding on their own. A link that matches nothing makes no finding.</p>
 
   <h2 id="scam-lists">The scam lists</h2>
   <figure class="fig">
@@ -407,6 +407,7 @@
       <li>A message with a scam link arrived on Ruth's phone. Aegida warned Ruth.</li>
       <li>A message pretending to be a well-known company arrived on Ruth's phone. Aegida warned Ruth.</li>
       <li>A website was sending fake warnings to Ruth's phone. Aegida hid them.</li>
+      <li>A website that was not there before started sending notifications on Ruth's phone. Aegida asked Ruth: “Was that you?”</li>
       <li>Website protection was turned off on Ruth's phone.</li>
       <li>Aegida can no longer check notifications on Ruth's phone.</li>
       <li>Aegida can't show warnings on Ruth's phone.</li>
@@ -440,7 +441,7 @@
       <tr><td data-label="Permission"><code>RECEIVE_BOOT_COMPLETED</code></td><td data-label="Why">To bring that notice back after a restart or update.</td></tr>
       <tr><td data-label="Permission"><code>QUERY_ALL_PACKAGES</code></td><td data-label="Why">To list installed apps, so it can notice a new, remote-control or spying app. A narrower list cannot see an unknown app.</td></tr>
       <tr><td data-label="Permission">Added by the work scheduler</td><td data-label="Why"><code>ACCESS_NETWORK_STATE</code> and <code>WAKE_LOCK</code>, for the daily job.</td></tr>
-      <tr><td data-label="Permission"><b>Not requested</b></td><td data-label="Why">SMS, call recording or audio, screen overlays, full-screen alerts, battery-optimisation exemption, an accessibility service, a VPN, location, contacts, camera. The build fails if any of these appears in the app.</td></tr>
+      <tr><td data-label="Permission"><b>Not requested</b></td><td data-label="Why">SMS, call recording or audio, screen overlays, full-screen alerts, battery-optimization exemption, an accessibility service, a VPN, location, contacts, camera. The build fails if any of these appears in the app.</td></tr>
     </tbody>
   </table>
 
@@ -463,7 +464,7 @@
       <tr><td data-label="Situation">Phone off or asleep</td><td data-label="What happens">Nothing runs. After 26 hours without a daily check Home says "I couldn't check today." The guardian's waiting "hasn't checked in" note arrives after about two days.</td></tr>
       <tr><td data-label="Situation">Access switched off</td><td data-label="What happens">The owner sees "Tap to fix it", and the guardian is told if alerts are on.</td></tr>
       <tr><td data-label="Situation">App killed mid-check</td><td data-label="What happens">The warning is stored last, so a killed run repeats it in full. A duplicate is accepted over a lost warning. The lists file is replaced atomically.</td></tr>
-      <tr><td data-label="Situation">Two triggers at once</td><td data-label="What happens">One lock serialises every check, tap and alert change.</td></tr>
+      <tr><td data-label="Situation">Two triggers at once</td><td data-label="What happens">One lock serializes every check, tap and alert change.</td></tr>
       <tr><td data-label="Situation">Lists too old</td><td data-label="What happens">Home says it could not check, instead of "No known problems found".</td></tr>
     </tbody>
   </table>
@@ -480,7 +481,7 @@
 </main>
 
 <footer>
-  <p>This page describes Aegida 0.3.2. Updated October 9, 2026.</p>
+  <p>This page describes Aegida 0.3.3. Updated October 9, 2026.</p>
   <p>Questions: <a href="mailto:kidzi+aegida@idzifamily.com">kidzi+aegida@idzifamily.com</a> &middot; <a href="privacy.html">Privacy policy</a></p>
 </footer>
 
