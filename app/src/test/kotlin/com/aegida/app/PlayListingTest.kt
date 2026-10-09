@@ -45,6 +45,13 @@ class PlayListingTest {
         }
     }
 
+    /** Play will not save a listing change for an app with no contact email; one owner for the address, shared with the policy page. */
+    @Test fun theStoreContactEmailIsTheAddressOnThePrivacyPage() {
+        val email = File(play, "contact-email.txt").readText().trim()
+        assertTrue("contact-email.txt is not an email address: $email", Regex("""[^@\s]+@[^@\s]+\.[a-z]{2,}""").matches(email))
+        assertTrue("the privacy page does not give $email as the contact", File("../docs/site/privacy.html").readText().contains(email))
+    }
+
     /** Play Console needs a public URL for this page. It is published by the feed workflow (docs/site/privacy.html). */
     @Test fun thePrivacyPolicyPageExistsAndNeverSaysSafe() {
         val page = File("../docs/site/privacy.html")
