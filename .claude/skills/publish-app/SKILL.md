@@ -9,7 +9,10 @@ description: Cut an Aegida release - bump the version, write release notes, run 
 Follow [docs/PUBLISH.md](../../../docs/PUBLISH.md), section "Cutting a release". Short version:
 
 1. Ask which version Kevin wants. Bump `versionCode` (never reuse one) and `versionName` in `app/build.gradle.kts`.
-2. Write `app/src/main/play/release-notes/en-US/<versionCode>.txt` in plain words (500 chars, never "safe"). Show it to Kevin.
+2. Every release gets a new `versionCode` and `versionName` (small changes: 0.0.1 steps, so 0.3.0 then 0.3.1) and its own
+   `app/src/main/play/release-notes/en-US/<versionCode>.txt` in plain words (500 chars, never "safe"). **Print the exact notes text
+   to Kevin and wait for him to approve it in the conversation before anything is uploaded or promoted.** An earlier "go" for the
+   release does not cover the wording of the notes. If he changes the wording, show the new text again.
 3. Run the gate: `./gradlew build` (look for `BUILD SUCCESSFUL`, do not trust a piped exit code), the guard tests, and
    `python scripts/mutation-check.py`. Gradle needs the Android Studio JBR.
 4. Build `./gradlew :app:bundleRelease` without `-PlocalBuild`, then check it with `jarsigner -verify`.

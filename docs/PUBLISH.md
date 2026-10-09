@@ -36,7 +36,9 @@ no launcher icon.
 
 ## Cutting a release
 1. Bump `versionCode` (always a new number, never reused) and `versionName` in `app/build.gradle.kts`.
-2. Write `release-notes/en-US/<versionCode>.txt`: plain words, what changed for Mom. Show Kevin before publishing.
+2. Write `release-notes/en-US/<versionCode>.txt`: plain words, what changed for Mom. **Kevin approves the exact text first** (print it
+   in the conversation and wait; the earlier "go" for the release does not cover the notes). Versions: new versionCode every time,
+   versionName in 0.0.1 steps for small changes (0.3.0, 0.3.1, ...).
 3. A Room schema change needs a tested Migration, asked first (CLAUDE.md).
 4. Full gate: `./gradlew build` (check for `BUILD SUCCESSFUL`), the guard tests, `python scripts/mutation-check.py`.
 5. Build the bundle **without** `-PlocalBuild`: `./gradlew :app:bundleRelease`. Check it is signed:
