@@ -110,6 +110,8 @@
 
 - **Not asking Play Support about the guardian alerts beforehand** (Kevin, Oct 9). Risk accepted: Play's monitoring policy names parental and enterprise uses, and an adult picking her own guardian is not clearly covered, so a policy notice is possible later. The consent design (explicit Yes/No in setup, off any time, persistent notice, normal icon, fixed sentences only) is the answer to give if it comes; see `docs/play-support-question.md`.
 
+- **Guardian messages stay on the public ntfy.sh** (Kevin, Oct 9). No token or account: the random topic name is the password. ntfy limits per visitor (IP), and Aegida sends a handful of small messages per phone a day, so family scale is far inside the limits (the figures read were the server defaults; ntfy.sh's own settings were not confirmed). Risk accepted: a free public service with no guarantee. If Aegida grows to hundreds of users, or alerts stop arriving, move to a self-hosted ntfy: change `Endpoint.NTFY_HOST` and the allowed hosts, and re-send invitations (the topic link includes the host).
+
 ## Open / next session
 - Create the Gradle project and run the **emulator spike**: confirm each `adb`/`cmd` scenario works on the API 36 Play image.
 - Kevin: look for an old Samsung phone on One UI 6+; look into Samsung Remote Test Lab.
