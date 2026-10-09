@@ -1,5 +1,6 @@
 package com.aegida.app.ui
 
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -113,7 +114,7 @@ fun AegidaHeader(pictureId: String?, modifier: Modifier = Modifier) {
 fun AegidaScreen(pictureId: String?, modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
     Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(
-            modifier = Modifier.statusBarsPadding().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp, vertical = 16.dp),
+            modifier = Modifier.statusBarsPadding().imePadding().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp, vertical = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             AegidaHeader(pictureId)

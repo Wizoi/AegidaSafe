@@ -10,6 +10,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasText
@@ -17,6 +19,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.Density
@@ -244,6 +247,20 @@ class ScreensTest(private val dark: Boolean, private val fontScale: Float) {
         val tops = listOf(Texts.Setup.YOUR_NAME, Texts.Setup.GUARDIAN_BODY, Texts.Setup.GUARDIAN_NAME, Texts.Setup.GUARDIAN_EMAIL, Texts.Setup.GUARDIAN_PHONE)
             .map { compose.onNodeWithText(it).fetchSemanticsNode().positionInRoot.y }
         assertEquals("her name, the sentence, then name, email and phone", tops.sorted(), tops)
+    }
+
+    /** Kevin, Oct 9: with the keyboard up she had to hunt for the next box. Next moves down the boxes; Done on the last closes the keyboard. */
+    @Test fun theKeyboardsNextButtonMovesDownTheBoxesAndDoneOnTheLastOneLetsGo() {
+        show { AboutStep(null, 1, 6, Guardians.None) { _, _, _, _ -> } }
+        compose.onNodeWithText(Texts.Setup.YOUR_NAME).performScrollTo().performClick()
+        compose.onNodeWithText(Texts.Setup.YOUR_NAME).performImeAction()
+        compose.onNodeWithText(Texts.Setup.GUARDIAN_NAME).assertIsFocused()
+        compose.onNodeWithText(Texts.Setup.GUARDIAN_NAME).performImeAction()
+        compose.onNodeWithText(Texts.Setup.GUARDIAN_EMAIL).assertIsFocused()
+        compose.onNodeWithText(Texts.Setup.GUARDIAN_EMAIL).performImeAction()
+        compose.onNodeWithText(Texts.Setup.GUARDIAN_PHONE).assertIsFocused()
+        compose.onNodeWithText(Texts.Setup.GUARDIAN_PHONE).performImeAction()
+        compose.onNodeWithText(Texts.Setup.GUARDIAN_PHONE).assertIsNotFocused()
     }
 
     @Test fun aboutStepNeedsAValidNameGuardianAndEmailBeforeContinuing() {

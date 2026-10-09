@@ -1,5 +1,13 @@
 package com.aegida.app.ui.setup
 
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -85,7 +93,7 @@ fun AboutStep(pictureId: String?, number: Int, total: Int, initial: Guardians, o
         Body(Texts.Setup.GUARDIAN_BODY, centered = false)
         Field(guardian, { guardian = it }, Texts.Setup.GUARDIAN_NAME, KeyboardType.Text)
         Field(email, { email = it }, Texts.Setup.GUARDIAN_EMAIL, KeyboardType.Email)
-        Field(phone, { phone = it }, Texts.Setup.GUARDIAN_PHONE, KeyboardType.Phone)
+        Field(phone, { phone = it }, Texts.Setup.GUARDIAN_PHONE, KeyboardType.Phone, last = true)
         BigButton(Texts.Common.CONTINUE, { onContinue(name, guardian, email, phone) }, enabled = valid)
     }
 }
@@ -103,7 +111,7 @@ fun ChangeGuardianScreen(pictureId: String?, previousName: String, onSave: (name
         Body(Texts.Setup.GUARDIAN_BODY, centered = false)
         Field(guardian, { guardian = it }, Texts.Setup.GUARDIAN_NAME, KeyboardType.Text)
         Field(email, { email = it }, Texts.Setup.GUARDIAN_EMAIL, KeyboardType.Email)
-        Field(phone, { phone = it }, Texts.Setup.GUARDIAN_PHONE, KeyboardType.Phone)
+        Field(phone, { phone = it }, Texts.Setup.GUARDIAN_PHONE, KeyboardType.Phone, last = true)
         // With no previous guardian there is nobody to let know.
         BigButton(Texts.Common.SAVE, { if (previousName.isBlank()) onSave(guardian, email, phone) else asking = true }, enabled = valid)
     }
@@ -119,14 +127,17 @@ fun ChangeGuardianScreen(pictureId: String?, previousName: String, onSave: (name
 }
 
 @Composable
-private fun Field(value: String, onChange: (String) -> Unit, label: String, type: KeyboardType) {
+private fun Field(value: String, onChange: (String) -> Unit, label: String, type: KeyboardType, last: Boolean = false) {
+    // The keyboard's Next button moves to the box below; on the last box it closes the keyboard (Kevin, Oct 9).
+    val focus = LocalFocusManager.current
     OutlinedTextField(
         value = value,
         onValueChange = onChange,
         label = { Text(label, style = MaterialTheme.typography.bodyMedium) },
         textStyle = MaterialTheme.typography.bodyLarge,
         singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = type),
+        keyboardOptions = KeyboardOptions(keyboardType = type, imeAction = if (last) ImeAction.Done else ImeAction.Next),
+        keyboardActions = KeyboardActions(onNext = { focus.moveFocus(FocusDirection.Down) }, onDone = { focus.clearFocus() }),
         modifier = Modifier.fillMaxWidth(),
     )
 }
@@ -137,24 +148,53 @@ fun PictureStep(pictureId: String?, number: Int, total: Int, chosen: SafetyPictu
     var picked by rememberSaveable { mutableStateOf(chosen?.id) }
     StepScreen(picked ?: pictureId, number, total, Texts.Setup.PICTURE_TITLE) {
         Body(Texts.Setup.PICTURE_BODY, centered = false)
-        SafetyPicture.entries.chunked(2).forEach { pair ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                pair.forEach { picture ->
-                    val isPicked = picked == picture.id
-                    Column(
-                        Modifier.weight(1f).clickable { picked = picture.id; onChoose(picture) }
-                            .semantics { contentDescription = picture.label; selected = isPicked },
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        PictureTile(picture, 96.dp, selected = isPicked)
-                        Text(picture.label, style = MaterialTheme.typography.bodyMedium)
-                    }
-                }
-            }
-        }
+        PictureGrid(picked) { picture -> picked = picture.id; onChoose(picture) }
         BigButton(buttonText, onContinue, enabled = picked != null)
     }
 }
+
+/**
+ * The ten pictures, three across, sized from the screen so the Continue button stays on the first screen (Kevin, Oct 9). At
+ * very large text three across would cut the labels, so it is two across there and the screen scrolls, as it always did.
+ */
+@Composable
+private fun PictureGrid(picked: String?, onPick: (SafetyPicture) -> Unit) {
+    val config = LocalConfiguration.current
+    val fontScale = LocalDensity.current.fontScale
+    val perRow = if (fontScale > 1.3f) 2 else 3
+    val gap = 12.dp
+    val rows = (SafetyPicture.entries.size + perRow - 1) / perRow
+    val label = 26.dp * fontScale
+    // Across: the width left after the 24 dp side padding. Down: the screen less everything above and below the grid.
+    val acrossLimit = (config.screenWidthDp.dp - 48.dp - gap * (perRow - 1)) / perRow
+    val room = config.screenHeightDp.dp - (CHROME + TEXT_CHROME * fontScale)
+    val downLimit = (room - gap * (rows - 1)) / rows - label
+    // Large text: the screen scrolls anyway, so keep the big 96 dp tiles she had before (two across, labels fit).
+    val tile = if (perRow == 2) 96.dp else minOf(acrossLimit, downLimit, 112.dp).coerceAtLeast(56.dp)
+    Column(verticalArrangement = Arrangement.spacedBy(gap)) {
+        SafetyPicture.entries.chunked(perRow).forEach { row ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(gap)) {
+                row.forEach { picture ->
+                    val isPicked = picked == picture.id
+                    Column(
+                        Modifier.weight(1f).clickable { onPick(picture) }
+                            .semantics { contentDescription = picture.label; selected = isPicked },
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        PictureTile(picture, tile, selected = isPicked)
+                        Text(picture.label, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center, maxLines = 2)
+                    }
+                }
+                repeat(perRow - row.size) { Spacer(Modifier.weight(1f)) }
+            }
+        }
+    }
+}
+
+// What sits above and below the grid on this step: the header, step label, title, text, Continue and Back, and the status and
+// navigation bars. The part that is text grows with the font size.
+private val CHROME = 150.dp
+private val TEXT_CHROME = 250.dp
 
 @Composable
 fun InviteStep(pictureId: String?, number: Int, total: Int, guardianName: String, noEmailApp: Boolean, onWrite: () -> Unit, onSent: () -> Unit) {

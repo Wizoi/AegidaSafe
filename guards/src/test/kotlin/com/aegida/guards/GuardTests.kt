@@ -137,3 +137,16 @@ class NoDeadColumnsTest {
         assertEquals("columns written but never read", emptyList<String>(), dead)
     }
 }
+
+/**
+ * Kevin, Oct 9: with the keyboard up the next boxes and the Continue button were hidden behind it. Every screen is drawn by
+ * AegidaScreen, which must leave room for the keyboard; the activity must resize for it (Android 10 needs this too).
+ */
+class KeyboardRoomTest {
+    @Test fun theScreenMakesRoomForTheKeyboardAndTheActivityResizesForIt() {
+        val screen = ShippedSources.main.first { it.path.endsWith("app/src/main/kotlin/com/aegida/app/ui/Components.kt") }
+        assertTrue("AegidaScreen must use imePadding()", screen.code.contains(".imePadding()"))
+        val manifest = ShippedSources.main.first { it.path.endsWith("app/src/main/AndroidManifest.xml") }
+        assertTrue("MainActivity must set windowSoftInputMode=adjustResize", manifest.text.contains("adjustResize"))
+    }
+}
