@@ -14,4 +14,7 @@ class DeliveryDetectorTest {
     @Test fun nothingWaitingMeansNoProblem() = assertEquals(emptyList<Problem>(), problems(null))
     @Test fun heldForLessThanADayIsNotYetAProblem() = assertEquals(emptyList<Problem>(), problems(23))
     @Test fun heldForMoreThanADayMeansTheGuardianCannotBeReached() = assertEquals(listOf(Problem.GuardianUnreachable), problems(25))
+
+    // R14: the clock moved backwards, or the message was stamped while the clock was ahead.
+    @Test fun aMessageStampedInTheFutureStillCountsAsHeldLongEnough() = assertEquals(listOf(Problem.GuardianUnreachable), problems(-5))
 }

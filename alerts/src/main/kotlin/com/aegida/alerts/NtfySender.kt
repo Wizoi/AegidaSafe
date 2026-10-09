@@ -59,7 +59,7 @@ data class GuardianMessage(
     val sequenceId: String? = null,
 )
 
-/** A send always reports what happened; a failed send is retried and shown in History, never dropped. */
+/** A send always reports what happened; a failed send is retried and shown in History, and one given up after a week says so (GuardianNeverReached). */
 sealed interface SendResult {
     data object Delivered : SendResult
     data class NotDelivered(val failure: HttpResult.Failed) : SendResult

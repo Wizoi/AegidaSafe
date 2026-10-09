@@ -40,7 +40,7 @@ class ConcurrencyTest {
     private val runner = CheckRunner(
         { phone },
         Evaluator(setOf(LinkDetector()), { now }, FakeSetupStore(Setup.NotDone), feedStore, FakeCheckLog(), outbox, FakeBaselines()),
-        pipeline, BaselineKeeper(FakeSetupStore(), FakeBaselines()), OutboxFlusher(outbox, NtfySender(http), history, { now }), gate,
+        pipeline, BaselineKeeper(FakeSetupStore(), FakeBaselines()), OutboxFlusher(outbox, NtfySender(http), history, guardians, { now }), gate,
     )
     private val actions = FindingActions(findings, history, owner, FakeBaselines(), { phone }, pipeline, gate) { now }
 

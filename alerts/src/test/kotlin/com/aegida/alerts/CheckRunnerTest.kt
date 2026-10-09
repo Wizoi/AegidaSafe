@@ -46,7 +46,7 @@ class CheckRunnerTest {
         setOf(LinkDetector(), PopupSpamDetector(), DnsDetector(), HealthDetector()), { now }, setupStore, feedStore, checkLog, outbox, baselines,
     )
     private val pipeline = AlertPipeline(findings, owner, history, guardians, NtfySender(http), outbox) { now }
-    private val runner = CheckRunner({ snapshot() }, evaluator, pipeline, BaselineKeeper(setupStore, baselines), OutboxFlusher(outbox, NtfySender(http), history, { now }), AlertGate())
+    private val runner = CheckRunner({ snapshot() }, evaluator, pipeline, BaselineKeeper(setupStore, baselines), OutboxFlusher(outbox, NtfySender(http), history, guardians, { now }), AlertGate())
 
     private fun snapshot() = Snapshot(now, dns, "com.android.chrome", true, true, Reading.NotPresent, Reading.NotPresent)
 
