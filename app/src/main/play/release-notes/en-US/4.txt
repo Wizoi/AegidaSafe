@@ -1,1 +1,6 @@
-Messages to your guardian now use your name instead of "her", and they are gentler unless something is urgent. On the picture step the pictures are three across, so the Continue button is on the first screen. The keyboard no longer hides the boxes below: the page moves up, and the keyboard's Next button goes to the next box.
+What's new:
+• Messages to your guardian use your name, not "her"
+• Guardian messages are gentler, unless something is urgent
+• The ten pictures are three across, so Continue is on the first screen
+• The keyboard no longer hides the boxes below
+• The keyboard's Next button goes to the next box
