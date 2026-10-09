@@ -8,7 +8,9 @@ import com.aegida.core.feed.FeedUpdate
 import com.aegida.core.feed.FeedUpdater
 import com.aegida.core.feed.FeedVerifier
 import com.aegida.core.feed.ThreatFeed
+import com.aegida.core.health.CheckRun
 import com.aegida.core.health.Trigger
+import com.aegida.core.net.HttpResult
 import com.aegida.core.model.PrivateDns
 import com.aegida.core.model.Snapshot
 import com.aegida.core.net.BytesResult
@@ -48,12 +50,17 @@ class DailyCheckTest {
     private val evaluator = Evaluator(setOf(DnsDetector(), HealthDetector()), { now }, FakeSetupStore(), feedStore, checkLog, outbox, FakeBaselines())
     private val pipeline = AlertPipeline(findings, owner, history, guardians, NtfySender(http), outbox) { now }
     private val snapshot = Snapshot(now, PrivateDns.Automatic, "com.android.chrome", true, true, Reading.NotPresent, Reading.NotPresent)
+    private val sender = NtfySender(http)
+    private val switch = DeadMansSwitch(guardians, sender) { now }
+    private val guardianAlerts = GuardianAlerts(guardians, sender, switch, AlertGate())
     private val daily = DailyCheck(
         FeedUpdater(http, FeedVerifier(keys.public.encoded), feedStore) { now },
         CheckRunner({ snapshot }, evaluator, pipeline, BaselineKeeper(FakeSetupStore(), FakeBaselines()), OutboxFlusher(outbox, NtfySender(http), history, { now }), AlertGate()),
         history,
         checkLog,
-        DeadMansSwitch(guardians, NtfySender(http)),
+        feedStore,
+        switch,
+        guardianAlerts,
         AlertGate(),
     ) { now }
 
@@ -80,6 +87,82 @@ class DailyCheckTest {
         http.posts.clear()
         daily.run()
         assertEquals(0, http.posts.size)
+        assertEquals("https://ntfy.sh/${topic.value}/heartbeat", http.deleted.single().url) // and the waiting message is cancelled again
+    }
+
+    @Test fun aCancelThatFailedOfflineIsSentAgainByTheNextDailyCheckUntilItWorks() = runTest {
+        guardians.value = guardians.value.copy(alertsOn = false)
+        http.result = HttpResult.Failed(null, FailureReason.Offline)
+        assertEquals(SendResult.NotDelivered(HttpResult.Failed(null, FailureReason.Offline)), daily.run().heartbeat)
+        http.result = HttpResult.Ok(200, "{}")
+        assertEquals(SendResult.Delivered, daily.run().heartbeat)
+        assertEquals(2, http.deleted.size)
+        assertEquals(0, http.posts.size)
+    }
+
+    @Test fun aWelcomeThatFailedOfflineIsSentByTheNextDailyCheckOnceAndNotAgain() = runTest {
+        guardians.value = guardians.value.copy(alertsOn = false)
+        http.result = HttpResult.Failed(null, FailureReason.Offline)
+        guardianAlerts.setAlertsOn(true) // welcome and heartbeat both fail
+        http.result = HttpResult.Ok(200, "{}")
+        http.posts.clear()
+        daily.run()
+        assertEquals(listOf("https://ntfy.sh/${topic.value}", "https://ntfy.sh/${topic.value}/heartbeat"), http.posts.map { it.first.url })
+        http.posts.clear()
+        daily.run()
+        assertEquals(listOf("https://ntfy.sh/${topic.value}/heartbeat"), http.posts.map { it.first.url })
+    }
+
+    @Test fun aPendingWelcomeIsNotSentToAGuardianWhoWasChangedOrWhenAlertsAreOff() = runTest {
+        guardians.value = guardians.value.copy(alertsOn = false)
+        http.result = HttpResult.Failed(null, FailureReason.Offline)
+        guardianAlerts.setAlertsOn(true)
+        http.result = HttpResult.Ok(200, "{}")
+        guardians.value = guardians.value.copy(firstTopic = NtfyTopic("aegida_" + "q1w2e3r4".repeat(4)))
+        http.posts.clear()
+        daily.run()
+        assertEquals(listOf("heartbeat"), http.posts.map { it.first.url.substringAfterLast('/') })
+    }
+
+    @Test fun onMobileDataFreshListsAreNotDownloadedButTheCheckAndHeartbeatStillRun() = runTest {
+        publish(now.minus(Duration.ofHours(5)))
+        daily.run() // Wi-Fi day: lists stored
+        var downloads = 0
+        val serve = http.feedResult
+        http.feedResult = { downloads++; serve(it) }
+        http.posts.clear()
+        checkLog.runs.clear()
+        val result = daily.run(downloadFeed = false)
+        assertEquals(null, result.feed)
+        assertEquals(0, downloads)
+        assertEquals(listOf(Trigger.Daily), checkLog.runs.map { it.trigger })
+        assertEquals("heartbeat", http.posts.single().first.url.substringAfterLast('/'))
+    }
+
+    @Test fun onMobileDataListsOlderThanThreeDaysAreDownloadedAnyway() = runTest {
+        publish(now.minus(Duration.ofDays(4)))
+        daily.run()
+        publish(now.minus(Duration.ofHours(1)))
+        assertEquals(FeedUpdate.Updated(now.minus(Duration.ofHours(1))), daily.run(downloadFeed = false).feed)
+    }
+
+    @Test fun onMobileDataWithNoListsAtAllTheyAreDownloaded() = runTest {
+        publish(now.minus(Duration.ofHours(1)))
+        assertEquals(FeedUpdate.Updated(now.minus(Duration.ofHours(1))), daily.run(downloadFeed = false).feed)
+    }
+
+    @Test fun checkRunsOlderThanThirtyDaysAreDroppedAndTheNewestDailyOneIsKept() = runTest {
+        checkLog.record(CheckRun(Trigger.NotificationPosted, now.minus(Duration.ofDays(31)), now.minus(Duration.ofDays(31))))
+        checkLog.record(CheckRun(Trigger.NotificationPosted, now.minus(Duration.ofDays(29)), now.minus(Duration.ofDays(29))))
+        assertEquals(1, daily.run().checkRunsPruned)
+        assertEquals(listOf(Trigger.NotificationPosted, Trigger.Daily), checkLog.runs.map { it.trigger })
+    }
+
+    @Test fun aPhoneThatWasQuietForMonthsKeepsItsLastDailyRunSoTheMissedCheckStillShows() = runTest {
+        val old = CheckRun(Trigger.Daily, now.minus(Duration.ofDays(60)), now.minus(Duration.ofDays(60)))
+        checkLog.record(old)
+        assertEquals(0, checkLog.prune(now.minus(Duration.ofDays(30))))
+        assertEquals(old, checkLog.latest(Trigger.Daily))
     }
 
     @Test fun aPublishedFeedIsStoredAndThenTheListsAreNoLongerOld() = runTest {

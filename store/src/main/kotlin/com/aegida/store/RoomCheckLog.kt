@@ -21,6 +21,8 @@ internal class RoomCheckLog(private val dao: CheckRunDao) : CheckLog {
 
     override suspend fun latest(trigger: Trigger): CheckRun? = dao.latest(trigger.name)?.toCheckRun()
 
+    override suspend fun prune(before: Instant): Int = dao.deleteOlderThan(before.toEpochMilli(), Trigger.Daily.name)
+
     private fun CheckRunEntity.toCheckRun() = CheckRun(
         trigger = Trigger.valueOf(trigger),
         startedAt = Instant.ofEpochMilli(startedAtMillis),

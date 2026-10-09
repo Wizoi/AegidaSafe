@@ -16,4 +16,7 @@ interface CheckLog {
     suspend fun record(run: CheckRun)
     suspend fun latest(): CheckRun?
     suspend fun latest(trigger: Trigger): CheckRun?
+
+    /** Deletes runs started before [before], except the newest Daily one (HealthDetector needs it). Returns how many went. */
+    suspend fun prune(before: Instant): Int
 }
