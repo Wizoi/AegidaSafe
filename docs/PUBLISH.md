@@ -12,7 +12,7 @@ Play needs Kevin's explicit yes first, every time** (CLAUDE.md). A rejected uplo
 - [x] **Service account for Gradle Play Publisher** (same account as SmugView, checked read-only Oct 8). In Play Console: Users and permissions, invite a Google Cloud service
       account (create it in the Cloud project linked under Setup, API access) and give it release permissions for this app.
       Keep its JSON key **outside the repo** (OneDrive `App Keys`, next to the upload key) and name it in
-      `~/.gradle/gradle.properties`: `AEGIDA_PLAY_SERVICE_ACCOUNT=C:/Users/kidzi/OneDrive/.../play-service-account.json`.
+      `~/.gradle/gradle.properties`: `AEGIDA_PLAY_SERVICE_ACCOUNT=<folder outside the repo>/play-service-account.json`.
       `NoSecretsTest` scans the whole folder, so a key copied into the repo fails the build (finding #68).
 - [ ] Privacy policy at a public URL (host `docs/privacy-and-data.md`, for example on GitHub Pages) and the Play Console
       forms: Data safety, content rating, ads (none), target audience (adults), app access (no login; a reviewer cannot pair a
