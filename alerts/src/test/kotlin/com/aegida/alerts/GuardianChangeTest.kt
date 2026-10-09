@@ -17,7 +17,8 @@ class GuardianChangeTest {
     )
     private val sender = NtfySender(http)
     private val switch = DeadMansSwitch(guardians, sender) { java.time.Instant.EPOCH }
-    private val change = GuardianChange(guardians, GuardianAlerts(guardians, sender, switch, AlertGate()), switch, AlertGate())
+    private val changedAt = java.time.Instant.now()
+    private val change = GuardianChange(guardians, GuardianAlerts(guardians, sender, switch, AlertGate()), switch, AlertGate()) { changedAt }
 
     @Test fun theNewGuardianGetsTheirOwnPrivateTopicAndTheOldGuardiansWaitingMessageIsCancelled() = runTest {
         val result = change.change("Ann", "ann@example.com", "777")
@@ -25,6 +26,7 @@ class GuardianChangeTest {
         assertEquals("Ann", saved.firstGuardianName)
         assertEquals("ann@example.com", saved.firstGuardianEmail)
         assertEquals("777", saved.firstGuardianPhone)
+        assertEquals("the repeat back-off must know when the new guardian was set (findings #75)", changedAt, saved.pairedAt)
         assertNotNull(saved.firstTopic)
         assertNotEquals(oldTopic, saved.firstTopic)
         assertEquals("Kevin", result.previousName)

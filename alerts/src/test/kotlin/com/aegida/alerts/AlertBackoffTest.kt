@@ -46,6 +46,16 @@ class AlertBackoffTest {
         assertEquals(1, http.bodies.size)
     }
 
+    @Test fun aNewGuardianIsToldAboutAProblemThatWasAlreadySentToTheOldOne() = runTest {
+        scamArrives("one.example")
+        assertEquals(1, http.bodies.size)
+        after(Duration.ofHours(2))
+        settings.save(settings.current().copy(firstTopic = NtfyTopic("aegida_" + "n3W6u4A1".repeat(4)), pairedAt = now))
+        after(Duration.ofMinutes(5))
+        scamArrives("two.example")
+        assertEquals("the new guardian is told, the old one's message does not count", 2, http.bodies.size)
+    }
+
     @Test fun theGuardianIsToldAgainAfterADayThenAfterTwoThenAfterFour() = runTest {
         var told = 0
         for ((i, gap) in listOf(0L, 25L, 49L, 97L).withIndex()) {

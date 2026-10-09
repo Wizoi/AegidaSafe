@@ -89,6 +89,7 @@ class RoomStoresTest {
         val guardians = Guardians(
             alertsOn = true, ownerName = "Ruth", firstTopic = NtfyTopic("aegida_" + "r5T6y7U8".repeat(4)),
             firstGuardianName = "Kevin", firstGuardianEmail = "kevin@example.org", firstGuardianPhone = "+1 555 0100",
+            pairedAt = java.time.Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MILLIS),
         )
         settings.save(setup)
         settings.save(guardians)

@@ -110,8 +110,11 @@ class AlertPipeline @Inject constructor(
      */
     private suspend fun backedOff(finding: Finding, now: Instant): Boolean {
         if (finding.severity == Severity.Urgent) return false
+        // What was sent before the guardian was changed went to someone else; the new guardian has not been told yet (findings #75).
+        val pairedAt = guardians.current().pairedAt
         val told = history.since(now.minus(BACKOFF_LOOKBACK))
             .filter { it.problem == finding.key.problem && (it.outcome == Outcome.GuardianTold || it.outcome == Outcome.GuardianNotReached) }
+            .filter { pairedAt == null || !it.at.isBefore(pairedAt) }
             // Stamped well ahead of now (the clock was set ahead, then corrected): not trusted, or it would hold the guardian back for days.
             .filter { !it.at.isAfter(now.plus(CLOCK_SKEW)) }
         if (told.isEmpty()) return false

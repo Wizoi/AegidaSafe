@@ -95,6 +95,7 @@ internal class RoomSettings(private val dao: SettingDao) : SetupStore, GuardianS
             firstGuardianName = v[GUARDIAN_NAME].orEmpty(),
             firstGuardianEmail = v[GUARDIAN_EMAIL].orEmpty(),
             firstGuardianPhone = v[GUARDIAN_PHONE].orEmpty(),
+            pairedAt = v[GUARDIAN_PAIRED_AT]?.toLongOrNull()?.let(java.time.Instant::ofEpochMilli),
         )
     }
 
@@ -106,6 +107,7 @@ internal class RoomSettings(private val dao: SettingDao) : SetupStore, GuardianS
             SettingEntity(GUARDIAN_NAME, guardians.firstGuardianName),
             SettingEntity(GUARDIAN_EMAIL, guardians.firstGuardianEmail),
             SettingEntity(GUARDIAN_PHONE, guardians.firstGuardianPhone),
+            SettingEntity(GUARDIAN_PAIRED_AT, guardians.pairedAt?.toEpochMilli()?.toString().orEmpty()),
         ),
     )
 
@@ -162,6 +164,7 @@ internal class RoomSettings(private val dao: SettingDao) : SetupStore, GuardianS
         const val GUARDIAN_NAME = "guardians.firstName"
         const val GUARDIAN_EMAIL = "guardians.firstEmail"
         const val GUARDIAN_PHONE = "guardians.firstPhone"
+        const val GUARDIAN_PAIRED_AT = "guardians.pairedAt"
         const val PICTURE = "setup.pictureId"
         const val AUTO_BLOCKER = "setup.autoBlocker"
         const val STEPS_DONE = "setup.stepsDone"

@@ -58,6 +58,11 @@ data class Guardians(
     val firstGuardianEmail: String = "",
     /** Optional; "Call a guardian" opens the dialer with it (no call permission needed). */
     val firstGuardianPhone: String = "",
+    /**
+     * When the current guardian was picked, if it was changed after setup (null: the guardian since setup). A message sent
+     * before this went to someone else, so the repeat back-off does not count it (findings #75).
+     */
+    val pairedAt: java.time.Instant? = null,
 ) {
     companion object {
         val None = Guardians(alertsOn = false, ownerName = "", firstTopic = null)

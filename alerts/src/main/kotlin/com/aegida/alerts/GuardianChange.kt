@@ -1,6 +1,7 @@
 package com.aegida.alerts
 
 import com.aegida.core.alert.GuardianSettings
+import com.aegida.core.time.Clock
 import com.aegida.core.net.NtfyTopic
 import javax.inject.Inject
 
@@ -18,6 +19,7 @@ class GuardianChange @Inject constructor(
     private val alerts: GuardianAlerts,
     private val switch: DeadMansSwitch,
     private val gate: AlertGate,
+    private val clock: Clock,
 ) {
     suspend fun change(name: String, email: String, phone: String): GuardianChanged = gate.run {
         val before = settings.current()
@@ -29,6 +31,7 @@ class GuardianChange @Inject constructor(
                 firstGuardianName = name.trim(),
                 firstGuardianEmail = email.trim(),
                 firstGuardianPhone = phone.trim(),
+                pairedAt = clock.now(),
             ),
         )
         if (before.alertsOn) alerts.startTelling()
