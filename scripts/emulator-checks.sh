@@ -10,6 +10,7 @@
 #   scripts/emulator-checks.sh failures   offline daily job, and a phone that never runs its daily check (reads the app's database)
 #   scripts/emulator-checks.sh guardian-offline  a warning that cannot reach the guardian is kept, retried, then reported (offline: nothing is sent)
 #   scripts/emulator-checks.sh drift  access given to another app after setup is noticed, asked about, and cleared when removed (offline)
+#   scripts/emulator-checks.sh new-apps  an app installed by hand and a remote-control app are noticed and cleared when removed (offline, fixture apps)
 #   scripts/emulator-checks.sh shots      light and dark screenshots at 100% and 200% font into build/emulator-shots
 # It refuses any serial that is not emulator-*, so it can never touch a real phone by mistake.
 set -u
@@ -336,6 +337,69 @@ PYEOF
   sh_ am force-stop $PKG; sh_ am start -n "$PKG/.MainActivity" >/dev/null
   wait_for "the questions are gone" '[ -z "$(db_query "$Q_OPEN")" ]' 40
   have "com.aegida.app 1000 Drift:AccessibilityAdded" && no "the banners were cleared" || ok "the banners were cleared"
+
+  echo "$FAILS failed"; [ "$FAILS" = 0 ]
+  ;;
+new-apps)
+  # Apps that arrive after setup (findings #46): one installed by hand, and one that looks like a remote-control app.
+  # Fixture apps are built by scripts/make-fixture-apk.sh and signed with the debug test key. Offline. Offline, so nothing is sent. Setup is marked finished
+  # in the app's database (see guardian-offline for why the file is edited with the listener switched off).
+  FAILS=0
+  export JAVA_HOME="${JAVA_HOME:-/c/Program Files/Android/Android Studio/jbr}"; export ANDROID_SERIAL="$SERIAL"
+  ./gradlew.bat installDebug -PlocalBuild --console=plain 2>&1 | grep -q "BUILD SUCCESSFUL" || { echo "install failed"; exit 1; }
+  sh_ pm clear $PKG >/dev/null
+  sh_ pm grant $PKG android.permission.POST_NOTIFICATIONS
+  sh_ cmd notification allow_listener "$PKG/$PKG.AegidaListenerService" >/dev/null
+  sh_ am start -n "$PKG/.MainActivity" >/dev/null
+  wait_for "the 'Aegida is protecting you' notice is up" 'have "com.aegida.app 1 null"'
+  restore() {
+    sh_ cmd connectivity airplane-mode disable >/dev/null; sh_ pm uninstall org.fixture.sideloaded >/dev/null; sh_ pm uninstall com.anydesk.anydeskandroid >/dev/null
+    [ -n "${KEEP:-}" ] || sh_ pm clear $PKG >/dev/null
+  }
+  trap restore EXIT
+  DB="$TEMP/aegida-drift-db"; rm -rf "$DB"; mkdir -p "$DB"
+  pull_db() { for f in aegida.db aegida.db-wal aegida.db-shm; do adb exec-out run-as $PKG cat databases/$f > "$DB/$f" 2>/dev/null; done; }
+  db_query() { pull_db; python -I - "$DB/aegida.db" "$1" <<'PYEOF'
+import sqlite3, sys
+for row in sqlite3.connect(sys.argv[1]).execute(sys.argv[2]):
+    print("|".join("" if c is None else str(c) for c in row))
+PYEOF
+  }
+  Q_OPEN="select group_concat(problem || ':' || subject) from finding where state = 'Open'"
+  Q_BASE="select value from setting where name = 'baseline.taken'"
+  wait_for "the first daily check ran by itself" '[ "$(db_query "select count(*) from check_run where \"trigger\" = '"'"'Daily'"'"'")" -ge 1 ] 2>/dev/null' 90
+
+  echo "-- setup is finished: the next check takes the baseline"
+  sh_ cmd connectivity airplane-mode enable >/dev/null; sleep 5
+  sh_ cmd notification disallow_listener "$PKG/$PKG.AegidaListenerService" >/dev/null; sh_ am force-stop $PKG >/dev/null; sleep 2
+  [ -z "$(sh_ pidof $PKG)" ] || { sh_ am force-stop $PKG >/dev/null; sleep 2; }
+  pull_db
+  python -I - "$DB/aegida.db" <<'PYEOF'
+import sqlite3, sys
+c = sqlite3.connect(sys.argv[1])
+c.execute("insert or replace into setting(name, value) values ('setup.stepsDone', '8')")
+c.commit(); c.execute("pragma wal_checkpoint(truncate)"); c.execute("pragma journal_mode=delete"); c.close()
+PYEOF
+  adb push "$DB/aegida.db" /data/local/tmp/seed.db >/dev/null
+  sh_ "chmod 666 /data/local/tmp/seed.db; run-as $PKG sh -c 'rm -f databases/aegida.db-wal databases/aegida.db-shm; cp /data/local/tmp/seed.db databases/aegida.db'; rm /data/local/tmp/seed.db"
+  sh_ am start -n "$PKG/.MainActivity" >/dev/null; sleep 4
+  sh_ cmd notification disallow_listener "$PKG/$PKG.AegidaListenerService" >/dev/null; sh_ cmd notification allow_listener "$PKG/$PKG.AegidaListenerService" >/dev/null; sleep 10
+  wait_for "the baseline was taken" '[ "$(db_query "$Q_BASE")" = true ]' 30
+  [ -z "$(db_query "$Q_OPEN")" ] && ok "nothing is flagged on the phone as it was at setup" || no "nothing is flagged at setup (open: $(db_query "$Q_OPEN"))"
+
+  echo "-- an app is installed by hand and a remote-control app is installed"
+  bash scripts/make-fixture-apk.sh org.fixture.sideloaded >/dev/null; bash scripts/make-fixture-apk.sh com.anydesk.anydeskandroid >/dev/null
+  adb install build/fixture-apps/org.fixture.sideloaded.apk >/dev/null; adb install build/fixture-apps/com.anydesk.anydeskandroid.apk >/dev/null
+  sh_ am force-stop $PKG; sh_ am start -n "$PKG/.MainActivity" >/dev/null
+  wait_for "both are noticed" '[ "$(db_query "$Q_OPEN")" = "NewAppOutsidePlay:org.fixture.sideloaded,RemoteControlApp:com.anydesk.anydeskandroid" ] || [ "$(db_query "$Q_OPEN")" = "RemoteControlApp:com.anydesk.anydeskandroid,NewAppOutsidePlay:org.fixture.sideloaded" ]' 40
+  have "com.aegida.app 1000 NewApp:NewAppOutsidePlay:org.fixture.sideloaded" && ok "she gets a banner for the app installed by hand" || no "she gets a banner for the app installed by hand"
+  have "com.aegida.app 1000 RemoteControl:RemoteControlApp:com.anydesk.anydeskandroid" && ok "she gets a banner for the remote-control app" || no "she gets a banner for the remote-control app"
+
+  echo "-- both are uninstalled again"
+  sh_ pm uninstall org.fixture.sideloaded >/dev/null; sh_ pm uninstall com.anydesk.anydeskandroid >/dev/null
+  sh_ am force-stop $PKG; sh_ am start -n "$PKG/.MainActivity" >/dev/null
+  wait_for "the questions are gone" '[ -z "$(db_query "$Q_OPEN")" ]' 40
+  have "com.aegida.app 1000 NewApp" && no "the banners were cleared" || ok "the banners were cleared"
 
   echo "$FAILS failed"; [ "$FAILS" = 0 ]
   ;;

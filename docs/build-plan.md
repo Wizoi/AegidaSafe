@@ -39,9 +39,9 @@ Open items inside phase 1:
 ## Phase 2. Drift, new apps, remote-control apps
 - [x] Snapshotter reads default browser/text/phone apps and who has notification access, screen control or device-admin rights (installed apps with installer and signing cert: still to do, needs `QUERY_ALL_PACKAGES`, which Kevin has not approved yet)
 - [x] `DriftDetector` with a baseline taken after setup and "Was that you?" (JVM-tested, emulator `drift` scenario, findings #45)
-- [ ] `NewAppDetector`, `RemoteControlDetector`, with fixture APKs signed by our own test key (a second browser, an AnyDesk-like app)
+- [x] `NewAppDetector` (apps installed from outside Play after setup) and `RemoteControlDetector` (known remote-access apps by package name), JVM-tested and walked on the emulator with fixture APKs signed by the debug test key (findings #46). Still to do: a second-browser fixture to see default-browser drift, a fixture device-admin app, signing-certificate hashes and the signed-feed delivery of the remote-control list
 - [x] Escalation (decided Oct 8): the same guardian is reminded once at 24 h if the warning is still open; repeat back-off 1/2/4/7 days. Fake-clock tests (`AlertBackoffTest`); a second guardian is a later feature
-- [ ] Emulator scenarios for drift, new app, remote control, device-admin and overlay grants (findings #19, #20)
+- [x] Emulator scenarios: `drift` (notification access, screen control), `new-apps` (installed by hand, remote-control app). Not yet: default browser/text/phone app changes, device-admin and overlay grants (need fixtures)
 
 ## Phase 3. Stalkerware list
 - [ ] Bundled and refreshed Echap indicators (CC-BY 4.0), `StalkerwareDetector`, About-screen attribution
