@@ -6,61 +6,103 @@
       "x": 0,
       "y": 0,
       "w": 1280,
-      "h": 1500,
+      "h": 1750,
       "title": "Overview"
     },
     "Setup.dc.html": {
       "x": 1360,
       "y": 0,
-      "w": 2950,
-      "h": 1180,
-      "title": "0 \u00b7 First run"
+      "w": 2200,
+      "h": 2042,
+      "title": "1 \u00b7 Setup"
     },
     "App.dc.html": {
       "x": 1360,
-      "y": 1300,
+      "y": 2162,
       "w": 2200,
-      "h": 1180,
-      "title": "1 \u00b7 Using the app"
+      "h": 1212,
+      "title": "2 \u00b7 Home"
     },
     "PopupGuard.dc.html": {
       "x": 1360,
-      "y": 2600,
+      "y": 3494,
       "w": 2200,
-      "h": 1180,
-      "title": "2 \u00b7 Fake virus warnings"
-    },
-    "NewApp.dc.html": {
-      "x": 1360,
-      "y": 3900,
-      "w": 2200,
-      "h": 1180,
-      "title": "3 \u00b7 A new app changes her defaults"
-    },
-    "Drift.dc.html": {
-      "x": 1360,
-      "y": 5200,
-      "w": 2200,
-      "h": 1180,
-      "title": "4 \u00b7 A safety switch is turned off"
-    },
-    "Remote.dc.html": {
-      "x": 1360,
-      "y": 6500,
-      "w": 2200,
-      "h": 1180,
-      "title": "5 \u00b7 Remote-control apps"
+      "h": 1212,
+      "title": "3 \u00b7 Fake virus pop-ups from a website"
     },
     "ScamText.dc.html": {
       "x": 1360,
-      "y": 7800,
+      "y": 4826,
       "w": 2200,
-      "h": 1180,
-      "title": "6 \u00b7 A scam text is caught"
+      "h": 2042,
+      "title": "4 \u00b7 A message with a link"
+    },
+    "Filter.dc.html": {
+      "x": 1360,
+      "y": 6988,
+      "w": 2640,
+      "h": 1212,
+      "title": "5 \u00b7 Website protection turned off"
+    },
+    "Access.dc.html": {
+      "x": 1360,
+      "y": 8320,
+      "w": 2200,
+      "h": 1212,
+      "title": "6 \u00b7 Aegida lost notification access"
+    },
+    "Drift.dc.html": {
+      "x": 1360,
+      "y": 9652,
+      "w": 2200,
+      "h": 2042,
+      "title": "7 \u00b7 Was that you? Default apps"
+    },
+    "Grants.dc.html": {
+      "x": 1360,
+      "y": 11814,
+      "w": 2200,
+      "h": 2042,
+      "title": "8 \u00b7 Was that you? Access given to an app"
+    },
+    "Remote.dc.html": {
+      "x": 1360,
+      "y": 13976,
+      "w": 2200,
+      "h": 2042,
+      "title": "9 \u00b7 New apps, remote-control apps and spying apps"
+    },
+    "Guardian.dc.html": {
+      "x": 1360,
+      "y": 16138,
+      "w": 2200,
+      "h": 2042,
+      "title": "10 \u00b7 Guardian messages and plumbing"
+    },
+    "History.dc.html": {
+      "x": 1360,
+      "y": 18300,
+      "w": 2200,
+      "h": 2042,
+      "title": "11 \u00b7 History and My settings"
+    },
+    "Banners.dc.html": {
+      "x": 1360,
+      "y": 20462,
+      "w": 2200,
+      "h": 1212,
+      "title": "12 \u00b7 Banners on the phone"
+    },
+    "Planned.dc.html": {
+      "x": 1360,
+      "y": 21794,
+      "w": 2200,
+      "h": 1212,
+      "title": "13 \u00b7 Planned, not built yet"
     },
     "Logo.dc.html": {
       "x": 1360,
-      "y": 9100,
+      "y": 23126,
       "w": 2200,
       "h": 1180,
       "title": "Logo ideas"
@@ -89,10 +131,16 @@
     "Setup.dc.html",
     "App.dc.html",
     "PopupGuard.dc.html",
-    "NewApp.dc.html",
-    "Drift.dc.html",
-    "Remote.dc.html",
     "ScamText.dc.html",
+    "Filter.dc.html",
+    "Access.dc.html",
+    "Drift.dc.html",
+    "Grants.dc.html",
+    "Remote.dc.html",
+    "Guardian.dc.html",
+    "History.dc.html",
+    "Banners.dc.html",
+    "Planned.dc.html",
     "Logo.dc.html"
   ],
   "pages": [],
