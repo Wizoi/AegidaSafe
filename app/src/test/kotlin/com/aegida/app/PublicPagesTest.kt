@@ -115,6 +115,20 @@ class PublicPagesTest {
         assertEquals(emptyList<String>(), Regex("""\b(her|hers|she)\b""", RegexOption.IGNORE_CASE).findAll(readme).map { it.value }.toList())
     }
 
+    /** Kevin, Oct 9 (findings #85): the optional website-blocking step is explained, and both pages say the phone then asks Cloudflare. */
+    @Test fun theWebsiteBlockingStepIsExplainedAndCloudflareIsNamedOnEveryPublicPage() {
+        val simple = html.substringAfter("id=\"simple-view\"").substringBefore("id=\"detailed-view\"")
+        val detailed = html.substringAfter("id=\"detailed-view\"")
+        for ((name, part) in listOf("Simple view" to simple, "Detailed view" to detailed)) {
+            assertTrue("$name must say what the website-blocking step is", part.contains("website-blocking", ignoreCase = true) || part.contains("Website blocking"))
+            assertTrue("$name must name Cloudflare", part.contains("Cloudflare"))
+        }
+        assertTrue("the Detailed view must say Aegida only reads the setting", detailed.contains("Aegida reads the setting and nothing more"))
+        val privacy = File("../docs/site/privacy.html").readText()
+        assertTrue("the privacy page must name Cloudflare and the host", privacy.contains("Cloudflare") && privacy.contains(com.aegida.core.model.WebsiteFilter.HOST))
+        assertTrue("it must no longer claim nothing else is sent", !privacy.contains("Aegida sends nothing else. "))
+    }
+
     @Test fun itSaysWhichVersionOfTheAppItDescribesAndLinksToThePrivacyPage() {
         val version = Regex("""versionName\s*=\s*"([^"]+)"""").find(File("build.gradle.kts").readText())!!.groupValues[1]
         assertTrue("the page must say it describes Aegida $version (update it with each release)", plain.contains("Aegida $version"))
