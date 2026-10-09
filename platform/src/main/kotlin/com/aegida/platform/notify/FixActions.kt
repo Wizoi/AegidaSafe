@@ -49,6 +49,9 @@ object FixActions {
     /** Where the owner turns notification access on for Aegida (setup and "Fix my phone"). */
     fun notificationAccess(): Intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
+    /** Opens [com.aegida.core.net.PublicPages.HOW_IT_WORKS] in her own browser. The page is only shown to her; Aegida does not fetch it. */
+    fun howItWorks(): Intent = Intent(Intent.ACTION_VIEW, Uri.parse(com.aegida.core.net.PublicPages.HOW_IT_WORKS)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
     /** The network settings page, where Private DNS lives (there is no public action for Private DNS itself). */
     fun networkSettings(): Intent = Intent(Settings.ACTION_WIRELESS_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 

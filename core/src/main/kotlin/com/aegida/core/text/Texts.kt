@@ -165,6 +165,7 @@ object Texts {
 
     object Settings {
         const val TITLE = "My settings"
+        const val HOW_IT_WORKS = "How does this work?"
         const val GUARDIAN = "My guardian"
         const val PICTURE = "My safety picture"
         const val NAME = "My first name"

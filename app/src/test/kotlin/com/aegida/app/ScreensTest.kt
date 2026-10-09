@@ -177,16 +177,20 @@ class ScreensTest(private val dark: Boolean, private val fontScale: Float) {
 
     @Test fun settingsShowsHerChoicesAndTheAlertsSwitchWorks() {
         var alerts: Boolean? = null
+        var opened = 0
         show {
             SettingsScreen(
                 Setup(null, emptySet(), pictureId = picture),
                 Guardians(alertsOn = false, ownerName = "Ruth", firstTopic = null, firstGuardianName = "Kevin"),
-                filterOn = false, onChangePicture = {}, onChangeGuardian = {}, onResendInvite = {}, onAlerts = { alerts = it }, onFilterHelp = {},
+                filterOn = false, onChangePicture = {}, onChangeGuardian = {}, onResendInvite = {}, onAlerts = { alerts = it }, onFilterHelp = {}, onHowItWorks = { opened++ },
                 listsUpdatedAt = now.minus(Duration.ofDays(2)), zone = zone, locale = locale,
             )
         }
         reachable("Ruth")
         reachable("Kevin")
+        // Kevin, Oct 9: a way from the app to the page that says what Aegida does and how.
+        compose.onNodeWithText(Texts.Settings.HOW_IT_WORKS).performScrollTo().performClick()
+        assertEquals(1, opened)
         reachable(Texts.Settings.CHANGE_GUARDIAN)
         reachable(Texts.Settings.RESEND_INVITE)
         reachable(Texts.Settings.CREDITS) // CC BY 4.0 asks for credit

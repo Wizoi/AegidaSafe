@@ -32,6 +32,7 @@ fun SettingsScreen(
     onResendInvite: () -> Unit,
     onAlerts: (Boolean) -> Unit,
     onFilterHelp: () -> Unit,
+    onHowItWorks: () -> Unit,
     listsUpdatedAt: java.time.Instant?,
     zone: java.time.ZoneId,
     locale: java.util.Locale,
@@ -39,6 +40,7 @@ fun SettingsScreen(
     val picture = SafetyPicture.fromId(setup.pictureId)
     AegidaScreen(setup.pictureId) {
         Text(Texts.Settings.TITLE, style = MaterialTheme.typography.headlineMedium, modifier = Modifier.semantics { heading() })
+        QuietButton(Texts.Settings.HOW_IT_WORKS, onHowItWorks)
         SettingCard {
             ValueRow(Texts.Settings.NAME, guardians.ownerName.ifBlank { Texts.Settings.NOT_SET })
             ValueRow(Texts.Settings.GUARDIAN, guardians.firstGuardianName.ifBlank { Texts.Settings.NOT_SET })
