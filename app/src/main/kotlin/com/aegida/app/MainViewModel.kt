@@ -124,7 +124,7 @@ class MainViewModel @Inject constructor(
             now = now,
             setup = setup,
             guardians = guardianSettings.current(),
-            home = HomeState.of(findings.open(), checkLog.latest(Trigger.Daily)),
+            home = HomeState.of(findings.open(), checkLog.latest()),
             history = HistoryRows.of(historyLog.since(now.minus(HISTORY_SHOWN))),
             snapshot = snapshot,
             blockerRelevant = oem.installBlocker() != Reading.NotPresent,

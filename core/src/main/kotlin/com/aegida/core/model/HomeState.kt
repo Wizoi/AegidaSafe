@@ -22,13 +22,14 @@ sealed interface HomeState {
         /** Problems that mean "I could not check", whatever else is true. */
         private val UNCHECKED = setOf(Problem.ListsOld, Problem.MissedCheck)
 
-        fun of(open: List<Finding>, lastDailyCheck: CheckRun?): HomeState {
+        /** [lastCheck] is the last time Aegida looked at the phone by any trigger (every check runs every detector); a missed daily check or old lists still read as "couldn't check". */
+        fun of(open: List<Finding>, lastCheck: CheckRun?): HomeState {
             val needsTap = open
                 .filter { it.severity >= Severity.NeedsTap }
                 .sortedWith(compareByDescending<Finding> { it.severity }.thenBy { it.firstSeen }.thenBy { it.key.toString() })
             if (needsTap.isNotEmpty()) return NeedsTaps(needsTap)
-            val unchecked = lastDailyCheck == null || open.any { it.key.problem in UNCHECKED }
-            return if (unchecked) CouldntCheck(lastDailyCheck?.startedAt) else NoKnownProblems(lastDailyCheck.startedAt)
+            val unchecked = lastCheck == null || open.any { it.key.problem in UNCHECKED }
+            return if (unchecked) CouldntCheck(lastCheck?.startedAt) else NoKnownProblems(lastCheck.startedAt)
         }
     }
 }
