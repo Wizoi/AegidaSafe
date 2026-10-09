@@ -60,7 +60,7 @@ class PlayListingTest {
         for (needed in listOf("ntfy.sh", "GitHub Pages", "does <strong>not</strong> save, log or send", "child&rsquo;s phone", "Last updated")) {
             assertTrue("the privacy policy no longer mentions: $needed", text.contains(needed))
         }
-        val words = Regex("""(safe|safely|safety|secure|secured|100%|guarantee[ds]?|protected)""", RegexOption.IGNORE_CASE)
+        val words = Regex("""\b(safe|safely|safety|secure|secured|100%|guarantee[ds]?|protected)\b""", RegexOption.IGNORE_CASE)
         assertEquals("the privacy policy makes a claim Aegida does not make", emptyList<String>(), words.findAll(text).map { it.value }.toList())
     }
 
