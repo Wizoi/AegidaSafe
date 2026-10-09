@@ -106,4 +106,10 @@ class GuardianAlertsTest {
         assertTrue(guardians.value.alertsOn)
         assertEquals(0, http.posts.size)
     }
+
+    @Test fun armingDirectlyWithAlertsOffSendsNothing() = runTest {
+        val switch = DeadMansSwitch(guardians, NtfySender(http)) { java.time.Instant.now() }
+        assertEquals(null, switch.arm())
+        assertEquals(0, http.posts.size)
+    }
 }
