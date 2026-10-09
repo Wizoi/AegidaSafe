@@ -88,7 +88,14 @@ def db_rows(sql):
     for f in ("aegida.db", "aegida.db-wal", "aegida.db-shm"):
         with open(os.path.join(d, f), "wb") as fh:
             fh.write(adb("exec-out", "run-as", PKG, "cat", "databases/" + f, binary=True))
-    return sqlite3.connect(os.path.join(d, "aegida.db")).execute(sql).fetchall()
+    path = os.path.join(d, "aegida.db")
+    if os.path.getsize(path) == 0:
+        return []
+    conn = sqlite3.connect(path)
+    try:
+        return conn.execute(sql).fetchall()
+    finally:
+        conn.close()
 
 
 def banners():
@@ -101,8 +108,17 @@ def job_id():
     return m.group(1) if m else None
 
 
+CLOCK_AHEAD_HOURS = 0
+
+
 def run_daily():
-    sh("settings put global auto_time 0")  # the job runs even if it is not due (-f)
+    """WorkManager will not run a periodic job before it is due, even forced (findings #33), so the phone's clock is
+    moved a day on first. The guardian-side checks use the computer's clock and the server's, which do not move."""
+    global CLOCK_AHEAD_HOURS
+    CLOCK_AHEAD_HOURS += 25
+    sh("settings put global auto_time 0")
+    sh("cmd alarm set-time %d" % int((time.time() + CLOCK_AHEAD_HOURS * 3600) * 1000))
+    time.sleep(2)
     sh("cmd jobscheduler run -f %s %s" % (PKG, job_id()))
 
 
@@ -323,6 +339,7 @@ finally:
     for p in ("org.fixture.sideloaded", "com.anydesk.anydeskandroid", "com.spyzee"):
         sh("pm uninstall " + p)
     sh("cmd connectivity airplane-mode disable")
+    sh("cmd alarm set-time %d" % int(time.time() * 1000))
     sh("settings put global auto_time 1")
     if not os.environ.get("KEEP"):
         sh("pm clear " + PKG)

@@ -113,13 +113,26 @@ class FindingActionsTest {
     }
 
     @Test fun aGuardianWhoWasNeverToldAboutItHearsNothingAboutHerAnswer() = runTest {
+        guardians.value = guardians.value.copy(alertsOn = false) // alerts were off when it happened
         baselines.value = Baseline.of(phone)
         phone = phone.copy(browser = "org.other.browser")
         val f = Finding(FindingKey(DetectorId.Drift, Problem.BrowserChanged, "org.other.browser"), emptyMap(), now, now)
         pipeline.handle(listOf(f), setOf(DetectorId.Drift))
         assertEquals(0, http.bodies.size)
+        guardians.value = guardians.value.copy(alertsOn = true) // switched on before she answered
         assertTrue(actions.acceptChange(f.key))
         assertEquals(0, http.bodies.size)
+    }
+
+    @Test fun aChangedDefaultAppIsToldToTheGuardianAndHerAnswerIsFollowedUp() = runTest { // findings #70
+        baselines.value = Baseline.of(phone)
+        phone = phone.copy(browser = "org.other.browser")
+        val f = Finding(FindingKey(DetectorId.Drift, Problem.BrowserChanged, "org.other.browser"), emptyMap(), now, now)
+        pipeline.handle(listOf(f), setOf(DetectorId.Drift))
+        assertEquals(listOf("The app that opens websites on Ruth's phone was changed. Aegida asked her if that was her."), http.bodies)
+        http.bodies.clear()
+        assertTrue(actions.acceptChange(f.key))
+        assertEquals(listOf("Ruth said the change Aegida asked about was hers. Nothing more to do."), http.bodies)
     }
 
     @Test fun withGuardianAlertsOffNothingIsSent() = runTest {

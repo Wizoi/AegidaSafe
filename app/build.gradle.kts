@@ -23,8 +23,23 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    // Upload key for Play App Signing. Values come from ~/.gradle/gradle.properties or -P flags, never the repo.
+    // Without them the release build is simply unsigned (tests and local builds do not need the key).
+    val uploadStoreFile = providers.gradleProperty("AEGIDA_UPLOAD_STORE_FILE").orNull
+    if (uploadStoreFile != null) {
+        signingConfigs {
+            create("upload") {
+                storeFile = file(uploadStoreFile)
+                storePassword = providers.gradleProperty("AEGIDA_UPLOAD_STORE_PASSWORD").get()
+                keyAlias = providers.gradleProperty("AEGIDA_UPLOAD_KEY_ALIAS").get()
+                keyPassword = providers.gradleProperty("AEGIDA_UPLOAD_KEY_PASSWORD").get()
+            }
+        }
+    }
+
     buildTypes {
         release {
+            signingConfigs.findByName("upload")?.let { signingConfig = it }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
