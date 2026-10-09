@@ -25,7 +25,8 @@ tasks.test {
     // minus build output), so editing a doc or script re-runs the secrets scan too (findings #9).
     inputs.files(
         fileTree(rootDir) {
-            exclude("**/build/**", "**/.gradle/**", ".git/**", "**/.idea/**", "**/.kotlin/**")
+            // release-mappings/ is a git-ignored copy of each release's R8 mapping, written by :app:archiveReleaseMapping.
+            exclude("**/build/**", "**/.gradle/**", ".git/**", "**/.idea/**", "**/.kotlin/**", "release-mappings/**")
         },
     ).withPropertyName("shippedSources").withPathSensitivity(PathSensitivity.RELATIVE)
 }

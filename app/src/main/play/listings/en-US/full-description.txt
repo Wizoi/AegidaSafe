@@ -1,0 +1,37 @@
+Aegida helps you spot scam links and fake warnings on your phone. It tells you what it finds in big, plain words, and shows you what to do next. It runs quietly, so you do not need to open it each day. Everything it does is your choice, and you can switch it off at any time.
+
+Scammers do this for a living, and anyone can be fooled. You should not have to work out on your own which messages are fake. That is what Aegida is for.
+
+If a family member or a friend sent you this app, it is because they care about you. Here is what it does.
+
+What Aegida does
+- Looks out for scam links and fake warnings in the messages and alerts on your phone.
+- Tells you in plain words if something looks wrong, and what to do next.
+- Tells you when it finds nothing. You will see "No known problems found."
+- Can send one person you trust a short note, so they can call you. This happens only if you turn it on.
+
+You stay in charge
+- You pick who that person is. You can change them, or turn this off, whenever you like.
+- Nothing is sent to anyone until you say yes.
+- The person you pick never sees your messages. They only get a short note that you may need a call.
+- Setting up takes about five minutes. The words are big, and someone can sit with you the first time.
+
+What your phone will ask you to allow
+Your phone will ask you a few questions. Here is why.
+- Notification access: so Aegida can look at the alerts and messages on your screen for scam links. It does not keep or send what they say.
+- A list of your apps: so Aegida can notice a new app that came from outside the Play Store, or one that lets someone else control your phone.
+- A small notice on your screen: so you can see that Aegida is running.
+- Internet: to get its list of known scams, and to send your short note if you turned that on.
+
+What Aegida does not do
+- It does not listen to your calls or record anything.
+- It never opens a link from a message.
+- It has no ads, no account and no tracking.
+
+A helper, not a promise
+No app can catch every scam. Aegida is one helper, and you and the people you trust are the rest.
+- A real bank or government office will never ask you to pay with gift cards.
+- Someone you do not know who rushes you is a reason to slow down.
+- Before you do anything, talk to someone you trust.
+
+Aegida is free. Anyone can read how it works, because the code is open under the MIT licence.

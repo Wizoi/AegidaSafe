@@ -29,6 +29,7 @@ test_details.md
 scratch/
 build-shots/
 
-# Release mapping files are kept per versionCode in release-mappings/ (committed)
-!release-mappings/
+# R8 mapping per versionCode, kept locally (25 MB each; the bundle also carries it, so Play can deobfuscate)
+release-mappings/
 .claude/worktrees/
+__pycache__/

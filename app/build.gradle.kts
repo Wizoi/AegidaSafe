@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.hilt)
+    alias(libs.plugins.play.publisher)
 }
 
 android {
@@ -94,4 +95,39 @@ dependencies {
     testImplementation(libs.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.runner)
+}
+
+// Keep each release's R8 mapping so a crash line from the support log can be deobfuscated later (retrace).
+// release-mappings/ is git-ignored; the bundle also carries the mapping for Play.
+val archiveReleaseMapping by tasks.registering(Copy::class) {
+    val mappingDir = rootProject.layout.projectDirectory.dir("release-mappings/${android.defaultConfig.versionCode}")
+    val archived = mappingDir.file("mapping.txt").asFile
+    from(layout.buildDirectory.file("outputs/mapping/release/mapping.txt"))
+    into(mappingDir)
+    doLast {
+        if (!archived.isFile) throw GradleException("R8 mapping was not archived to $archived")
+    }
+}
+tasks.matching { it.name == "minifyReleaseWithR8" }.configureEach {
+    finalizedBy(archiveReleaseMapping)
+}
+
+// Gradle Play Publisher. Every task that talks to Play (publishListing, publishReleaseBundle, promoteArtifact)
+// needs Kevin's explicit yes first (CLAUDE.md); docs/PUBLISH.md has the commands. The service account key stays
+// outside the repo: AEGIDA_PLAY_SERVICE_ACCOUNT in ~/.gradle/gradle.properties names the file (NoSecretsTest scans the
+// whole folder, so a key copied in here fails the build). The git-ignored root file is only a fallback name.
+play {
+    serviceAccountCredentials.set(
+        layout.file(providers.gradleProperty("AEGIDA_PLAY_SERVICE_ACCOUNT").map { file(it) }.orElse(rootProject.file("play-service-account.json"))),
+    )
+    defaultToAppBundles.set(true)
+    track.set("internal")
+}
+
+// PlayListingTest reads the store listing and this file straight from disk, so Gradle must know a change to
+// either one means the tests have to run again (otherwise a listing-only edit would skip them as up to date).
+tasks.withType<Test>().configureEach {
+    inputs.dir("src/main/play")
+    inputs.dir("../docs/site")
+    inputs.file("build.gradle.kts")
 }

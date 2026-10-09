@@ -2,7 +2,8 @@ name: Build feed
 
 # Builds the signed scam-list feed daily and publishes only feed.bin and feed.sig to the public
 # Aegida-Feed repo's gh-pages branch. The builder code and the signing key stay in this private repo.
-# One-time setup (keys, secrets, Pages) is in docs/feed-publishing.md.
+# One-time setup (keys, secrets, Pages) is in docs/feed-publishing.md. It also publishes docs/site/privacy.html, at
+# https://wizoi.github.io/Aegida-Feed/privacy.html, so the daily rebuild of gh-pages never drops it.
 
 on:
   schedule:
@@ -12,6 +13,7 @@ on:
     branches: [main]
     paths:
       - 'feedtool/**'
+      - 'docs/site/**'
       - 'core/src/main/kotlin/com/aegida/core/feed/**'
       - 'core/src/main/kotlin/com/aegida/core/url/**'
       - 'core/build.gradle.kts'
@@ -93,6 +95,8 @@ jobs:
           mkdir publish
           cp -r feed-repo/site/. publish/
           cp out/feed.bin out/feed.sig publish/
+          # The privacy policy page (Play Console needs a public URL): one source here, republished with every feed.
+          cp docs/site/privacy.html publish/
           cd publish
           git init -q -b gh-pages
           git config user.name "aegida-feed-bot"

@@ -66,3 +66,5 @@ ksp = { id = "com.google.devtools.ksp", version = "2.0.20-1.0.25" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
+# Gradle Play Publisher: pushes the listing, release notes and bundle (same version as SmugView).
+play-publisher = { id = "com.github.triplet.play", version = "3.12.0" }
