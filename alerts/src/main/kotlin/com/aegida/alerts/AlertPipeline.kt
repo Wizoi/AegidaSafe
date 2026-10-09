@@ -10,6 +10,7 @@ import com.aegida.core.alert.QueuedMessage
 import com.aegida.core.alert.Outcome
 import com.aegida.core.model.DetectorId
 import com.aegida.core.model.Finding
+import com.aegida.core.model.FindingKey
 import com.aegida.core.model.FindingState
 import com.aegida.core.model.Severity
 import com.aegida.core.text.Problem
@@ -75,15 +76,24 @@ class AlertPipeline @Inject constructor(
     }
 
     /**
-     * She said a change was hers. A guardian who was told about it hears that, so an alarm about a family-approved
-     * install does not need a phone call to settle. A guardian who was never told hears nothing.
+     * She said a change was hers. A guardian who was told about *this* warning hears that, so an alarm about a
+     * family-approved install does not need a phone call to settle. Nothing is sent to a guardian who was never told
+     * (alerts were off, the repeat back-off held it back, or the kind has no guardian text), nor while the original alarm is still waiting in the
+     * outbox (the all-clear must not arrive first). For urgent kinds the words never say everything is fine: it may
+     * be a scammer coaching her (findings #50).
      */
-    suspend fun tellConfirmed(problem: Problem) {
+    suspend fun tellConfirmed(key: FindingKey) {
+        val problem = key.problem
         val settings = guardians.current()
         val topic = settings.firstTopic?.takeIf { settings.alertsOn } ?: return
-        if (problem.forGuardian(settings.ownerName) == null) return
+        val finding = findings.get(key) ?: return
+        val told = history.since(finding.firstSeen).any {
+            it.problem == problem && (it.outcome == Outcome.GuardianTold || it.outcome == Outcome.GuardianReminded)
+        }
+        if (!told || outbox.all().any { it.problem == problem }) return
         val now = clock.now()
-        val message = GuardianMessage(title = settings.ownerName, body = Texts.Guardian.CONFIRMED.format(settings.ownerName), urgent = false)
+        val text = if (problem.severity == Severity.Urgent) Texts.Guardian.CONFIRMED_URGENT else Texts.Guardian.CONFIRMED
+        val message = GuardianMessage(title = settings.ownerName, body = text.format(settings.ownerName), urgent = false)
         when (ntfy.send(topic, message)) {
             SendResult.Delivered -> history.add(HistoryEntry(now, problem, Outcome.GuardianTold))
             is SendResult.NotDelivered -> {

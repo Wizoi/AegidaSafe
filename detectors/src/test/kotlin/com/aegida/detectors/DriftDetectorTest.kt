@@ -55,7 +55,7 @@ class DriftDetectorTest {
 
     @Test fun sayingTheChangeWasHersMovesOnlyThatPartOfTheBaseline() {
         val now = snapshot(browser = "org.other.browser", smsApp = "org.other.sms")
-        val accepted = baseline.accepting(Problem.BrowserChanged, now)
+        val accepted = baseline.accepting(Problem.BrowserChanged, "org.other.browser", now)
         assertEquals("org.other.browser", accepted.browser)
         assertEquals(baseline.smsApp, accepted.smsApp)
         assertEquals(listOf(Problem.SmsAppChanged to "org.other.sms"), found(now, accepted))
@@ -74,7 +74,31 @@ class DriftDetectorTest {
             Problem.AccessibilityAdded to baseline.copy(accessibilityApps = setOf("a.new")),
             Problem.AdminAdded to baseline.copy(deviceAdmins = setOf("m.new")),
         )
-        expected.forEach { (problem, moved) -> assertEquals(problem.name, moved, baseline.accepting(problem, everything)) }
-        assertEquals(baseline, baseline.accepting(Problem.ScamLink, everything))
+        val subjects = mapOf(
+            Problem.BrowserChanged to "b.new", Problem.SmsAppChanged to "s.new", Problem.DialerChanged to "d.new",
+            Problem.ListenerAdded to "l.new", Problem.AccessibilityAdded to "a.new", Problem.AdminAdded to "m.new",
+        )
+        expected.forEach { (problem, moved) -> assertEquals(problem.name, moved, baseline.accepting(problem, subjects.getValue(problem), everything)) }
+        assertEquals(baseline, baseline.accepting(Problem.ScamLink, "x", everything))
+    }
+
+    @Test fun sayingOneAppWasHersLeavesAnotherNewOneFlaggedAndAWrongSubjectChangesNothing() { // findings #50
+        val now = snapshot(
+            notificationListeners = setOf("app.good", "app.spy"),
+            accessibilityApps = setOf("screen.good", "screen.spy"),
+            browser = "b.new",
+        )
+        val accepted = baseline.accepting(Problem.ListenerAdded, "app.good", now).accepting(Problem.AccessibilityAdded, "screen.good", now)
+        assertEquals(setOf("app.good"), accepted.notificationListeners)
+        assertEquals(setOf("screen.good"), accepted.accessibilityApps)
+        assertEquals(
+            listOf(Problem.BrowserChanged to "b.new", Problem.ListenerAdded to "app.spy", Problem.AccessibilityAdded to "screen.spy"),
+            found(now, accepted),
+        )
+        assertEquals(baseline, baseline.accepting(Problem.ListenerAdded, "app.not.on.the.phone", now))
+        assertEquals(baseline, baseline.accepting(Problem.AccessibilityAdded, "screen.not.on.the.phone", now))
+        assertEquals(baseline, baseline.accepting(Problem.AdminAdded, "admin.not.on.the.phone", now))
+        assertEquals(baseline, baseline.accepting(Problem.SmsAppChanged, "sms.not.on.the.phone", now))
+        assertEquals(baseline, baseline.accepting(Problem.BrowserChanged, "someone.else", now))
     }
 }

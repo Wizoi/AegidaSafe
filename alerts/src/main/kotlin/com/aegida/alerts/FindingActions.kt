@@ -50,9 +50,9 @@ class FindingActions @Inject constructor(
         if (key.problem.fix != Fix.ConfirmChange) return false
         if (findings.get(key)?.state?.needsHer != true) return false
         val baseline = baselines.baseline() ?: return false
-        baselines.save(baseline.accepting(key.problem, snapshotter.take()))
+        baselines.save(baseline.accepting(key.problem, key.subject, snapshotter.take()))
         val seen = markSeen(key, clock.now())
-        if (seen) pipeline.tellConfirmed(key.problem)
+        if (seen) pipeline.tellConfirmed(key)
         return seen
     }
 }

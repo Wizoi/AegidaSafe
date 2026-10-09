@@ -56,11 +56,15 @@ class AppDetectorsTest {
         assertEquals(1, remote(phone).size)
     }
 
-    @Test fun sayingAnAppWasHersMovesTheRightPart() {
-        val phone = snapshot().copy(apps = atSetup + app("org.new.by.hand", installer = null) + app("com.anydesk.anydeskandroid"))
-        assertEquals(setOf("org.keep.one", "org.new.by.hand", "com.anydesk.anydeskandroid"), baseline.accepting(Problem.NewAppOutsidePlay, phone).apps)
-        assertEquals(setOf("org.keep.one"), baseline.accepting(Problem.RemoteControlApp, phone).apps)
-        assertEquals(setOf("com.anydesk.anydeskandroid"), baseline.accepting(Problem.RemoteControlApp, phone).acceptedRemoteApps)
+    @Test fun sayingAnAppWasHersMovesOnlyThatApp() { // findings #50
+        val phone = snapshot().copy(apps = atSetup + app("org.new.by.hand", installer = null) + app("org.new.spy", installer = null) + app("com.anydesk.anydeskandroid") + app("com.carriez.flutter_hbb"))
+        assertEquals(setOf("org.keep.one", "org.new.by.hand"), baseline.accepting(Problem.NewAppOutsidePlay, "org.new.by.hand", phone).apps)
+        assertEquals(setOf("org.keep.one"), baseline.accepting(Problem.RemoteControlApp, "com.anydesk.anydeskandroid", phone).apps)
+        assertEquals(setOf("com.anydesk.anydeskandroid"), baseline.accepting(Problem.RemoteControlApp, "com.anydesk.anydeskandroid", phone).acceptedRemoteApps)
+        assertEquals(baseline, baseline.accepting(Problem.NewAppOutsidePlay, "org.not.installed", phone))
+        // the second new app is still a question after the first was accepted
+        val afterFirst = baseline.accepting(Problem.NewAppOutsidePlay, "org.new.by.hand", phone)
+        assertEquals(listOf(Problem.NewAppOutsidePlay to "org.new.spy"), newApps(phone.apps, afterFirst))
     }
 
     @Test fun theBaselineKeepsUserAppsOnly() = assertEquals(setOf("org.keep.one"), baseline.apps)

@@ -18,18 +18,20 @@ data class Baseline(
     /** Remote-control apps she said were hers. */
     val acceptedRemoteApps: Set<String> = emptySet(),
 ) {
-    /** She said the change behind [problem] was hers: only that part of the baseline moves to what the phone has now. */
-    fun accepting(problem: Problem, now: Snapshot): Baseline = when (problem) {
-        Problem.BrowserChanged -> copy(browser = now.browser)
-        Problem.SmsAppChanged -> copy(smsApp = now.smsApp)
-        Problem.DialerChanged -> copy(dialerApp = now.dialerApp)
-        Problem.ListenerAdded -> copy(notificationListeners = now.notificationListeners)
-        Problem.AccessibilityAdded -> copy(accessibilityApps = now.accessibilityApps)
-        Problem.AdminAdded -> copy(deviceAdmins = now.deviceAdmins)
-        Problem.NewAppOutsidePlay -> copy(apps = userApps(now))
-        Problem.RemoteControlApp -> copy(
-            acceptedRemoteApps = acceptedRemoteApps + now.apps.map { it.packageName }.filter { it in RemoteControlApps.PACKAGES },
-        )
+    /**
+     * She said the change behind [problem] to [subject] (the app) was hers. Only that one thing moves into the
+     * baseline, and only if it is really on the phone now: a second app that arrived in the same phone call stays
+     * a question (findings #50).
+     */
+    fun accepting(problem: Problem, subject: String, now: Snapshot): Baseline = when (problem) {
+        Problem.BrowserChanged -> if (now.browser == subject) copy(browser = subject) else this
+        Problem.SmsAppChanged -> if (now.smsApp == subject) copy(smsApp = subject) else this
+        Problem.DialerChanged -> if (now.dialerApp == subject) copy(dialerApp = subject) else this
+        Problem.ListenerAdded -> if (subject in now.notificationListeners) copy(notificationListeners = notificationListeners + subject) else this
+        Problem.AccessibilityAdded -> if (subject in now.accessibilityApps) copy(accessibilityApps = accessibilityApps + subject) else this
+        Problem.AdminAdded -> if (subject in now.deviceAdmins) copy(deviceAdmins = deviceAdmins + subject) else this
+        Problem.NewAppOutsidePlay -> if (now.apps.any { it.packageName == subject }) copy(apps = apps.orEmpty() + subject) else this
+        Problem.RemoteControlApp -> if (subject in RemoteControlApps.PACKAGES && now.apps.any { it.packageName == subject }) copy(acceptedRemoteApps = acceptedRemoteApps + subject) else this
         else -> this
     }
 

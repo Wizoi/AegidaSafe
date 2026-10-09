@@ -108,7 +108,7 @@ class FindingActionsTest {
     @Test fun whenSheSaysItWasHersTheGuardianWhoWasToldHearsThat() = runTest {
         val f = listenerAdded()
         assertTrue(actions.acceptChange(f.key))
-        assertEquals(listOf("Ruth said the change Aegida asked about was hers. Nothing more to do."), http.bodies)
+        assertEquals(listOf("Ruth said the change Aegida asked about was hers. If you were not expecting it, please call her."), http.bodies)
         assertEquals(listOf(Outcome.OwnerWarned, Outcome.GuardianTold, Outcome.Acknowledged, Outcome.GuardianTold), history.entries.map { it.outcome })
     }
 
@@ -141,6 +141,62 @@ class FindingActionsTest {
         pipeline.handle(listOf(scam), setOf(DetectorId.Link))
         http.posts.clear(); http.bodies.clear()
         actions.acknowledge(scam.key)
+        assertEquals(0, http.bodies.size)
+    }
+
+    private suspend fun newAppSideloaded(): Finding {
+        baselines.value = Baseline.of(phone)
+        phone = phone.copy(apps = listOf(com.aegida.core.model.InstalledApp("org.new.app", "New", null, false)))
+        val f = Finding(FindingKey(DetectorId.NewApp, Problem.NewAppOutsidePlay, "org.new.app"), emptyMap(), now, now)
+        pipeline.handle(listOf(f), setOf(DetectorId.NewApp))
+        http.posts.clear(); http.bodies.clear()
+        return f
+    }
+
+    @Test fun aNeedsTapChangeGetsTheCalmAllClearButAnUrgentOneNever() = runTest {
+        val calm = newAppSideloaded()
+        assertTrue(actions.acceptChange(calm.key))
+        assertEquals(listOf("Ruth said the change Aegida asked about was hers. Nothing more to do."), http.bodies)
+    }
+
+    @Test fun noAllClearIsSentAboutSomethingTheGuardianWasNeverToldAbout() = runTest { // findings #50
+        newAppSideloaded()
+        // a second finding of the same kind a moment later is held back by the repeat back-off ...
+        val second = Finding(FindingKey(DetectorId.NewApp, Problem.NewAppOutsidePlay, "org.second.app"), emptyMap(), now.plusSeconds(60), now.plusSeconds(60))
+        phone = phone.copy(apps = phone.apps + com.aegida.core.model.InstalledApp("org.second.app", "Second", null, false))
+        pipeline.handle(listOf(second), setOf(DetectorId.NewApp))
+        assertEquals(0, http.bodies.size)
+        // ... so when she says it was hers the guardian, who never heard of it, hears nothing
+        assertTrue(actions.acceptChange(second.key))
+        assertEquals(0, http.bodies.size)
+    }
+
+    @Test fun noAllClearWhileTheOriginalAlarmIsStillWaitingInTheOutbox() = runTest { // findings #50
+        baselines.value = Baseline.of(phone)
+        phone = phone.copy(notificationListeners = setOf("org.spy.app"))
+        val f = Finding(FindingKey(DetectorId.Drift, Problem.ListenerAdded, "org.spy.app"), emptyMap(), now, now)
+        http.result = com.aegida.core.net.HttpResult.Failed(null, com.aegida.core.net.FailureReason.Offline)
+        pipeline.handle(listOf(f), setOf(DetectorId.Drift))
+        assertEquals(1, outbox.rows.size)
+        http.result = com.aegida.core.net.HttpResult.Ok(200, "{}")
+        http.posts.clear(); http.bodies.clear()
+        assertTrue(actions.acceptChange(f.key))
+        assertEquals(0, http.bodies.size)
+        assertEquals(1, outbox.rows.size) // the alarm is still queued and will go out as it was
+    }
+
+    @Test fun noAllClearWhileALaterMessageAboutItIsStillQueued() = runTest { // findings #50: the reminder must not land after the all-clear
+        baselines.value = Baseline.of(phone)
+        phone = phone.copy(notificationListeners = setOf("org.spy.app"))
+        val f = Finding(FindingKey(DetectorId.Drift, Problem.ListenerAdded, "org.spy.app"), emptyMap(), now, now)
+        pipeline.handle(listOf(f), setOf(DetectorId.Drift)) // delivered
+        findings.rows[f.key] = findings.rows.getValue(f.key).copy(firstSeen = now.minus(Duration.ofHours(25)))
+        http.result = com.aegida.core.net.HttpResult.Failed(null, com.aegida.core.net.FailureReason.Offline)
+        pipeline.handle(listOf(f), setOf(DetectorId.Drift)) // the day-old reminder cannot be sent: queued
+        assertEquals(1, outbox.rows.size)
+        http.result = com.aegida.core.net.HttpResult.Ok(200, "{}")
+        http.posts.clear(); http.bodies.clear()
+        assertTrue(actions.acceptChange(f.key))
         assertEquals(0, http.bodies.size)
     }
 }
