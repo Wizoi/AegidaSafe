@@ -15,7 +15,7 @@ import java.util.Base64
 import kotlin.system.exitProcess
 
 /**
- * build  --domains F --links F [--urlhaus F] --out DIR  writes feed.bin + feed.sig; key from env AEGIDA_FEED_SIGNING_KEY
+ * build  --domains F --links F [--urlhaus F] [--echap F] --out DIR  writes feed.bin + feed.sig; key from env AEGIDA_FEED_SIGNING_KEY
  * verify --feed F --sig F --public F [--previous F]    exits 1 unless the signature matches the public key and the
  *                                                      feed passes the same sanity checks the app applies
  * keygen --out DIR                                     writes feed-public.txt and feed-private.txt (base64)
@@ -30,7 +30,7 @@ fun main(args: Array<String>) {
         "verify" -> verify(options)
         "keygen" -> keygen(File(options.getValue("out")))
         else -> {
-            System.err.println("usage: build --domains F --links F [--urlhaus F] --out DIR | verify --feed F --sig F --public F [--previous F] | keygen --out DIR")
+            System.err.println("usage: build --domains F --links F [--urlhaus F] [--echap F] --out DIR | verify --feed F --sig F --public F [--previous F] | keygen --out DIR")
             exitProcess(2)
         }
     }
@@ -44,12 +44,14 @@ private fun build(options: Map<String, String>) {
         phishingDomains = File(options.getValue("domains")).readText(),
         phishingLinks = File(options.getValue("links")).readText(),
         urlhaus = options["urlhaus"]?.let { File(it).readText() },
+        echap = options["echap"]?.let { EchapParser.parse(File(it).readText()) },
     )
     val bytes = FeedCodec.encode(feed)
     val signature = Signature.getInstance(FeedVerifier.ALGORITHM).run { initSign(privateKey); update(bytes); sign() }
     val out = File(options.getValue("out")).apply { mkdirs() }
     File(out, "feed.bin").writeBytes(bytes)
     File(out, "feed.sig").writeBytes(signature)
+    println("packages=${report.packageEntries} certificates=${report.certificateEntries}")
     println("hosts=${report.hostEntries} urls=${report.urlEntries} unparseable=${report.unparseable} bytes=${bytes.size}")
     println("dropped shared hosts (${report.droppedSharedHosts.size}): ${report.droppedSharedHosts}")
     feed.sources.forEach { println("source ${it.name}: ${it.entries}") }
@@ -65,7 +67,7 @@ private fun verify(options: Map<String, String>) {
         try { FeedCodec.decode(it.readBytes()) } catch (e: FeedFormatException) { null }
     }
     FeedSanity.check(feed, previous, Instant.now())?.let { fail("sanity check failed: $it") }
-    println("ok: ${feed.hostCount} hosts, ${feed.urlCount} urls, generated ${feed.generatedAt}, previous=${previous?.generatedAt}")
+    println("ok: ${feed.hostCount} hosts, ${feed.urlCount} urls, ${feed.packageCount} packages, ${feed.certificateCount} certificates, generated ${feed.generatedAt}, previous=${previous?.generatedAt}")
 }
 
 private fun fail(message: String): Nothing {

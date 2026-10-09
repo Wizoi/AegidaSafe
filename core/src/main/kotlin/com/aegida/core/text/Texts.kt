@@ -133,6 +133,8 @@ object Texts {
         const val OFF = "Off"
         const val CANT_TELL = "Can't tell"
         const val CHANGE = "Change"
+        const val CREDITS_TITLE = "Where the lists come from"
+        const val CREDITS = "Scam websites: Phishing.Database (MIT licence). Spying apps: Stalkerware Indicators by Echap (CC BY 4.0). Both are stored in a shortened, scrambled form."
         const val CHANGE_GUARDIAN = "Pick a different guardian"
         const val CHANGE_GUARDIAN_TITLE = "Pick a new guardian"
         const val CHANGE_GUARDIAN_POPUP_TITLE = "Please tell %s"

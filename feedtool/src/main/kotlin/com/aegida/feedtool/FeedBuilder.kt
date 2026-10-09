@@ -11,6 +11,8 @@ data class BuildReport(
     val urlEntries: Int,
     val droppedSharedHosts: List<String>,
     val unparseable: Int,
+    val packageEntries: Int = 0,
+    val certificateEntries: Int = 0,
 )
 
 object FeedBuilder {
@@ -38,6 +40,8 @@ object FeedBuilder {
         phishingLinks: String,
         /** Null leaves URLhaus out: its terms do not clearly allow republishing (findings #27). */
         urlhaus: String? = null,
+        /** Null leaves the spying-app lists out. */
+        echap: EchapIndicators? = null,
     ): Pair<ThreatFeed, BuildReport> {
         var unparseable = 0
         val dropped = sortedSetOf<String>()
@@ -68,13 +72,20 @@ object FeedBuilder {
             FeedSource("Phishing.Database domains", PHISHING_DATABASE_LICENCE, domainCount),
             FeedSource("Phishing.Database links", PHISHING_DATABASE_LICENCE, linkCount),
             urlhausCount?.let { FeedSource("URLhaus", LICENCE_TO_VERIFY, it) },
+            echap?.let { FeedSource("Echap stalkerware indicators", ECHAP_LICENCE, it.packages.size + it.certificates.size) },
         )
-        val feed = ThreatFeed.of(generatedAt, sources, hosts, urls)
-        return feed to BuildReport(feed.hostCount, feed.urlCount, dropped.toList(), unparseable)
+        val feed = ThreatFeed.of(
+            generatedAt, sources, hosts, urls,
+            packageNames = echap?.packages.orEmpty(), certificateSha1s = echap?.certificates.orEmpty(),
+        )
+        return feed to BuildReport(feed.hostCount, feed.urlCount, dropped.toList(), unparseable, feed.packageCount, feed.certificateCount)
     }
 
     /** Read from the repository's LICENSE on Oct 8 (findings #27); the notice must travel with the feed. */
     const val PHISHING_DATABASE_LICENCE = "MIT, Mitchell Krog, Nissar Chababy and Phishing.Database contributors"
+
+    /** The repository README states CC BY (Oct 8); credit and a note that the feed holds hashes of the indicators must travel with it. */
+    const val ECHAP_LICENCE = "CC BY 4.0, Echap (Stalkerware Indicators of Compromise, https://github.com/AssoEchap/stalkerware-indicators), changed: stored as hashes"
 
     /** abuse.ch publishes no licence for URLhaus data (findings #27). */
     const val LICENCE_TO_VERIFY = "licence to verify"

@@ -138,9 +138,12 @@ class AndroidSnapshotterTest {
 
     // Installed apps
 
-    private fun install(pkg: String, label: String, installer: String?, system: Boolean = false) {
+    private fun install(pkg: String, label: String, installer: String?, system: Boolean = false, signedWith: ByteArray? = null) {
         val info = android.content.pm.PackageInfo().apply {
             packageName = pkg
+            if (signedWith != null) {
+                signingInfo = android.content.pm.SigningInfo().also { shadowOf(it).setSignatures(arrayOf(android.content.pm.Signature(signedWith))) }
+            }
             applicationInfo = android.content.pm.ApplicationInfo().apply {
                 packageName = pkg
                 this.name = label
@@ -175,5 +178,15 @@ class AndroidSnapshotterTest {
         assertFalse(snapshotter.take().apps.any { it.packageName == "org.second.app" })
         at = at.plus(Duration.ofMinutes(4))
         assertTrue(snapshotter.take().apps.any { it.packageName == "org.second.app" })
+    }
+
+    @Test fun anAppsSigningCertificateIsReadAsTheSha1HexEchapListsAndSystemAppsAreNotChecked() {
+        val certificate = ByteArray(40) { (it * 7).toByte() }
+        val expected = java.security.MessageDigest.getInstance("SHA-1").digest(certificate).joinToString("") { "%02x".format(it) }
+        install("org.signed.app", "Signed", null, signedWith = certificate)
+        install("com.android.phone", "Phone", null, system = true, signedWith = certificate)
+        val apps = take().apps.associateBy { it.packageName }
+        assertEquals(setOf(expected), apps.getValue("org.signed.app").certSha1s)
+        assertEquals(emptySet<String>(), apps.getValue("com.android.phone").certSha1s)
     }
 }

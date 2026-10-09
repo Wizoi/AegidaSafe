@@ -54,6 +54,7 @@ abstract class AppModule {
     @Binds @IntoSet abstract fun driftDetector(impl: com.aegida.detectors.DriftDetector): Detector
     @Binds @IntoSet abstract fun newAppDetector(impl: com.aegida.detectors.NewAppDetector): Detector
     @Binds @IntoSet abstract fun remoteControlDetector(impl: com.aegida.detectors.RemoteControlDetector): Detector
+    @Binds @IntoSet abstract fun stalkerwareDetector(impl: com.aegida.detectors.StalkerwareDetector): Detector
 
     companion object {
         @Provides @Singleton

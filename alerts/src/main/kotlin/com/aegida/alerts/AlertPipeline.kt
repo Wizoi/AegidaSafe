@@ -159,7 +159,7 @@ class AlertPipeline @Inject constructor(
         private val BACKOFF_LOOKBACK: Duration = Duration.ofDays(7)
         private val REMIND_AFTER: Duration = Duration.ofHours(24)
 
-        val SETTING_BASED = setOf(DetectorId.Dns, DetectorId.Health, DetectorId.Delivery, DetectorId.Drift, DetectorId.NewApp, DetectorId.RemoteControl)
+        val SETTING_BASED = setOf(DetectorId.Dns, DetectorId.Health, DetectorId.Delivery, DetectorId.Drift, DetectorId.NewApp, DetectorId.RemoteControl, DetectorId.Stalkerware)
     }
 }
 

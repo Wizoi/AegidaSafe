@@ -60,6 +60,9 @@ fun SettingsScreen(
             ValueRow(Texts.Settings.WEBSITE_PROTECTION, if (filterOn) Texts.Settings.ON else Texts.Settings.OFF)
             if (!filterOn) QuietButton(Texts.Setup.FILTER_TITLE, onFilterHelp)
         }
+        SettingCard {
+            ValueRow(Texts.Settings.CREDITS_TITLE, Texts.Settings.CREDITS)
+        }
     }
 }
 

@@ -181,6 +181,7 @@ class ScreensTest(private val dark: Boolean, private val fontScale: Float) {
         reachable("Ruth")
         reachable("Kevin")
         reachable(Texts.Settings.CHANGE_GUARDIAN)
+        reachable(Texts.Settings.CREDITS) // CC BY 4.0 asks for credit
         compose.onNode(androidx.compose.ui.test.hasClickAction() and androidx.compose.ui.test.isToggleable()).performScrollTo().performClick()
         assertEquals(true, alerts)
         reachable(Texts.Settings.OFF)

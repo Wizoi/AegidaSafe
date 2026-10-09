@@ -18,6 +18,7 @@ import com.aegida.core.model.Snapshotter
 import com.aegida.core.oem.OemSource
 import com.aegida.core.time.Clock
 import com.aegida.platform.notify.NotificationPoster
+import java.security.MessageDigest
 import java.time.Duration
 import java.time.Instant
 
@@ -75,13 +76,27 @@ class AndroidSnapshotter(
     private fun readApps(): List<InstalledApp> {
         val pm = context.packageManager
         return pm.getInstalledApplications(0).map { info ->
+            val system = info.flags and (ApplicationInfo.FLAG_SYSTEM or ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
             InstalledApp(
                 packageName = info.packageName,
                 label = pm.getApplicationLabel(info).toString(),
                 installer = installerOf(pm, info.packageName),
-                isSystem = info.flags and (ApplicationInfo.FLAG_SYSTEM or ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0,
+                isSystem = system,
+                // Apps that came with the phone are matched by name only, which keeps a check to about a second.
+                certSha1s = if (system) emptySet() else certificatesOf(pm, info.packageName),
             )
         }
+    }
+
+    /** SHA-1 of every certificate the app is signed with (the form Echap lists them in). */
+    @Suppress("DEPRECATION")
+    private fun certificatesOf(pm: PackageManager, pkg: String): Set<String> = try {
+        val signers = pm.getPackageInfo(pkg, PackageManager.GET_SIGNING_CERTIFICATES).signingInfo?.apkContentsSigners.orEmpty()
+        signers.map { signature ->
+            MessageDigest.getInstance("SHA-1").digest(signature.toByteArray()).joinToString("") { "%02x".format(it) }
+        }.toSet()
+    } catch (e: PackageManager.NameNotFoundException) {
+        emptySet()
     }
 
     @Suppress("DEPRECATION")

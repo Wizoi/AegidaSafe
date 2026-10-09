@@ -127,6 +127,13 @@ enum class Problem(
         whatHappened = "An app that lets someone control the phone from far away was found",
         fix = Fix.ConfirmChange,
     ),
+    StalkerwareApp(
+        Severity.Urgent,
+        "An app on your phone can secretly watch what you do. Tap to see it and remove it.",
+        "An app that can secretly spy was found on %s's phone. Aegida warned her.",
+        whatHappened = "An app that can secretly spy was found",
+        fix = Fix.Settings,
+    ),
     MissedCheck(Severity.Info, "Aegida missed its daily check.", null, whatHappened = "Aegida missed its daily check"),
     ListsOld(
         Severity.Info,

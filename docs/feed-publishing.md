@@ -5,8 +5,10 @@ How the scam lists reach Mom's phone: `.github/workflows/build-feed.yml` (privat
 [Aegida-Feed](https://github.com/Wizoi/Aegida-Feed) repo, served at `https://wizoi.github.io/Aegida-Feed/`.
 Decisions: `decisions.md` (Build step 1 choices, Feed publishing). Sources and licences: findings #27.
 
-Only Phishing.Database (MIT) is published. URLhaus stays out until abuse.ch confirms in writing that republishing
-is allowed.
+Phishing.Database (MIT) and Echap's stalkerware indicators (CC BY 4.0) are published; both notices travel in
+`NOTICE.txt` on the feed site. URLhaus stays out until abuse.ch confirms in writing that republishing is allowed.
+The build refuses an Echap file that yields fewer than 100 package names or 100 certificates, so a changed layout
+fails the run instead of publishing an empty list (the previous feed stays live).
 
 ## What you do once (keys never pass through chat)
 

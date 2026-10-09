@@ -12,13 +12,15 @@ import java.time.Duration
 import java.time.Instant
 
 /**
- * feed.bin layout (version 1, big-endian): "AEGF", version byte, generatedAt epoch seconds (long),
+ * feed.bin layout (big-endian): "AEGF", version byte, generatedAt epoch seconds (long),
  * source count (int) then per source name/licence (UTF) and entries (int), host count (int) + hashes,
- * URL count (int) + hashes. feed.sig is an ECDSA P-256 / SHA-256 signature of the whole feed.bin.
+ * URL count (int) + hashes. Version 2 adds package-name count (int) + hashes and signing-certificate count (int) +
+ * hashes after that; version 1 feeds still read, with no app lists. feed.sig is an ECDSA P-256 / SHA-256
+ * signature of the whole feed.bin.
  */
 object FeedCodec {
     private const val MAGIC = 0x41454746 // "AEGF"
-    private const val VERSION = 1
+    private const val VERSION = 2
     private const val MAX_ENTRIES = 5_000_000
 
     fun encode(feed: ThreatFeed): ByteArray = ByteArrayOutputStream().also { bytes ->
@@ -30,21 +32,25 @@ object FeedCodec {
             feed.sources.forEach { out.writeUTF(it.name); out.writeUTF(it.licence); out.writeInt(it.entries) }
             out.writeInt(feed.hosts.size); feed.hosts.forEach(out::writeLong)
             out.writeInt(feed.urls.size); feed.urls.forEach(out::writeLong)
+            out.writeInt(feed.packages.size); feed.packages.forEach(out::writeLong)
+            out.writeInt(feed.certificates.size); feed.certificates.forEach(out::writeLong)
         }
     }.toByteArray()
 
-    /** Throws [FeedFormatException] for anything that is not a well-formed version 1 feed. */
+    /** Throws [FeedFormatException] for anything that is not a well-formed version 1 or 2 feed. */
     fun decode(bytes: ByteArray): ThreatFeed = try {
         DataInputStream(ByteArrayInputStream(bytes)).use { input ->
             if (input.readInt() != MAGIC) throw FeedFormatException("not an Aegida feed")
             val version = input.readUnsignedByte()
-            if (version != VERSION) throw FeedFormatException("unsupported feed version $version")
+            if (version != 1 && version != VERSION) throw FeedFormatException("unsupported feed version $version")
             val generatedAt = Instant.ofEpochSecond(input.readLong())
             val sources = List(input.readInt().checked(16)) { FeedSource(input.readUTF(), input.readUTF(), input.readInt()) }
             val hosts = LongArray(input.readInt().checked(MAX_ENTRIES)) { input.readLong() }
             val urls = LongArray(input.readInt().checked(MAX_ENTRIES)) { input.readLong() }
+            val packages = if (version >= 2) LongArray(input.readInt().checked(MAX_ENTRIES)) { input.readLong() } else LongArray(0)
+            val certificates = if (version >= 2) LongArray(input.readInt().checked(MAX_ENTRIES)) { input.readLong() } else LongArray(0)
             if (input.read() != -1) throw FeedFormatException("trailing bytes")
-            ThreatFeed(generatedAt, sources, hosts, urls)
+            ThreatFeed(generatedAt, sources, hosts, urls, packages, certificates)
         }
     } catch (e: IOException) {
         throw FeedFormatException("truncated feed")

@@ -18,11 +18,18 @@ class ThreatFeed(
     val sources: List<FeedSource>,
     hostHashes: LongArray,
     urlHashes: LongArray,
+    packageHashes: LongArray = LongArray(0),
+    certificateHashes: LongArray = LongArray(0),
 ) {
     internal val hosts: LongArray = hostHashes.sortedDistinct()
     internal val urls: LongArray = urlHashes.sortedDistinct()
 
+    internal val packages: LongArray = packageHashes.sortedDistinct()
+    internal val certificates: LongArray = certificateHashes.sortedDistinct()
+
     val hostCount: Int get() = hosts.size
+    val packageCount: Int get() = packages.size
+    val certificateCount: Int get() = certificates.size
     val urlCount: Int get() = urls.size
 
     fun match(link: Link): FeedMatch? {
@@ -31,14 +38,36 @@ class ThreatFeed(
         return host?.let { FeedMatch.Host(it) }
     }
 
+    /**
+     * Is this installed app one of the known spying apps? By package name, or by the SHA-1 of a certificate it is
+     * signed with (hex, any case), which still matches when the app is renamed. Never matches a website entry.
+     */
+    fun matchApp(packageName: String, certificateSha1s: Set<String>): AppMatch? {
+        if (packages.binarySearch(FeedHash.of(PACKAGE_PREFIX + packageName.lowercase())) >= 0) return AppMatch.Package
+        if (certificateSha1s.any { certificates.binarySearch(FeedHash.of(CERTIFICATE_PREFIX + it.lowercase())) >= 0 }) return AppMatch.Certificate
+        return null
+    }
+
     companion object {
-        fun of(generatedAt: Instant, sources: List<FeedSource>, hostKeys: Collection<String>, urlKeys: Collection<String>) =
-            ThreatFeed(
-                generatedAt,
-                sources,
-                hostKeys.map(FeedHash::of).toLongArray(),
-                urlKeys.map(FeedHash::of).toLongArray(),
-            )
+        /** Keeps the three kinds of entry apart: a package name never equals a website's hash. */
+        const val PACKAGE_PREFIX = "pkg:"
+        const val CERTIFICATE_PREFIX = "cert:"
+
+        fun of(
+            generatedAt: Instant,
+            sources: List<FeedSource>,
+            hostKeys: Collection<String>,
+            urlKeys: Collection<String>,
+            packageNames: Collection<String> = emptyList(),
+            certificateSha1s: Collection<String> = emptyList(),
+        ) = ThreatFeed(
+            generatedAt,
+            sources,
+            hostKeys.map(FeedHash::of).toLongArray(),
+            urlKeys.map(FeedHash::of).toLongArray(),
+            packageNames.map { FeedHash.of(PACKAGE_PREFIX + it.lowercase()) }.toLongArray(),
+            certificateSha1s.map { FeedHash.of(CERTIFICATE_PREFIX + it.lowercase()) }.toLongArray(),
+        )
 
         private fun LongArray.sortedDistinct(): LongArray = distinct().toLongArray().also { it.sort() }
     }
@@ -47,6 +76,11 @@ class ThreatFeed(
 sealed interface FeedMatch {
     data class Host(val listedHost: String) : FeedMatch
     data object Url : FeedMatch
+}
+
+sealed interface AppMatch {
+    data object Package : AppMatch
+    data object Certificate : AppMatch
 }
 
 /** Where entries came from, shown in About with the licence. */
