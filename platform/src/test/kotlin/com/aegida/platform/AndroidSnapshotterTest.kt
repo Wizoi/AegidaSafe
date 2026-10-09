@@ -135,4 +135,45 @@ class AndroidSnapshotterTest {
         Settings.Secure.putString(context.contentResolver, "sms_default_application", "org.texts")
         assertEquals("org.texts", take().smsApp)
     }
+
+    // Installed apps
+
+    private fun install(pkg: String, label: String, installer: String?, system: Boolean = false) {
+        val info = android.content.pm.PackageInfo().apply {
+            packageName = pkg
+            applicationInfo = android.content.pm.ApplicationInfo().apply {
+                packageName = pkg
+                this.name = label
+                nonLocalizedLabel = label
+                flags = if (system) android.content.pm.ApplicationInfo.FLAG_SYSTEM else 0
+            }
+        }
+        shadowOf(context.packageManager).installPackage(info)
+        @Suppress("DEPRECATION") context.packageManager.setInstallerPackageName(pkg, installer)
+    }
+
+    @Test fun appsAreReadWithTheirNameTheStoreThatInstalledThemAndWhetherTheyShippedWithThePhone() {
+        install("org.play.app", "Play App", "com.android.vending")
+        install("org.byhand.app", "By Hand", null)
+        install("com.android.phone", "Phone", null, system = true)
+        val apps = take().apps.associateBy { it.packageName }
+        assertEquals("Play App", apps.getValue("org.play.app").label)
+        assertTrue(apps.getValue("org.play.app").fromPlayStore)
+        assertFalse(apps.getValue("org.byhand.app").fromPlayStore)
+        assertNull(apps.getValue("org.byhand.app").installer)
+        assertTrue(apps.getValue("com.android.phone").isSystem)
+        assertFalse(apps.getValue("org.byhand.app").isSystem)
+    }
+
+    @Test fun theListIsKeptForAFewMinutesBecauseEveryNotificationRunsACheck() {
+        var at = now
+        val snapshotter = AndroidSnapshotter(context, { at }, FixedOem(Reading.NotPresent, Reading.NotPresent), listener)
+        install("org.first.app", "First", "com.android.vending")
+        assertTrue(snapshotter.take().apps.any { it.packageName == "org.first.app" })
+        install("org.second.app", "Second", null)
+        at = at.plus(Duration.ofMinutes(2))
+        assertFalse(snapshotter.take().apps.any { it.packageName == "org.second.app" })
+        at = at.plus(Duration.ofMinutes(4))
+        assertTrue(snapshotter.take().apps.any { it.packageName == "org.second.app" })
+    }
 }

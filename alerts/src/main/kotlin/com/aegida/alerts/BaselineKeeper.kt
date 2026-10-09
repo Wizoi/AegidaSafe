@@ -15,7 +15,12 @@ class BaselineKeeper @Inject constructor(
     private val baselines: BaselineStore,
 ) {
     suspend fun keep(snapshot: Snapshot) {
-        if (baselines.baseline() != null || !setup.setup().done) return
-        baselines.save(Baseline.of(snapshot))
+        if (!setup.setup().done) return
+        val kept = baselines.baseline()
+        when {
+            kept == null -> baselines.save(Baseline.of(snapshot))
+            // A baseline from before apps were recorded: add them once, change nothing else.
+            kept.apps == null && snapshot.apps.isNotEmpty() -> baselines.save(kept.copy(apps = Baseline.userApps(snapshot)))
+        }
     }
 }

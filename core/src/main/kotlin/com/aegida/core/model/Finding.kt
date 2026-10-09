@@ -32,6 +32,7 @@ object Evidence {
     const val CHANNEL_ID = "channelId"
     const val SITE = "site"
     const val HOST = "host"
+    const val APP_LABEL = "appLabel"
 }
 
 /** Only detectors create these (design section 5). Evidence stays on the phone; guardians get Problem text only. */

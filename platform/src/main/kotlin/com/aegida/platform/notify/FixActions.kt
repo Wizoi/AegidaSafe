@@ -31,6 +31,9 @@ object FixActions {
         Problem.BrowserChanged, Problem.SmsAppChanged, Problem.DialerChanged -> Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS)
         Problem.AccessibilityAdded -> Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
         Problem.AdminAdded -> Intent(Settings.ACTION_SECURITY_SETTINGS)
+        // The app's own page, where she can uninstall it.
+        Problem.NewAppOutsidePlay, Problem.RemoteControlApp ->
+            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", finding.key.subject, null))
         Problem.NotificationsBlocked -> Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, ownPackage)
         else -> null
     }?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

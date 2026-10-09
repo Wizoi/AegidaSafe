@@ -28,6 +28,8 @@ data class Snapshot(
     val accessibilityApps: Set<String> = emptySet(),
     /** Packages that are active device administrators. */
     val deviceAdmins: Set<String> = emptySet(),
+    /** Every app Aegida may see. Empty when it could not list them. */
+    val apps: List<InstalledApp> = emptyList(),
 )
 
 /** The Private DNS ("website filter") setting as read from the phone. */

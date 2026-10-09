@@ -48,6 +48,7 @@ class ManifestPolicyTest {
             "android.permission.RECEIVE_BOOT_COMPLETED",
             "android.permission.FOREGROUND_SERVICE",
             "android.permission.FOREGROUND_SERVICE_SPECIAL_USE",
+            "android.permission.QUERY_ALL_PACKAGES",
         )
 
         val BANNED_PERMISSIONS = setOf(

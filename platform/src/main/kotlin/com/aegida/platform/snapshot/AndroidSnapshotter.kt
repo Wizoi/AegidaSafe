@@ -5,16 +5,21 @@ import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
+import android.os.Build
 import android.net.Uri
 import android.provider.Settings
 import android.telecom.TelecomManager
+import com.aegida.core.model.InstalledApp
 import com.aegida.core.model.PrivateDns
 import com.aegida.core.model.Snapshot
 import com.aegida.core.model.Snapshotter
 import com.aegida.core.oem.OemSource
 import com.aegida.core.time.Clock
 import com.aegida.platform.notify.NotificationPoster
+import java.time.Duration
+import java.time.Instant
 
 /**
  * Reads the phone with plain Android calls. Each field is something Aegida actually read; anything it
@@ -44,7 +49,46 @@ class AndroidSnapshotter(
             notificationListeners = packagesIn(Settings.Secure.getString(context.contentResolver, ENABLED_LISTENERS)) - context.packageName,
             accessibilityApps = packagesIn(Settings.Secure.getString(context.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES)),
             deviceAdmins = context.getSystemService(DevicePolicyManager::class.java)?.activeAdmins.orEmpty().map { it.packageName }.toSet(),
+            apps = apps(),
         )
+    }
+
+    private var appsReadAt: Instant? = null
+    private var appsRead: List<InstalledApp> = emptyList()
+
+    /**
+     * Every app, with the store that installed it. Listing them is the slowest thing a check does and a check
+     * runs for every notification, so the list is kept for [APPS_FRESH_FOR]. An app installed a minute ago is
+     * seen by the next check after that.
+     */
+    @Synchronized
+    private fun apps(): List<InstalledApp> {
+        val now = clock.now()
+        val readAt = appsReadAt
+        if (readAt != null && Duration.between(readAt, now) < APPS_FRESH_FOR) return appsRead
+        appsRead = readApps()
+        appsReadAt = now
+        return appsRead
+    }
+
+    @Suppress("DEPRECATION")
+    private fun readApps(): List<InstalledApp> {
+        val pm = context.packageManager
+        return pm.getInstalledApplications(0).map { info ->
+            InstalledApp(
+                packageName = info.packageName,
+                label = pm.getApplicationLabel(info).toString(),
+                installer = installerOf(pm, info.packageName),
+                isSystem = info.flags and (ApplicationInfo.FLAG_SYSTEM or ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0,
+            )
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun installerOf(pm: PackageManager, pkg: String): String? = try {
+        if (Build.VERSION.SDK_INT >= 30) pm.getInstallSourceInfo(pkg).installingPackageName else pm.getInstallerPackageName(pkg)
+    } catch (e: PackageManager.NameNotFoundException) {
+        null
     }
 
     /** The settings that list enabled services hold "package/Class:package/Class"; only the packages matter. */
@@ -80,6 +124,7 @@ class AndroidSnapshotter(
     private companion object {
         // The default text-message app is read from the setting, not through the SMS classes (no SMS capability, ever).
         const val DEFAULT_TEXT_APP = "sms_default_application"
+        val APPS_FRESH_FOR: Duration = Duration.ofMinutes(5)
         const val ENABLED_LISTENERS = "enabled_notification_listeners"
         const val PRIVATE_DNS_MODE = "private_dns_mode"
         const val PRIVATE_DNS_SPECIFIER = "private_dns_specifier"

@@ -13,6 +13,8 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Approved by Kevin (decisions.md, phase 2): lets Aegida list the apps on the phone to notice a new one or a remote-control app. Lint prefers <queries>, which cannot see an unknown new app. -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" tools:ignore="QueryAllPackagesPermission" />
 
     <!-- Package visibility (not a permission) so Aegida can read which app opens web links by default. -->
     <queries>

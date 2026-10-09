@@ -113,6 +113,20 @@ enum class Problem(
         whatHappened = "An app was given special control over the phone",
         fix = Fix.ConfirmChange,
     ),
+    NewAppOutsidePlay(
+        Severity.NeedsTap,
+        "A new app was added to your phone from outside the Play Store. Was that you?",
+        "A new app from outside the Play Store was added to %s's phone. Aegida asked her if that was her.",
+        whatHappened = "A new app was added from outside the Play Store",
+        fix = Fix.ConfirmChange,
+    ),
+    RemoteControlApp(
+        Severity.Urgent,
+        "An app that lets someone control your phone from far away is on your phone. Was that you?",
+        "An app that lets someone control %s's phone from far away is on it. Aegida asked her if that was her.",
+        whatHappened = "An app that lets someone control the phone from far away was found",
+        fix = Fix.ConfirmChange,
+    ),
     MissedCheck(Severity.Info, "Aegida missed its daily check.", null, whatHappened = "Aegida missed its daily check"),
     ListsOld(
         Severity.Info,

@@ -13,6 +13,10 @@ data class Baseline(
     val notificationListeners: Set<String>,
     val accessibilityApps: Set<String>,
     val deviceAdmins: Set<String>,
+    /** The apps that were on the phone (not counting those that shipped with it), or null if not recorded yet. */
+    val apps: Set<String>? = null,
+    /** Remote-control apps she said were hers. */
+    val acceptedRemoteApps: Set<String> = emptySet(),
 ) {
     /** She said the change behind [problem] was hers: only that part of the baseline moves to what the phone has now. */
     fun accepting(problem: Problem, now: Snapshot): Baseline = when (problem) {
@@ -22,6 +26,10 @@ data class Baseline(
         Problem.ListenerAdded -> copy(notificationListeners = now.notificationListeners)
         Problem.AccessibilityAdded -> copy(accessibilityApps = now.accessibilityApps)
         Problem.AdminAdded -> copy(deviceAdmins = now.deviceAdmins)
+        Problem.NewAppOutsidePlay -> copy(apps = userApps(now))
+        Problem.RemoteControlApp -> copy(
+            acceptedRemoteApps = acceptedRemoteApps + now.apps.map { it.packageName }.filter { it in RemoteControlApps.PACKAGES },
+        )
         else -> this
     }
 
@@ -29,6 +37,9 @@ data class Baseline(
         fun of(snapshot: Snapshot) = Baseline(
             snapshot.browser, snapshot.smsApp, snapshot.dialerApp,
             snapshot.notificationListeners, snapshot.accessibilityApps, snapshot.deviceAdmins,
+            apps = userApps(snapshot),
         )
+
+        fun userApps(snapshot: Snapshot): Set<String> = snapshot.apps.filterNot { it.isSystem }.map { it.packageName }.toSet()
     }
 }

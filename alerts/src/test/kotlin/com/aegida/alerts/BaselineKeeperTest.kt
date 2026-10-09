@@ -30,4 +30,23 @@ class BaselineKeeperTest {
         keeper.keep(phone.copy(browser = "org.other.browser", accessibilityApps = emptySet()))
         assertEquals(Baseline.of(phone), baselines.value)
     }
+
+    @Test fun aBaselineFromBeforeAppsWereRecordedGetsThemOnceAndNothingElseChanges() = runTest {
+        setup.value = Setup.NotDone.copy(stepsDone = SetupStep.entries.size)
+        val old = Baseline.of(phone).copy(apps = null)
+        baselines.value = old
+        keeper.keep(phone) // no apps readable yet: leave it alone
+        assertNull(baselines.value!!.apps)
+        val withApps = phone.copy(
+            browser = "org.other.browser",
+            apps = listOf(
+                com.aegida.core.model.InstalledApp("org.one", "One", "com.android.vending", false),
+                com.aegida.core.model.InstalledApp("com.android.phone", "Phone", null, true),
+            ),
+        )
+        keeper.keep(withApps)
+        assertEquals(old.copy(apps = setOf("org.one")), baselines.value)
+        keeper.keep(withApps.copy(apps = withApps.apps + com.aegida.core.model.InstalledApp("org.two", "Two", null, false)))
+        assertEquals(setOf("org.one"), baselines.value!!.apps)
+    }
 }

@@ -102,11 +102,16 @@ class RoomStoresTest {
         val baseline = com.aegida.core.model.Baseline(
             browser = "com.android.chrome", smsApp = null, dialerApp = "com.google.android.dialer",
             notificationListeners = setOf("app.b", "app.a"), accessibilityApps = emptySet(), deviceAdmins = setOf("app.admin"),
+            apps = setOf("org.one", "org.two"), acceptedRemoteApps = setOf("com.anydesk.anydeskandroid"),
         )
         settings.save(baseline)
         assertEquals(baseline, settings.baseline())
         settings.save(baseline.copy(browser = null, accessibilityApps = setOf("app.screen")))
         assertEquals(baseline.copy(browser = null, accessibilityApps = setOf("app.screen")), settings.baseline())
+        settings.save(baseline.copy(apps = null))
+        assertNull("not recorded is not the same as no apps", settings.baseline()!!.apps)
+        settings.save(baseline.copy(apps = emptySet()))
+        assertEquals(emptySet<String>(), settings.baseline()!!.apps)
     }
 
     private fun feedBytes(at: Instant) =

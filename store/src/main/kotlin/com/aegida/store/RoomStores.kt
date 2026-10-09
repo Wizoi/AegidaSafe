@@ -120,6 +120,8 @@ internal class RoomSettings(private val dao: SettingDao) : SetupStore, GuardianS
             notificationListeners = set(BASELINE_LISTENERS),
             accessibilityApps = set(BASELINE_ACCESSIBILITY),
             deviceAdmins = set(BASELINE_ADMINS),
+            apps = if (v[BASELINE_APPS_TAKEN] == "true") set(BASELINE_APPS) else null,
+            acceptedRemoteApps = set(BASELINE_REMOTE_OK),
         )
     }
 
@@ -132,6 +134,9 @@ internal class RoomSettings(private val dao: SettingDao) : SetupStore, GuardianS
             SettingEntity(BASELINE_LISTENERS, baseline.notificationListeners.sorted().joinToString("\n")),
             SettingEntity(BASELINE_ACCESSIBILITY, baseline.accessibilityApps.sorted().joinToString("\n")),
             SettingEntity(BASELINE_ADMINS, baseline.deviceAdmins.sorted().joinToString("\n")),
+            SettingEntity(BASELINE_APPS_TAKEN, (baseline.apps != null).toString()),
+            SettingEntity(BASELINE_APPS, baseline.apps.orEmpty().sorted().joinToString("\n")),
+            SettingEntity(BASELINE_REMOTE_OK, baseline.acceptedRemoteApps.sorted().joinToString("\n")),
         ),
     )
 
@@ -143,6 +148,9 @@ internal class RoomSettings(private val dao: SettingDao) : SetupStore, GuardianS
         const val BASELINE_LISTENERS = "baseline.notificationListeners"
         const val BASELINE_ACCESSIBILITY = "baseline.accessibilityApps"
         const val BASELINE_ADMINS = "baseline.deviceAdmins"
+        const val BASELINE_APPS_TAKEN = "baseline.appsTaken"
+        const val BASELINE_APPS = "baseline.apps"
+        const val BASELINE_REMOTE_OK = "baseline.acceptedRemoteApps"
         const val FILTER_HOST = "setup.websiteFilterHost"
         const val ALLOWED_SITES = "setup.allowedSites"
         const val ALERTS_ON = "guardians.alertsOn"
