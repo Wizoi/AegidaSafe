@@ -385,11 +385,11 @@
   <table>
     <thead><tr><th scope="col">What</th><th scope="col">To whom</th><th scope="col">When</th><th scope="col">Contents</th></tr></thead>
     <tbody>
-      <tr><td data-label="What">Scam-list download</td><td data-label="To whom"><code>wizoi.github.io</code> (GitHub Pages)</td><td data-label="When">Daily job and first run</td><td data-label="Contents">A plain GET for <code>feed.sig</code> then <code>feed.bin</code>. No identifiers. GitHub sees an internet address, as any website does.</td></tr>
       <tr><td data-label="What">Note to the guardian</td><td data-label="To whom"><code>ntfy.sh</code></td><td data-label="When">Only if the owner turned it on, and only when a warning needs it</td><td data-label="Contents">One HTTPS POST of a fixed sentence, titled with the owner's first name; "urgent" priority for urgent kinds. Never links, message text or app names. Timeouts of 15 seconds, redirects off.</td></tr>
       <tr><td data-label="What">Invitation email</td><td data-label="To whom">The owner's own email app</td><td data-label="When">Once in setup, or when the owner taps "Send the invitation again"</td><td data-label="Contents">The ntfy install links and the private topic link. The owner presses Send; Aegida cannot tell whether it was sent.</td></tr>
     </tbody>
   </table>
+  <p><b>Nothing else leaves the phone.</b> The only thing that comes <em>in</em> is the scam lists.</p>
   <ul>
     <li><b>The topic is the password.</b> A topic is <code>aegida_</code> plus 40 random letters and digits from a cryptographically strong random generator, about 238 bits, made on the phone. There is no account, token or API key. Anyone who has the link could read the notes or send a false one, which is why the invitation says to keep it private, and why changing the guardian makes a new topic.</li>
     <li><b>"Hasn't checked in".</b> After every daily check Aegida re-arms one delayed message (two days) under the same sequence id, which replaces the waiting one. If the phone stays silent for about two days, ntfy delivers it. Turning alerts off cancels it.</li>
@@ -398,6 +398,8 @@
     <li><b>Never leaves the phone.</b> The text of notifications, contacts, texts, calls, location, microphone, camera, the list of installed apps, and the findings. There is no analytics, crash-reporting or advertising code: the app's libraries are Jetpack Compose, Hilt, Room, WorkManager, OkHttp and kotlinx.serialization.</li>
     <li><b>Stored on the phone.</b> The owner's name and picture, the guardian's name, email and phone number, the topic, a baseline of the phone from when setup ended, findings, 90 days of history, the queue, and the downloaded lists, in the app's private storage. It is excluded from cloud backup and phone-to-phone transfer. It is not encrypted by Aegida beyond what Android itself does for app storage.</li>
   </ul>
+  <h3>What comes in</h3>
+  <p>The daily job asks <code>wizoi.github.io</code> (GitHub Pages) for two files, <code>feed.sig</code> and then <code>feed.bin</code>, with a plain GET. The request names the file and nothing else: no identifiers, nothing about the phone or the owner. GitHub, like any website, can see the internet address that asked.</p>
   <details>
     <summary>Every note a guardian can receive</summary>
     <ul>
