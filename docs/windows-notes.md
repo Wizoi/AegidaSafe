@@ -44,3 +44,7 @@ syntax error). Test: `python -I - <<'EOF'` with `print(repr("a\\bc"))` prints `'
 - No `&&` or `||`; chain with `;` and test `$?`.
 - A bare empty string argument to a program is dropped: `ssh-keygen -N ""` fails, `ssh-keygen -N '""'` works.
 - `Set-Content`/`Out-File` default to the system code page; pass `-Encoding utf8`.
+
+## A regex word boundary became a backspace (Oct 9)
+Inline Python through the Bash tool: `\\b` reaches Python as `\b`, which in a normal string is a backspace character (0x08). It sits invisibly in a Kotlin regex and the pattern then matches nothing, so a test passes without testing anything (findings #79). Build a backslash with `chr(92)`, use the Write/Edit tools, and after editing run:
+`python -I -c "import pathlib,subprocess;[print(f) for f in subprocess.run(['git','ls-files'],capture_output=True,text=True).stdout.split() if f.endswith(('.kt','.py','.sh','.kts','.xml')) and any(c<32 and c not in (9,10,13) for c in pathlib.Path(f).read_bytes())]"`

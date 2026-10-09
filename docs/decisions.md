@@ -106,6 +106,8 @@
 - **Scam-list freshness is a visible line in Settings** ("Lists updated <date>."), not a hidden gesture.
 - **The back-off after a guardian change** uses a new key-value setting (`guardians.pairedAt`), not a History column, so no Room migration.
 
+- **Guardian messages use the owner's name, never "her"; only serious ones say "please call"** (Kevin, Oct 9: options B and D). Updates that are small go out as 0.0.1 steps: 0.3.1 next.
+
 ## Open / next session
 - Create the Gradle project and run the **emulator spike**: confirm each `adb`/`cmd` scenario works on the API 36 Play image.
 - Kevin: look for an old Samsung phone on One UI 6+; look into Samsung Remote Test Lab.

@@ -18,7 +18,7 @@ phone at setup, the findings, a 90-day history, queued guardian messages, and th
 
 ## Sends
 - To the public ntfy.sh service, only when the owner turned guardian alerts on: short fixed sentences written in her name
-  ("A message with a scam link arrived on Ruth's phone. Aegida warned her."). **No links, no message text, no app names.**
+  ("A message with a scam link arrived on Ruth's phone. Aegida warned Ruth."). **No links, no message text, no app names.**
   The topic name is the only access control, so it is random (238 bits) and is given to the guardian by email from the
   owner's own phone.
 - To https://wizoi.github.io/Aegida-Feed/ : an ordinary download of the signed list. Nothing about the phone is sent.
