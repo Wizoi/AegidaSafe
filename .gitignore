@@ -31,3 +31,4 @@ build-shots/
 
 # Release mapping files are kept per versionCode in release-mappings/ (committed)
 !release-mappings/
+.claude/worktrees/
