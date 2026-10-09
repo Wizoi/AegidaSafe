@@ -49,4 +49,14 @@ class BaselineKeeperTest {
         keeper.keep(withApps.copy(apps = withApps.apps + com.aegida.core.model.InstalledApp("org.two", "Two", null, false)))
         assertEquals(setOf("org.one"), baselines.value!!.apps)
     }
+
+    @Test fun aDefaultTheBaselineCouldNotReadAtSetupIsAdoptedOnceWhenItBecomesReadable() = runTest { // findings #68
+        setup.value = Setup.NotDone.copy(stepsDone = SetupStep.entries.size)
+        val old = Baseline.of(phone).copy(smsApp = null, assistant = null)
+        baselines.value = old
+        keeper.keep(phone.copy(smsApp = "org.texts", assistant = "org.assistant"))
+        assertEquals(old.copy(smsApp = "org.texts", assistant = "org.assistant"), baselines.value)
+        keeper.keep(phone.copy(smsApp = "org.other.texts", assistant = "org.other.assistant")) // a later change is drift, not adopted
+        assertEquals(old.copy(smsApp = "org.texts", assistant = "org.assistant"), baselines.value)
+    }
 }

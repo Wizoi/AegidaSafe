@@ -130,10 +130,23 @@ class AndroidSnapshotterTest {
         assertEquals(setOf("org.mdm"), take().deviceAdmins)
     }
 
-    @Test fun theDefaultTextAppIsReadFromTheSetting() {
+    // The default text app and the default assistant are read the way the default browser is: by who a
+    // text link / an assist request would open, never launched. Android 17 no longer shows the setting (findings #68).
+    private fun resolves(intent: Intent, packageName: String) {
+        val info = ResolveInfo().apply { activityInfo = ActivityInfo().apply { this.packageName = packageName; name = "Main" } }
+        shadowOf(context.packageManager).addResolveInfoForIntent(intent, info)
+    }
+
+    @Test fun theDefaultTextAppIsReadFromWhoWouldOpenATextLink() {
         assertEquals(null, take().smsApp)
-        Settings.Secure.putString(context.contentResolver, "sms_default_application", "org.texts")
+        resolves(Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:5550100")), "org.texts")
         assertEquals("org.texts", take().smsApp)
+    }
+
+    @Test fun theDefaultAssistantIsReadFromWhoWouldAnswerAnAssistRequest() {
+        assertEquals(null, take().assistant)
+        resolves(Intent(Intent.ACTION_ASSIST), "org.assistant")
+        assertEquals("org.assistant", take().assistant)
     }
 
     // Installed apps

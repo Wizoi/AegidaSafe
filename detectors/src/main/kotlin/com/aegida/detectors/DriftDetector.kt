@@ -27,6 +27,7 @@ class DriftDetector @Inject constructor() : Detector {
             if (phone.browser != null && phone.browser != baseline.browser) add(finding(Problem.BrowserChanged, phone.browser!!))
             if (phone.smsApp != null && phone.smsApp != baseline.smsApp) add(finding(Problem.SmsAppChanged, phone.smsApp!!))
             if (phone.dialerApp != null && phone.dialerApp != baseline.dialerApp) add(finding(Problem.DialerChanged, phone.dialerApp!!))
+            if (phone.assistant != null && phone.assistant != baseline.assistant) add(finding(Problem.AssistantChanged, phone.assistant!!))
         }
         val added = (phone.notificationListeners - baseline.notificationListeners).sorted().map { finding(Problem.ListenerAdded, it) } +
             (phone.accessibilityApps - baseline.accessibilityApps).sorted().map { finding(Problem.AccessibilityAdded, it) } +

@@ -104,6 +104,9 @@ object Texts {
     }
 
     object Setup {
+        const val WELCOME_TITLE = "Welcome to Aegida"
+        const val WELCOME_BODY = "Aegida looks out for scams on your phone. It watches quietly, tells you in plain words if something looks wrong, and can let someone you trust know. Setting up takes about five minutes."
+        const val WELCOME_START = "Let's start"
         const val STEP = "STEP %s OF %s"
 
         const val ABOUT_TITLE = "Let's set up your helper"
@@ -139,7 +142,8 @@ object Texts {
 
         const val FILTER_TITLE = "Block scam websites"
         const val FILTER_BODY = "Your phone can refuse to open known scam websites. It takes one setting."
-        const val FILTER_STEPS = "1. Tap Open settings.\n2. Tap Private DNS.\n3. Choose the hostname choice.\n4. Type: %s\n5. Tap Save."
+        const val FILTER_COPY_AND_OPEN = "Copy the address and open settings"
+        const val FILTER_STEPS = "1. Tap the big button below. It copies the address and opens Settings.\n2. Find Private DNS. It is usually under Network or Connections, then More or Advanced.\n3. Choose the hostname option.\n4. Press and hold in the box, tap Paste, and the address is filled in. (It is %s.)\n5. Tap Save, then come back here."
         const val FILTER_ON = "Website protection is on."
         const val FILTER_NOT_YET = "Not on yet. When you're done, come back here."
         const val FILTER_CHECK = "Check it"
@@ -177,6 +181,7 @@ object Texts {
 
     /** The email the owner's phone drafts for her guardian. Filled in by the invite builder. */
     object Invite {
+        const val CHOOSE = "Pick your email app"
         const val SUBJECT = "%s has picked you as a guardian"
         const val BODY = "Hi %s,\n\n" +
             "I've picked you as my guardian. You'll get a message if my phone needs help.\n\n" +

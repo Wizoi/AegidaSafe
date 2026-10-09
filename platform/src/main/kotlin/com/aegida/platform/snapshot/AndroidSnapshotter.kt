@@ -45,7 +45,8 @@ class AndroidSnapshotter(
             canPostNotifications = canPost(notifications),
             installBlocker = oem.installBlocker(),
             neverSleeping = oem.neverSleeping(),
-            smsApp = Settings.Secure.getString(context.contentResolver, DEFAULT_TEXT_APP)?.takeIf { it.isNotEmpty() },
+            smsApp = defaultHandler(Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:5550100"))),
+            assistant = defaultHandler(Intent(Intent.ACTION_ASSIST)),
             dialerApp = context.getSystemService(TelecomManager::class.java)?.defaultDialerPackage,
             notificationListeners = packagesIn(Settings.Secure.getString(context.contentResolver, ENABLED_LISTENERS)) - context.packageName,
             accessibilityApps = packagesIn(Settings.Secure.getString(context.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES)),
@@ -127,11 +128,17 @@ class AndroidSnapshotter(
      * The app that opens an ordinary web link by default. Only resolved, never launched. "android" is the
      * system chooser, which means no default is set. App roles cannot be listed by an ordinary app.
      */
-    private fun readDefaultBrowser(): String? {
-        val probe = Intent(Intent.ACTION_VIEW, Uri.parse("https://example.com")).addCategory(Intent.CATEGORY_BROWSABLE)
-        val resolved = context.packageManager.resolveActivity(probe, PackageManager.MATCH_DEFAULT_ONLY)
-        return resolved?.activityInfo?.packageName?.takeIf { it != "android" }
-    }
+    private fun readDefaultBrowser(): String? =
+        defaultHandler(Intent(Intent.ACTION_VIEW, Uri.parse("https://example.com")).addCategory(Intent.CATEGORY_BROWSABLE))
+
+    /**
+     * The app that would open [probe] by default, found by asking the system to resolve it, never by launching it.
+     * "android" is the system chooser, which means no default is set. Ordinary apps cannot list app roles, and the
+     * text-message and assistant settings are hidden on newer Android, so the resolution is the one way to read them.
+     * (This is not an SMS API: no permission, nothing is read or sent.)
+     */
+    private fun defaultHandler(probe: Intent): String? =
+        context.packageManager.resolveActivity(probe, PackageManager.MATCH_DEFAULT_ONLY)?.activityInfo?.packageName?.takeIf { it != "android" }
 
     /** Banners need the app allowed and the "needs a tap" channel not switched off. */
     private fun canPost(notifications: NotificationManager): Boolean {
@@ -141,8 +148,6 @@ class AndroidSnapshotter(
     }
 
     private companion object {
-        // The default text-message app is read from the setting, not through the SMS classes (no SMS capability, ever).
-        const val DEFAULT_TEXT_APP = "sms_default_application"
         val APPS_FRESH_FOR: Duration = Duration.ofMinutes(5)
         const val ENABLED_LISTENERS = "enabled_notification_listeners"
         const val PRIVATE_DNS_MODE = "private_dns_mode"

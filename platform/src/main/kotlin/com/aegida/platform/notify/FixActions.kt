@@ -1,5 +1,8 @@
 package com.aegida.platform.notify
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
@@ -28,7 +31,7 @@ object FixActions {
             }
         }
         Problem.ListenerOff, Problem.ListenerAdded -> notificationAccess()
-        Problem.BrowserChanged, Problem.SmsAppChanged, Problem.DialerChanged -> Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS)
+        Problem.BrowserChanged, Problem.SmsAppChanged, Problem.DialerChanged, Problem.AssistantChanged -> Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS)
         Problem.AccessibilityAdded -> Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
         Problem.AdminAdded -> Intent(Settings.ACTION_SECURITY_SETTINGS)
         // The app's own page, where she can uninstall it.
@@ -37,6 +40,11 @@ object FixActions {
         Problem.NotificationsBlocked -> Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, ownPackage)
         else -> null
     }?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
+    /** Puts [text] on the clipboard (no permission needed) so the owner can paste it instead of remembering it. */
+    fun copyToClipboard(context: Context, text: String) {
+        context.getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText("Aegida", text))
+    }
 
     /** Where the owner turns notification access on for Aegida (setup and "Fix my phone"). */
     fun notificationAccess(): Intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

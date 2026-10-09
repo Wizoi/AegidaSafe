@@ -25,6 +25,7 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.aegida.app.ui.AegidaScreen
+import com.aegida.app.ui.AegidaShield
 import com.aegida.app.ui.BigButton
 import com.aegida.app.ui.Body
 import com.aegida.app.ui.PictureTile
@@ -33,6 +34,22 @@ import com.aegida.core.alert.Guardians
 import com.aegida.core.model.SafetyPicture
 import com.aegida.core.model.WebsiteFilter
 import com.aegida.core.text.Texts
+
+/** The first thing she sees: what Aegida is, in plain words, before any question. */
+@Composable
+fun WelcomeScreen(onStart: () -> Unit) {
+    AegidaScreen(null) {
+        Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(20.dp)) {
+            AegidaShield(120.dp)
+            Text(
+                Texts.Setup.WELCOME_TITLE, style = MaterialTheme.typography.headlineLarge,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.semantics { heading() },
+            )
+            Body(Texts.Setup.WELCOME_BODY)
+            BigButton(Texts.Setup.WELCOME_START, onStart)
+        }
+    }
+}
 
 /** One first-run step: a title, a few plain sentences, then the one thing to do. */
 @Composable
@@ -185,7 +202,7 @@ fun FilterGuideBody(filterOn: Boolean, onOpenSettings: () -> Unit, onCheck: () -
         Body(Texts.Setup.FILTER_STEPS.format(WebsiteFilter.HOST), centered = false)
         Body(if (filterOn) Texts.Setup.FILTER_ON else Texts.Setup.FILTER_NOT_YET, centered = false)
         if (!filterOn) {
-            BigButton(Texts.Common.OPEN_SETTINGS, onOpenSettings)
+            BigButton(Texts.Setup.FILTER_COPY_AND_OPEN, onOpenSettings)
             QuietButton(Texts.Setup.FILTER_CHECK, onCheck)
         }
         if (filterOn) BigButton(continueText, onContinue) else QuietButton(Texts.Common.NOT_NOW, onContinue)

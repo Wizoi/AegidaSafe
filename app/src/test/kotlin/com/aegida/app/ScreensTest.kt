@@ -30,6 +30,7 @@ import com.aegida.app.ui.setup.ChangeGuardianScreen
 import com.aegida.app.ui.setup.FilterStep
 import com.aegida.app.ui.setup.InviteStep
 import com.aegida.app.ui.setup.PictureStep
+import com.aegida.app.ui.setup.WelcomeScreen
 import com.aegida.app.ui.theme.AegidaTheme
 import com.aegida.core.alert.Guardians
 import com.aegida.core.alert.HistoryRow
@@ -215,6 +216,16 @@ class ScreensTest(private val dark: Boolean, private val fontScale: Float) {
 
     // First-run steps
 
+    @Test fun theWelcomeScreenSaysWhatAegidaIsBeforeAnyQuestionAndOnlyThenStarts() {
+        var started = 0
+        show { WelcomeScreen(onStart = { started++ }) }
+        reachable(Texts.Setup.WELCOME_TITLE)
+        reachable(Texts.Setup.WELCOME_BODY)
+        assertEquals(0, started)
+        compose.onNodeWithText(Texts.Setup.WELCOME_START).performScrollTo().performClick()
+        assertEquals(1, started)
+    }
+
     @Test fun aboutStepNeedsAValidNameGuardianAndEmailBeforeContinuing() {
         var saved: List<String>? = null
         show { AboutStep(null, 1, 6, Guardians.None) { a, b, c, d -> saved = listOf(a, b, c, d) } }
@@ -272,8 +283,15 @@ class ScreensTest(private val dark: Boolean, private val fontScale: Float) {
     @Test fun filterStepReadsAsNotOnYetAndThenOnOnlyWhenAegidaHasReadItBack() {
         show { FilterStep(picture, 6, 6, filterOn = false, onOpenSettings = {}, onCheck = {}, onContinue = {}) }
         reachable(Texts.Setup.FILTER_NOT_YET)
-        reachable(Texts.Common.OPEN_SETTINGS)
+        reachable(Texts.Setup.FILTER_COPY_AND_OPEN)
         reachable(Texts.Setup.FILTER_CHECK)
+    }
+
+    @Test fun theOneBigButtonOnTheFilterStepIsTheCopyAndOpenButton() {
+        var opened = 0
+        show { FilterStep(picture, 6, 6, filterOn = false, onOpenSettings = { opened++ }, onCheck = {}, onContinue = {}) }
+        compose.onNodeWithText(Texts.Setup.FILTER_COPY_AND_OPEN).performScrollTo().performClick()
+        assertEquals(1, opened)
     }
 
     @Test fun filterStepOnShowsItAndContinues() {

@@ -21,6 +21,9 @@ class BaselineKeeper @Inject constructor(
             kept == null -> baselines.save(Baseline.of(snapshot))
             // A baseline from before apps were recorded: add them once, change nothing else.
             kept.apps == null && snapshot.apps.isNotEmpty() -> baselines.save(kept.copy(apps = Baseline.userApps(snapshot)))
+            // A default the baseline could not read at setup (null) is taken once it can be read; any later change is drift.
+            (kept.smsApp == null && snapshot.smsApp != null) || (kept.assistant == null && snapshot.assistant != null) ->
+                baselines.save(kept.copy(smsApp = kept.smsApp ?: snapshot.smsApp, assistant = kept.assistant ?: snapshot.assistant))
         }
     }
 }

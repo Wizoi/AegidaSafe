@@ -13,6 +13,7 @@ data class Baseline(
     val notificationListeners: Set<String>,
     val accessibilityApps: Set<String>,
     val deviceAdmins: Set<String>,
+    val assistant: String? = null,
     /** The apps that were on the phone (not counting those that shipped with it), or null if not recorded yet. */
     val apps: Set<String>? = null,
     /** Remote-control apps she said were hers. */
@@ -27,6 +28,7 @@ data class Baseline(
         Problem.BrowserChanged -> if (now.browser == subject) copy(browser = subject) else this
         Problem.SmsAppChanged -> if (now.smsApp == subject) copy(smsApp = subject) else this
         Problem.DialerChanged -> if (now.dialerApp == subject) copy(dialerApp = subject) else this
+        Problem.AssistantChanged -> if (now.assistant == subject) copy(assistant = subject) else this
         Problem.ListenerAdded -> if (subject in now.notificationListeners) copy(notificationListeners = notificationListeners + subject) else this
         Problem.AccessibilityAdded -> if (subject in now.accessibilityApps) copy(accessibilityApps = accessibilityApps + subject) else this
         Problem.AdminAdded -> if (subject in now.deviceAdmins) copy(deviceAdmins = deviceAdmins + subject) else this
@@ -39,6 +41,7 @@ data class Baseline(
         fun of(snapshot: Snapshot) = Baseline(
             snapshot.browser, snapshot.smsApp, snapshot.dialerApp,
             snapshot.notificationListeners, snapshot.accessibilityApps, snapshot.deviceAdmins,
+            assistant = snapshot.assistant,
             apps = userApps(snapshot),
         )
 

@@ -102,7 +102,7 @@ class RoomStoresTest {
         val baseline = com.aegida.core.model.Baseline(
             browser = "com.android.chrome", smsApp = null, dialerApp = "com.google.android.dialer",
             notificationListeners = setOf("app.b", "app.a"), accessibilityApps = emptySet(), deviceAdmins = setOf("app.admin"),
-            apps = setOf("org.one", "org.two"), acceptedRemoteApps = setOf("com.anydesk.anydeskandroid"),
+            assistant = "org.assistant", apps = setOf("org.one", "org.two"), acceptedRemoteApps = setOf("com.anydesk.anydeskandroid"),
         )
         settings.save(baseline)
         assertEquals(baseline, settings.baseline())

@@ -120,6 +120,7 @@ internal class RoomSettings(private val dao: SettingDao) : SetupStore, GuardianS
             notificationListeners = set(BASELINE_LISTENERS),
             accessibilityApps = set(BASELINE_ACCESSIBILITY),
             deviceAdmins = set(BASELINE_ADMINS),
+            assistant = v[BASELINE_ASSISTANT]?.takeIf { it.isNotEmpty() },
             apps = if (v[BASELINE_APPS_TAKEN] == "true") set(BASELINE_APPS) else null,
             acceptedRemoteApps = set(BASELINE_REMOTE_OK),
         )
@@ -131,6 +132,7 @@ internal class RoomSettings(private val dao: SettingDao) : SetupStore, GuardianS
             SettingEntity(BASELINE_BROWSER, baseline.browser.orEmpty()),
             SettingEntity(BASELINE_SMS, baseline.smsApp.orEmpty()),
             SettingEntity(BASELINE_DIALER, baseline.dialerApp.orEmpty()),
+            SettingEntity(BASELINE_ASSISTANT, baseline.assistant.orEmpty()),
             SettingEntity(BASELINE_LISTENERS, baseline.notificationListeners.sorted().joinToString("\n")),
             SettingEntity(BASELINE_ACCESSIBILITY, baseline.accessibilityApps.sorted().joinToString("\n")),
             SettingEntity(BASELINE_ADMINS, baseline.deviceAdmins.sorted().joinToString("\n")),
@@ -145,6 +147,7 @@ internal class RoomSettings(private val dao: SettingDao) : SetupStore, GuardianS
         const val BASELINE_BROWSER = "baseline.browser"
         const val BASELINE_SMS = "baseline.smsApp"
         const val BASELINE_DIALER = "baseline.dialerApp"
+        const val BASELINE_ASSISTANT = "baseline.assistant"
         const val BASELINE_LISTENERS = "baseline.notificationListeners"
         const val BASELINE_ACCESSIBILITY = "baseline.accessibilityApps"
         const val BASELINE_ADMINS = "baseline.deviceAdmins"

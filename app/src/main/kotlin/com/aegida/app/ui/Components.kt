@@ -45,6 +45,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.aegida.app.R
+import com.aegida.app.ui.theme.Teal
 import com.aegida.app.ui.theme.amberColor
 import com.aegida.app.ui.theme.goodColor
 import com.aegida.core.model.SafetyPicture
@@ -118,6 +119,28 @@ fun AegidaScreen(pictureId: String?, modifier: Modifier = Modifier, content: @Co
             AegidaHeader(pictureId)
             content()
         }
+    }
+}
+
+/** The Aegida shield (a rounded shield with a check), drawn in code in the brand colours. */
+@Composable
+fun AegidaShield(size: Dp, modifier: Modifier = Modifier) {
+    Canvas(modifier.size(size).semantics { contentDescription = Texts.APP_NAME }) {
+        val s = this.size.minDimension
+        val shield = Path().apply {
+            moveTo(s * 0.5f, s * 0.06f)
+            lineTo(s * 0.88f, s * 0.2f)
+            lineTo(s * 0.88f, s * 0.5f)
+            quadraticBezierTo(s * 0.88f, s * 0.82f, s * 0.5f, s * 0.96f)
+            quadraticBezierTo(s * 0.12f, s * 0.82f, s * 0.12f, s * 0.5f)
+            lineTo(s * 0.12f, s * 0.2f)
+            close()
+        }
+        drawPath(shield, Teal)
+        drawPath(
+            Path().apply { moveTo(s * 0.32f, s * 0.5f); lineTo(s * 0.45f, s * 0.63f); lineTo(s * 0.69f, s * 0.35f) },
+            Color.White, style = Stroke(width = s * 0.08f, cap = StrokeCap.Round, join = StrokeJoin.Round),
+        )
     }
 }
 

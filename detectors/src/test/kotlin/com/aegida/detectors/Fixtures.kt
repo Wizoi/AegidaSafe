@@ -30,9 +30,10 @@ object Fixtures {
         notificationListeners: Set<String> = emptySet(),
         accessibilityApps: Set<String> = emptySet(),
         deviceAdmins: Set<String> = emptySet(),
+        assistant: String? = "com.google.android.googlequicksearchbox",
     ) = Snapshot(
         now, privateDns, browser, listenerEnabled, canPostNotifications, Reading.NotPresent, Reading.NotPresent,
-        smsApp, dialerApp, notificationListeners, accessibilityApps, deviceAdmins,
+        smsApp, dialerApp, notificationListeners, accessibilityApps, deviceAdmins, assistant = assistant,
     )
 
     fun feed(age: Duration = Duration.ofHours(3), hosts: List<String> = listOf("evil.example")) =

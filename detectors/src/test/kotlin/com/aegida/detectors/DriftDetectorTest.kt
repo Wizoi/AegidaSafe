@@ -23,6 +23,7 @@ class DriftDetectorTest {
         assertEquals(listOf(Problem.BrowserChanged to "org.evil.browser"), found(snapshot(browser = "org.evil.browser")))
         assertEquals(listOf(Problem.SmsAppChanged to "org.evil.sms"), found(snapshot(smsApp = "org.evil.sms")))
         assertEquals(listOf(Problem.DialerChanged to "org.evil.dialer"), found(snapshot(dialerApp = "org.evil.dialer")))
+        assertEquals(listOf(Problem.AssistantChanged to "org.evil.assistant"), found(snapshot(assistant = "org.evil.assistant")))
     }
 
     @Test fun aDefaultThatIsNowUnsetIsNotAChange() =
@@ -63,19 +64,20 @@ class DriftDetectorTest {
 
     @Test fun eachKindOfChangeIsAcceptedOnItsOwn() {
         val everything = snapshot(
-            browser = "b.new", smsApp = "s.new", dialerApp = "d.new",
+            browser = "b.new", smsApp = "s.new", dialerApp = "d.new", assistant = "as.new",
             notificationListeners = setOf("l.new"), accessibilityApps = setOf("a.new"), deviceAdmins = setOf("m.new"),
         )
         val expected = mapOf(
             Problem.BrowserChanged to baseline.copy(browser = "b.new"),
             Problem.SmsAppChanged to baseline.copy(smsApp = "s.new"),
             Problem.DialerChanged to baseline.copy(dialerApp = "d.new"),
+            Problem.AssistantChanged to baseline.copy(assistant = "as.new"),
             Problem.ListenerAdded to baseline.copy(notificationListeners = setOf("l.new")),
             Problem.AccessibilityAdded to baseline.copy(accessibilityApps = setOf("a.new")),
             Problem.AdminAdded to baseline.copy(deviceAdmins = setOf("m.new")),
         )
         val subjects = mapOf(
-            Problem.BrowserChanged to "b.new", Problem.SmsAppChanged to "s.new", Problem.DialerChanged to "d.new",
+            Problem.BrowserChanged to "b.new", Problem.SmsAppChanged to "s.new", Problem.DialerChanged to "d.new", Problem.AssistantChanged to "as.new",
             Problem.ListenerAdded to "l.new", Problem.AccessibilityAdded to "a.new", Problem.AdminAdded to "m.new",
         )
         expected.forEach { (problem, moved) -> assertEquals(problem.name, moved, baseline.accepting(problem, subjects.getValue(problem), everything)) }

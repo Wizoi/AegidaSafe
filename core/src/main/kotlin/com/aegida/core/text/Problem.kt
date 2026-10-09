@@ -92,6 +92,13 @@ enum class Problem(
         whatHappened = "The app that makes phone calls was changed",
         fix = Fix.ConfirmChange,
     ),
+    AssistantChanged(
+        Severity.NeedsTap,
+        "The app that answers when you ask your phone for help was changed. Was that you?",
+        null,
+        whatHappened = "The phone's assistant app was changed",
+        fix = Fix.ConfirmChange,
+    ),
     ListenerAdded(
         Severity.Urgent,
         "An app can now read your notifications. Was that you?",

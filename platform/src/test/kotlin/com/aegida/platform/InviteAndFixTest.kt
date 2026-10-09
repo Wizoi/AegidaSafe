@@ -36,9 +36,10 @@ class InviteAndFixTest {
 
     @Test fun theInviteIsAnEmailDraftToTheGuardianWithBothInstallLinksAndHerPrivateLink() {
         val intent = InviteEmail.intent(guardians)!!
-        assertEquals(Intent.ACTION_SENDTO, intent.action)
-        assertEquals("mailto", intent.data!!.scheme)
-        assertEquals("kevin@example.org", intent.data!!.schemeSpecificPart) // what a mail app reads; whitespace trimmed
+        // A "share" with the email, subject and text: Gmail on Android 17 ignores the subject and body of a mailto: SENDTO (findings #63).
+        assertEquals(Intent.ACTION_SEND, intent.action)
+        assertEquals("text/plain", intent.type)
+        assertEquals(listOf("kevin@example.org"), intent.getStringArrayExtra(Intent.EXTRA_EMAIL)!!.toList()) // whitespace trimmed
         assertEquals("Ruth has picked you as a guardian", intent.getStringExtra(Intent.EXTRA_SUBJECT))
         val body = intent.getStringExtra(Intent.EXTRA_TEXT)!!
         assertTrue(body.startsWith("Hi Kevin,"))
@@ -85,5 +86,38 @@ class InviteAndFixTest {
     @Test fun problemsFixedInsideAegidaHaveNoSettingsScreen() {
         listOf(Problem.WebsiteFilterOff, Problem.ScamLink, Problem.LookalikeLink, Problem.MissedCheck, Problem.ListsOld)
             .forEach { assertNull(it.name, FixActions.settingsIntentFor(finding(it), "p")) }
+    }
+
+    @Test fun withOneMailAppTheInviteGoesStraightToItAndWithSeveralTheOwnerChoosesAmongMailAppsOnly() {
+        val one = InviteEmail.intent(guardians, listOf("com.mail.app"))!!
+        assertEquals("com.mail.app", one.`package`)
+        val many = InviteEmail.intent(guardians, listOf("com.mail.app", "org.other.mail"))!!
+        assertEquals(Intent.ACTION_CHOOSER, many.action)
+        val inner = many.getParcelableExtra<Intent>(Intent.EXTRA_INTENT)!!
+        assertEquals("com.mail.app", inner.`package`)
+        assertEquals(listOf("org.other.mail"), many.getParcelableArrayExtra(Intent.EXTRA_INITIAL_INTENTS)!!.map { (it as Intent).`package` })
+        // with no mail app found it is still a share the owner can finish somewhere
+        assertEquals(Intent.ACTION_SEND, InviteEmail.intent(guardians, emptyList())!!.action)
+    }
+
+    @Test fun mailAppsAreThoseThatTakeBothAMailtoAndAShareOfText() {
+        val pm = org.robolectric.Shadows.shadowOf(androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>().packageManager)
+        fun resolve(pkg: String) = android.content.pm.ResolveInfo().apply {
+            activityInfo = android.content.pm.ActivityInfo().apply { packageName = pkg; name = "Compose" }
+        }
+        val mailto = Intent(Intent.ACTION_SENDTO, android.net.Uri.parse("mailto:"))
+        val share = Intent(Intent.ACTION_SEND).setType("text/plain")
+        pm.addResolveInfoForIntent(mailto, resolve("com.mail.app"))
+        pm.addResolveInfoForIntent(mailto, resolve("com.mailonly.app"))
+        pm.addResolveInfoForIntent(share, resolve("com.mail.app"))
+        pm.addResolveInfoForIntent(share, resolve("com.chat.app"))
+        assertEquals(listOf("com.mail.app"), InviteEmail.emailApps(androidx.test.core.app.ApplicationProvider.getApplicationContext()))
+    }
+
+    @Test fun theWebsiteFilterAddressIsPutOnTheClipboardSoSheCanPasteItInsteadOfTypingIt() { // findings #67
+        val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
+        FixActions.copyToClipboard(context, "security.cloudflare-dns.com")
+        val clip = context.getSystemService(android.content.ClipboardManager::class.java).primaryClip!!
+        assertEquals("security.cloudflare-dns.com", clip.getItemAt(0).text.toString())
     }
 }

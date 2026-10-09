@@ -28,6 +28,8 @@ data class Snapshot(
     val accessibilityApps: Set<String> = emptySet(),
     /** Packages that are active device administrators. */
     val deviceAdmins: Set<String> = emptySet(),
+    /** Package answering assist requests (the default digital assistant), or null. */
+    val assistant: String? = null,
     /** Every app Aegida may see. Empty when it could not list them. */
     val apps: List<InstalledApp> = emptyList(),
 )

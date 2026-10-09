@@ -46,6 +46,7 @@ import com.aegida.app.MainState
 import com.aegida.app.MainViewModel
 import com.aegida.app.ui.setup.AboutStep
 import com.aegida.app.ui.setup.ChangeGuardianScreen
+import com.aegida.app.ui.setup.WelcomeScreen
 import com.aegida.app.ui.setup.AccessStep
 import com.aegida.app.ui.setup.AlertsStep
 import com.aegida.app.ui.setup.BlockerStep
@@ -57,6 +58,7 @@ import com.aegida.app.ui.setup.PictureStep
 import com.aegida.core.model.AutoBlockerAnswer
 import com.aegida.core.model.Finding
 import com.aegida.core.model.SafetyPicture
+import com.aegida.core.model.WebsiteFilter
 import com.aegida.core.model.SetupStep
 import com.aegida.core.text.Fix
 import com.aegida.core.text.Texts
@@ -99,6 +101,12 @@ private fun SetupFlow(state: MainState, vm: MainViewModel) {
     val scope = rememberCoroutineScope()
     var step by rememberSaveable { mutableStateOf(SetupStep.resumeAt(state.setup) ?: SetupStep.Finish) }
     var noEmailApp by rememberSaveable { mutableStateOf(false) }
+    // Her first look at Aegida: say what it is before the first question. Skipped once she has started.
+    var welcomed by rememberSaveable { mutableStateOf(state.setup.stepsDone > 0) }
+    if (!welcomed) {
+        WelcomeScreen(onStart = { welcomed = true })
+        return
+    }
     val pictureId = state.setup.pictureId
     val total = if (state.blockerRelevant) SetupStep.Blocker.ordinal + 1 else SetupStep.Blocker.ordinal
     val number = step.ordinal + 1
@@ -123,7 +131,7 @@ private fun SetupFlow(state: MainState, vm: MainViewModel) {
         SetupStep.Picture -> PictureStep(pictureId, number, total, SafetyPicture.fromId(pictureId), vm::savePicture, onContinue = { advance() })
         SetupStep.Invite -> InviteStep(pictureId, number, total, state.guardians.firstGuardianName, noEmailApp, onWrite = {
             scope.launch {
-                val intent = InviteEmail.intent(vm.prepareInvite())
+                val intent = InviteEmail.intent(vm.prepareInvite(), InviteEmail.emailApps(context))
                 try {
                     if (intent != null) context.startActivity(intent)
                 } catch (e: ActivityNotFoundException) {
@@ -148,7 +156,7 @@ private fun SetupFlow(state: MainState, vm: MainViewModel) {
         )
         SetupStep.Filter -> FilterStep(
             pictureId, number, total, state.filterOn,
-            onOpenSettings = { context.startSafely(FixActions.networkSettings()) },
+            onOpenSettings = { FixActions.copyToClipboard(context, WebsiteFilter.HOST); context.startSafely(FixActions.networkSettings()) },
             onCheck = { vm.refresh(runCheck = false) },
             onContinue = { vm.rememberFilterIfOn(); advance() },
         )
@@ -241,7 +249,7 @@ private fun MainContent(state: MainState, vm: MainViewModel) {
                     Headline(Texts.Setup.FILTER_TITLE)
                     FilterGuideBody(
                         state.filterOn,
-                        onOpenSettings = { context.startSafely(FixActions.networkSettings()) },
+                        onOpenSettings = { FixActions.copyToClipboard(context, WebsiteFilter.HOST); context.startSafely(FixActions.networkSettings()) },
                         onCheck = { vm.refresh(runCheck = true) },
                         onContinue = { vm.rememberFilterIfOn(); page = Page.None },
                         continueText = Texts.Common.DONE,
@@ -251,7 +259,7 @@ private fun MainContent(state: MainState, vm: MainViewModel) {
                 Page.ChangeGuardian -> ChangeGuardianScreen(pictureId, state.guardians.firstGuardianName) { name, email, phone ->
                     scope.launch {
                         // The new guardian gets the same email as in setup, with their own new private link.
-                        val intent = InviteEmail.intent(vm.changeGuardian(name, email, phone))
+                        val intent = InviteEmail.intent(vm.changeGuardian(name, email, phone), InviteEmail.emailApps(context))
                         page = Page.None
                         context.startSafely(intent)
                     }
