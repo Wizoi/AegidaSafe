@@ -141,6 +141,10 @@ if __name__ == "__main__":
         edit_db(clear_noise)
         start_app(8)
         shot("2-home")
+        # My settings first: before any test message is posted, so the status bar is clean
+        tap_text("My settings")
+        shot("5-my-settings")
+        tap_text("Home")
         sh("cmd notification disallow_listener %s/%s.AegidaListenerService" % (PKG, PKG))  # force a clean rebind
         sh("cmd notification allow_listener %s/%s.AegidaListenerService" % (PKG, PKG))
         time.sleep(8)
@@ -152,8 +156,6 @@ if __name__ == "__main__":
         time.sleep(2)
         tap_text("History")
         shot("4-history")
-        tap_text("My settings")
-        shot("5-my-settings")
     finally:
         clean_status_bar(False)
         sh("wm size reset")
