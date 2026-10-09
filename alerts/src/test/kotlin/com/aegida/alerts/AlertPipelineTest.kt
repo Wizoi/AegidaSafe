@@ -47,7 +47,7 @@ class AlertPipelineTest {
         val result = pipeline.handle(listOf(scamLink), setOf(DetectorId.Link))
         assertEquals(PipelineResult(alerted = 1, resolved = 0, guardiansNotReached = 0), result)
         assertEquals(listOf(scamLink.key), owner.shown)
-        assertEquals(listOf("A message with a scam link arrived on Ruth's phone. Aegida warned her."), http.bodies)
+        assertEquals(listOf("A message with a scam link arrived on Ruth's phone. Aegida warned Ruth."), http.bodies)
         assertEquals(listOf(Outcome.OwnerWarned, Outcome.GuardianTold), history.entries.map { it.outcome })
     }
 

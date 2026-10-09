@@ -108,7 +108,7 @@ class FindingActionsTest {
     @Test fun whenSheSaysItWasHersTheGuardianWhoWasToldHearsThat() = runTest {
         val f = listenerAdded()
         assertTrue(actions.acceptChange(f.key))
-        assertEquals(listOf("Ruth said the change Aegida asked about was hers. If you were not expecting it, please call her."), http.bodies)
+        assertEquals(listOf("Ruth confirmed the change Aegida asked about. If you were not expecting it, please call Ruth."), http.bodies)
         assertEquals(listOf(Outcome.OwnerWarned, Outcome.GuardianTold, Outcome.Acknowledged, Outcome.GuardianTold), history.entries.map { it.outcome })
     }
 
@@ -129,10 +129,10 @@ class FindingActionsTest {
         phone = phone.copy(browser = "org.other.browser")
         val f = Finding(FindingKey(DetectorId.Drift, Problem.BrowserChanged, "org.other.browser"), emptyMap(), now, now)
         pipeline.handle(listOf(f), setOf(DetectorId.Drift))
-        assertEquals(listOf("The app that opens websites on Ruth's phone was changed. Aegida asked her if that was her."), http.bodies)
+        assertEquals(listOf("The app that opens websites on Ruth's phone was changed. Aegida asked Ruth: “Was that you?”"), http.bodies)
         http.bodies.clear()
         assertTrue(actions.acceptChange(f.key))
-        assertEquals(listOf("Ruth said the change Aegida asked about was hers. Nothing more to do."), http.bodies)
+        assertEquals(listOf("Ruth confirmed the change Aegida asked about. Nothing more to do."), http.bodies)
     }
 
     @Test fun withGuardianAlertsOffNothingIsSent() = runTest {
@@ -169,7 +169,7 @@ class FindingActionsTest {
     @Test fun aNeedsTapChangeGetsTheCalmAllClearButAnUrgentOneNever() = runTest {
         val calm = newAppSideloaded()
         assertTrue(actions.acceptChange(calm.key))
-        assertEquals(listOf("Ruth said the change Aegida asked about was hers. Nothing more to do."), http.bodies)
+        assertEquals(listOf("Ruth confirmed the change Aegida asked about. Nothing more to do."), http.bodies)
     }
 
     @Test fun noAllClearIsSentAboutSomethingTheGuardianWasNeverToldAbout() = runTest { // findings #50

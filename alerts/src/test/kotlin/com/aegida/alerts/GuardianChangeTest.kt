@@ -40,7 +40,7 @@ class GuardianChangeTest {
             listOf("https://ntfy.sh/${newTopic.value}", "https://ntfy.sh/${newTopic.value}/heartbeat"),
             http.posts.map { it.first.url }.filterNot { it.contains(oldTopic.value) },
         )
-        // the only thing the old guardian's topic gets is the one "she changed her guardian" message
+        // the only thing the old guardian's topic gets is the one "the owner picked a different guardian" message
         assertEquals(1, http.posts.count { it.first.url.contains(oldTopic.value) })
     }
 
@@ -61,7 +61,7 @@ class GuardianChangeTest {
             val result = change.change("Ann", "ann@example.com", "")
             val toOld = http.posts.filter { it.first.url == "https://ntfy.sh/${oldTopic.value}" }
             assertEquals(1, toOld.size)
-            assertEquals("Mom changed her guardian in Aegida. You will not get messages about her phone from now on. If you did not expect this, please call her.", toOld.single().second)
+            assertEquals("Mom picked a different guardian in Aegida. You will not get messages about Mom's phone from now on. If you did not expect this, please call Mom.", toOld.single().second)
             assertEquals(SendResult.Delivered, result.oldGuardianTold)
             // told first, then the waiting "hasn't checked in" message is cancelled
             assertEquals(0, http.deleted.indexOfFirst { true })

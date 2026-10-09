@@ -148,7 +148,9 @@ class AlertPipeline @Inject constructor(
         val recently = history.since(now.minus(REMIND_AFTER)).any { it.outcome == Outcome.GuardianReminded && it.at.isAfter(now.minus(REMIND_AFTER)) && !it.at.isAfter(now) }
         if (recently) return 0
         val owner = guardianName(settings)
-        val message = GuardianMessage(title = owner, body = Texts.Guardian.STILL_OPEN.format(owner), urgent = false)
+        // Firm only when something waiting is urgent; otherwise the guardian is left to judge whether to call (Kevin, Oct 9).
+        val text = if (due.any { it.severity == Severity.Urgent }) Texts.Guardian.STILL_OPEN_URGENT else Texts.Guardian.STILL_OPEN
+        val message = GuardianMessage(title = owner, body = text.format(owner), urgent = false)
         var notReached = 0
         when (ntfy.send(topic, message)) {
             SendResult.Delivered -> due.forEach { history.add(HistoryEntry(now, it.key.problem, Outcome.GuardianReminded)) }

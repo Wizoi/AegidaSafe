@@ -90,7 +90,7 @@ class AlertBackoffTest {
         after(Duration.ofHours(2))
         pipeline.handle(listOf(f.copy(lastSeen = now)), setOf(DetectorId.Link))
         assertEquals(2, http.bodies.size)
-        assertEquals("Ruth hasn't dealt with a warning from Aegida yet. It has been a day. Please call her.", http.bodies.last())
+        assertEquals("Ruth hasn't dealt with a warning from Aegida yet. It has been a day. It may be a good time to give Ruth a call.", http.bodies.last())
         assertEquals(FindingState.Escalated, findings.rows[f.key]!!.state)
         assertTrue(findings.rows[f.key] in findings.open())
         assertTrue(Outcome.GuardianReminded in history.entries.map { it.outcome })

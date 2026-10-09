@@ -48,6 +48,16 @@ class AlertReminderTest {
         assertEquals(1, reminders().size)
     }
 
+    /** Kevin, Oct 9: only the serious ones say "please call"; the rest leave the call to the guardian. */
+    @Test fun aWaitingUrgentWarningGetsTheFirmReminderAndAnythingElseTheGentleOne() = runTest {
+        val urgent = Finding(FindingKey(DetectorId.Drift, Problem.RemoteControlApp, "org.remote.app"), emptyMap(), now, now)
+        pipeline.handle(listOf(urgent), setOf(DetectorId.Drift))
+        after(Duration.ofHours(25))
+        pipeline.handle(listOf(urgent.copy(lastSeen = now)), setOf(DetectorId.Drift))
+        assertEquals(1, http.bodies.count { it == Texts.Guardian.STILL_OPEN_URGENT.format("Ruth") })
+        assertEquals("the gentle reminder is for warnings that are not urgent", 0, reminders().size)
+    }
+
     @Test fun aGuardianRemindedInTheLastDayIsNotRemindedAgainByALaterRun() = runTest {
         val a = link("a.example")
         pipeline.handle(listOf(a), setOf(DetectorId.Link))

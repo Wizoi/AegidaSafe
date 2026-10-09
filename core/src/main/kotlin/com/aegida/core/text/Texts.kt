@@ -17,12 +17,13 @@ object Texts {
     /** What a guardian reads on their phone. Written in the owner's name; no links, no message text, no "safe". */
     object Guardian {
         const val SET_UP = "Aegida is set up on %s's phone. You will get a message here if it needs help."
-        const val STILL_OPEN = "%s hasn't dealt with a warning from Aegida yet. It has been a day. Please call her."
-        const val CONFIRMED = "%s said the change Aegida asked about was hers. Nothing more to do."
-        /** For urgent kinds: it could be a scammer coaching her, so it never says everything is fine. */
-        const val CONFIRMED_URGENT = "%s said the change Aegida asked about was hers. If you were not expecting it, please call her."
-        const val CHANGED = "%s changed her guardian in Aegida. You will not get messages about her phone from now on. If you did not expect this, please call her."
-        const val NOT_CHECKED_IN = "Aegida hasn't checked in on %s's phone for 2 days. The phone may be off or asleep. Please call her."
+        const val STILL_OPEN = "%1\$s hasn't dealt with a warning from Aegida yet. It has been a day. It may be a good time to give %1\$s a call."
+        const val STILL_OPEN_URGENT = "%1\$s hasn't dealt with an urgent warning from Aegida yet. It has been a day. Please call %1\$s now."
+        const val CONFIRMED = "%1\$s confirmed the change Aegida asked about. Nothing more to do."
+        /** For urgent kinds: it could be a scammer coaching the owner, so it never says everything is fine. */
+        const val CONFIRMED_URGENT = "%1\$s confirmed the change Aegida asked about. If you were not expecting it, please call %1\$s."
+        const val CHANGED = "%1\$s picked a different guardian in Aegida. You will not get messages about %1\$s's phone from now on. If you did not expect this, please call %1\$s."
+        const val NOT_CHECKED_IN = "Aegida hasn't checked in on %1\$s's phone for 2 days. The phone may be off or asleep. It may be a good time to call %1\$s."
     }
 
     object Nav {
