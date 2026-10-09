@@ -51,6 +51,12 @@ class PublicPagesTest {
         assertEquals("say \"you\", never label her", emptyList<String>(), labels.findAll(plain).map { it.value }.toList())
     }
 
+    /** Kevin, Oct 9: the page says "the owner" (or "you" in the Simple view), never "her" or "she", as the app's own messages do. */
+    @Test fun itNeverAssumesHowTheOwnerIsAddressed() {
+        val pronouns = Regex("""\b(her|hers|herself|she|he|him|his|himself)\b""", RegexOption.IGNORE_CASE)
+        assertEquals(emptyList<String>(), pronouns.findAll(plain).map { it.value }.toList())
+    }
+
     @Test fun itQuotesTheAppsOwnWordsSoThePageAndTheAppCannotDriftApart() {
         val page = plain
         val quoted = listOf(

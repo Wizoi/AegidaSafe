@@ -294,7 +294,7 @@
   <p class="lead">For readers who want to check the mechanism. This page describes Aegida 0.3.2 and was checked against the app's code. Where something has not been tested on a real device, it says so.</p>
 
   <h2>In two lines</h2>
-  <p>Aegida reads the title and text of notifications through Android's notification-access service, checks them on the phone against fixed rules and a signed list of known bad hosts, and tells the owner in plain words. If she turned it on, it sends one fixed sentence to one chosen person through ntfy.sh.</p>
+  <p>Aegida reads the title and text of notifications through Android's notification-access service, checks them on the phone against fixed rules and a signed list of known bad hosts, and tells the owner in plain words. If the owner turned it on, it sends one fixed sentence to one chosen person through ntfy.sh.</p>
 
   <h2>What happens to a notification</h2>
   <figure class="fig">
@@ -315,7 +315,7 @@
       <path d="M240 406 V458" class="ln" marker-end="url(#arrow)"/><text x="252" y="437" class="tl">tells the owner</text>
       <rect x="130" y="458" width="220" height="56" rx="10" class="box"/><text x="240" y="482" text-anchor="middle" class="tb">Banner and Home screen</text><text x="240" y="502" text-anchor="middle" class="t">plain words, big text</text>
       <path d="M350 378 H420 V588 H352" class="ln-opt" marker-end="url(#arrow-opt)"/><text x="414" y="470" text-anchor="end" class="tl">optional</text>
-      <rect x="130" y="560" width="220" height="56" rx="10" class="box-opt"/><text x="240" y="584" text-anchor="middle" class="tb">One fixed sentence</text><text x="240" y="604" text-anchor="middle" class="t">only if she turned it on</text>
+      <rect x="130" y="560" width="220" height="56" rx="10" class="box-opt"/><text x="240" y="584" text-anchor="middle" class="tb">One fixed sentence</text><text x="240" y="604" text-anchor="middle" class="t">only if the owner turned it on</text>
       <path d="M240 616 V724" class="ln-opt" marker-end="url(#arrow-opt)"/><text x="252" y="706" class="tl">one POST over https</text>
       <rect x="130" y="724" width="220" height="48" rx="10" class="box-out"/><text x="240" y="753" text-anchor="middle" class="tb">ntfy.sh (public relay)</text>
       <path d="M240 772 V812" class="ln-opt" marker-end="url(#arrow-opt)"/><text x="252" y="796" class="tl">delivered to the topic</text>
@@ -324,7 +324,7 @@
       <path d="M40 724 V294" class="ln" marker-end="url(#arrow)"/>
       <text x="50" y="420" class="ts">downloads</text><text x="50" y="436" class="ts">the signed</text><text x="50" y="452" class="ts">lists, checks</text><text x="50" y="468" class="ts">the signature</text><text x="50" y="484" class="ts">first</text>
     </svg>
-    <figcaption>Figure 1. Solid lines always happen; dashed lines happen only if the owner turned on messages to her guardian. Everything inside the dotted boundary stays on the phone. Only two hosts are ever contacted: <code>wizoi.github.io</code> and <code>ntfy.sh</code>.</figcaption>
+    <figcaption>Figure 1. Solid lines always happen; dashed lines happen only if the owner turned on messages to the guardian. Everything inside the dotted boundary stays on the phone. Only two hosts are ever contacted: <code>wizoi.github.io</code> and <code>ntfy.sh</code>.</figcaption>
   </figure>
   <ol>
     <li><b>Read.</b> Android's notification-access service gives Aegida the title and text of every notification another app posts. Each part is cut at 4,096 characters, so a link beyond that is not seen. Aegida's own notifications are skipped.</li>
@@ -336,18 +336,18 @@
 
   <h2 id="checks">What it checks</h2>
   <table>
-    <thead><tr><th scope="col">Check</th><th scope="col">What triggers it</th><th scope="col">What she sees</th></tr></thead>
+    <thead><tr><th scope="col">Check</th><th scope="col">What triggers it</th><th scope="col">What the owner sees</th></tr></thead>
     <tbody>
-      <tr><td data-label="Check">Scam link</td><td data-label="What triggers it">A link in a notification whose host (or any parent domain) is in the host list, or whose exact host and path is in the URL list.</td><td data-label="What she sees">"A message has a link that looks like a scam. Please don't tap it."</td></tr>
-      <tr><td data-label="Check">Look-alike link</td><td data-label="What triggers it">A word in the host that equals one of 21 brand words once look-alike letters and digits are swapped (for example Cyrillic or Greek letters, 0 for o, rn for m), when the host is not that brand's own domain; or one label that mixes alphabets.</td><td data-label="What she sees">"A message has a link pretending to be a company you know. Please don't tap it."</td></tr>
-      <tr><td data-label="Check">Website pop-ups</td><td data-label="What triggers it">A notification on a website channel (Chrome's per-site channels). Every such notification is treated as unwanted.</td><td data-label="What she sees">The notification is hidden, and Aegida says so and offers the site's own switch.</td></tr>
-      <tr><td data-label="Check">Default apps changed</td><td data-label="What triggers it">The default browser, text, phone or assistant app differs from what the phone had when setup ended.</td><td data-label="What she sees">"Was that you?" with "Yes, that was me" and "No, show me".</td></tr>
-      <tr><td data-label="Check">Special access added</td><td data-label="What triggers it">A new app with notification access, screen control (accessibility) or device-administrator rights. Urgent.</td><td data-label="What she sees">"Was that you?"</td></tr>
-      <tr><td data-label="Check">New app from outside Google Play</td><td data-label="What triggers it">After setup, a non-system app whose installer is not Google Play. Apps already on the phone at setup are not flagged.</td><td data-label="What she sees">"Was that you?"</td></tr>
-      <tr><td data-label="Check">Remote-control apps</td><td data-label="What triggers it">One of eight known packages (AnyDesk, TeamViewer and its QuickSupport and Host variants, RustDesk, AirDroid, Chrome Remote Desktop, Splashtop SOS), matched by package name, even if installed from Google Play. Urgent.</td><td data-label="What she sees">"Was that you?"</td></tr>
-      <tr><td data-label="Check">Spying apps</td><td data-label="What triggers it">A non-system app whose package name, or signing-certificate SHA-1, is in the list from the Stalkerware Indicators project. Raised on every check until removed. Urgent.</td><td data-label="What she sees">"A spying app is on your phone. Tap to see it and remove it."</td></tr>
-      <tr><td data-label="Check">Website filter</td><td data-label="What triggers it">Only if she set up Private DNS in setup: raised if the setting is no longer that host.</td><td data-label="What she sees">"Website protection is off. Tap to turn it back on."</td></tr>
-      <tr><td data-label="Check">Health</td><td data-label="What triggers it">After setup: notification access switched off, notifications blocked, no daily check for 26 hours, or lists built more than 3 days ago.</td><td data-label="What she sees">"Aegida can no longer see your notifications. Tap to fix it." or "I couldn't check today."</td></tr>
+      <tr><td data-label="Check">Scam link</td><td data-label="What triggers it">A link in a notification whose host (or any parent domain) is in the host list, or whose exact host and path is in the URL list.</td><td data-label="What the owner sees">"A message has a link that looks like a scam. Please don't tap it."</td></tr>
+      <tr><td data-label="Check">Look-alike link</td><td data-label="What triggers it">A word in the host that equals one of 21 brand words once look-alike letters and digits are swapped (for example Cyrillic or Greek letters, 0 for o, rn for m), when the host is not that brand's own domain; or one label that mixes alphabets.</td><td data-label="What the owner sees">"A message has a link pretending to be a company you know. Please don't tap it."</td></tr>
+      <tr><td data-label="Check">Website pop-ups</td><td data-label="What triggers it">A notification on a website channel (Chrome's per-site channels). Every such notification is treated as unwanted.</td><td data-label="What the owner sees">The notification is hidden, and Aegida says so and offers the site's own switch.</td></tr>
+      <tr><td data-label="Check">Default apps changed</td><td data-label="What triggers it">The default browser, text, phone or assistant app differs from what the phone had when setup ended.</td><td data-label="What the owner sees">"Was that you?" with "Yes, that was me" and "No, show me".</td></tr>
+      <tr><td data-label="Check">Special access added</td><td data-label="What triggers it">A new app with notification access, screen control (accessibility) or device-administrator rights. Urgent.</td><td data-label="What the owner sees">"Was that you?"</td></tr>
+      <tr><td data-label="Check">New app from outside Google Play</td><td data-label="What triggers it">After setup, a non-system app whose installer is not Google Play. Apps already on the phone at setup are not flagged.</td><td data-label="What the owner sees">"Was that you?"</td></tr>
+      <tr><td data-label="Check">Remote-control apps</td><td data-label="What triggers it">One of eight known packages (AnyDesk, TeamViewer and its QuickSupport and Host variants, RustDesk, AirDroid, Chrome Remote Desktop, Splashtop SOS), matched by package name, even if installed from Google Play. Urgent.</td><td data-label="What the owner sees">"Was that you?"</td></tr>
+      <tr><td data-label="Check">Spying apps</td><td data-label="What triggers it">A non-system app whose package name, or signing-certificate SHA-1, is in the list from the Stalkerware Indicators project. Raised on every check until removed. Urgent.</td><td data-label="What the owner sees">"A spying app is on your phone. Tap to see it and remove it."</td></tr>
+      <tr><td data-label="Check">Website filter</td><td data-label="What triggers it">Only if the owner set up Private DNS in setup: raised if the setting is no longer that host.</td><td data-label="What the owner sees">"Website protection is off. Tap to turn it back on."</td></tr>
+      <tr><td data-label="Check">Health</td><td data-label="What triggers it">After setup: notification access switched off, notifications blocked, no daily check for 26 hours, or lists built more than 3 days ago.</td><td data-label="What the owner sees">"Aegida can no longer see your notifications. Tap to fix it." or "I couldn't check today."</td></tr>
     </tbody>
   </table>
   <p class="note">Link shorteners are recognised but do not make a finding on their own. A link that matches nothing makes no finding.</p>
@@ -386,8 +386,8 @@
     <thead><tr><th scope="col">What</th><th scope="col">To whom</th><th scope="col">When</th><th scope="col">Contents</th></tr></thead>
     <tbody>
       <tr><td data-label="What">Scam-list download</td><td data-label="To whom"><code>wizoi.github.io</code> (GitHub Pages)</td><td data-label="When">Daily job and first run</td><td data-label="Contents">A plain GET for <code>feed.sig</code> then <code>feed.bin</code>. No identifiers. GitHub sees an internet address, as any website does.</td></tr>
-      <tr><td data-label="What">Note to the guardian</td><td data-label="To whom"><code>ntfy.sh</code></td><td data-label="When">Only if she turned it on, and only when a warning needs it</td><td data-label="Contents">One HTTPS POST of a fixed sentence, titled with her first name; "urgent" priority for urgent kinds. Never links, message text or app names. Timeouts of 15 seconds, redirects off.</td></tr>
-      <tr><td data-label="What">Invitation email</td><td data-label="To whom">Her own email app</td><td data-label="When">Once in setup, or when she taps "Send the invitation again"</td><td data-label="Contents">The ntfy install links and the private topic link. She presses Send; Aegida cannot tell whether it was sent.</td></tr>
+      <tr><td data-label="What">Note to the guardian</td><td data-label="To whom"><code>ntfy.sh</code></td><td data-label="When">Only if the owner turned it on, and only when a warning needs it</td><td data-label="Contents">One HTTPS POST of a fixed sentence, titled with the owner's first name; "urgent" priority for urgent kinds. Never links, message text or app names. Timeouts of 15 seconds, redirects off.</td></tr>
+      <tr><td data-label="What">Invitation email</td><td data-label="To whom">The owner's own email app</td><td data-label="When">Once in setup, or when the owner taps "Send the invitation again"</td><td data-label="Contents">The ntfy install links and the private topic link. The owner presses Send; Aegida cannot tell whether it was sent.</td></tr>
     </tbody>
   </table>
   <ul>
@@ -396,7 +396,7 @@
     <li><b>Repeats.</b> For non-urgent kinds, the guardian is told again only after 24 hours, then 48, 96, and 7 days, if the same kind keeps coming back. Urgent kinds are never held back. A warning still open after a day gets one reminder. After a guardian change, earlier history does not count for the new guardian.</li>
     <li><b>Offline.</b> A note that cannot be sent is queued and retried after every check (15 minutes, doubling, up to 6 hours), and given up after 7 days, which History says. Messages for a replaced guardian are dropped.</li>
     <li><b>Never leaves the phone.</b> The text of notifications, contacts, texts, calls, location, microphone, camera, the list of installed apps, and the findings. There is no analytics, crash-reporting or advertising code: the app's libraries are Jetpack Compose, Hilt, Room, WorkManager, OkHttp and kotlinx.serialization.</li>
-    <li><b>Stored on the phone.</b> Her name and picture, the guardian's name, email and phone number, the topic, a baseline of the phone from when setup ended, findings, 90 days of history, the queue, and the downloaded lists, in the app's private storage. It is excluded from cloud backup and phone-to-phone transfer. It is not encrypted by Aegida beyond what Android itself does for app storage.</li>
+    <li><b>Stored on the phone.</b> The owner's name and picture, the guardian's name, email and phone number, the topic, a baseline of the phone from when setup ended, findings, 90 days of history, the queue, and the downloaded lists, in the app's private storage. It is excluded from cloud backup and phone-to-phone transfer. It is not encrypted by Aegida beyond what Android itself does for app storage.</li>
   </ul>
   <details>
     <summary>Every note a guardian can receive</summary>
@@ -447,7 +447,7 @@
     <li><b>It is not a scan of the whole phone.</b> It reads notification titles and text only. A scam text that never makes a notification, or a messaging app that hides previews, is not seen. Android 15 and newer hides the content of one-time-code notifications from apps like this.</li>
     <li><b>It cannot tell that a link is fine.</b> It matches known lists and the rules above. No match means "No known problems found", which is not a promise about everything.</li>
     <li><b>New-app and spying-app checks are limited.</b> They cover the lists, plus "installed from outside Google Play" for apps that arrive after setup. A new app is noticed at the next check (a notification, opening the app, or the daily job), not the moment it is installed.</li>
-    <li><b>It cannot change settings for her.</b> Android needs her tap. She can uninstall Aegida or remove its access; the guardian then hears if alerts are on and the notification-access warning is raised, or after about two days of silence.</li>
+    <li><b>It cannot change settings for the owner.</b> Android needs the owner's tap. The owner can uninstall Aegida or remove its access; the guardian then hears if alerts are on and the notification-access warning is raised, or after about two days of silence.</li>
     <li><b>It cannot know the invitation arrived.</b> Aegida cannot tell whether the email was sent or the guardian subscribed in ntfy.</li>
     <li><b>Samsung phones.</b> Samsung's Auto Blocker cannot be read by a Google Play app, so Aegida takes the owner's word. Samsung may put an unopened app to sleep after about three days; this has not yet been tested on a real phone.</li>
     <li><b>ntfy.sh is a free public service with no promise about uptime.</b> If it is down or limits traffic, notes are queued and retried.</li>
@@ -457,9 +457,9 @@
   <table>
     <thead><tr><th scope="col">Situation</th><th scope="col">What happens</th></tr></thead>
     <tbody>
-      <tr><td data-label="Situation">Phone offline</td><td data-label="What happens">Checks still run on the stored lists. A failed download only makes the lists older. Notes to the guardian are queued; after a day undelivered she sees "Aegida couldn't reach your guardian for a day. Please call them."</td></tr>
+      <tr><td data-label="Situation">Phone offline</td><td data-label="What happens">Checks still run on the stored lists. A failed download only makes the lists older. Notes to the guardian are queued; after a day undelivered the owner sees "Aegida couldn't reach your guardian for a day. Please call them."</td></tr>
       <tr><td data-label="Situation">Phone off or asleep</td><td data-label="What happens">Nothing runs. After 26 hours without a daily check Home says "I couldn't check today." The guardian's waiting "hasn't checked in" note arrives after about two days.</td></tr>
-      <tr><td data-label="Situation">Access switched off</td><td data-label="What happens">She sees "Tap to fix it", and the guardian is told if alerts are on.</td></tr>
+      <tr><td data-label="Situation">Access switched off</td><td data-label="What happens">The owner sees "Tap to fix it", and the guardian is told if alerts are on.</td></tr>
       <tr><td data-label="Situation">App killed mid-check</td><td data-label="What happens">The warning is stored last, so a killed run repeats it in full. A duplicate is accepted over a lost warning. The lists file is replaced atomically.</td></tr>
       <tr><td data-label="Situation">Two triggers at once</td><td data-label="What happens">One lock serialises every check, tap and alert change.</td></tr>
       <tr><td data-label="Situation">Lists too old</td><td data-label="What happens">Home says it could not check, instead of "No known problems found".</td></tr>
