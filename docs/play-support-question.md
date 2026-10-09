@@ -45,3 +45,6 @@ Questions:
 3. Is any Play Console declaration, Data safety entry or store-listing wording required before I move beyond closed testing?
 
 Account ID: [19-digit ID]. Thank you.
+
+## Decision (Kevin, Oct 9)
+Not sending this for now: similar apps are on Play, and Kevin would rather move forward and see whether Play raises anything. The draft stays here. If Play flags the guardian alerts (a policy email, a rejected release, a warning in the Console), send it then, or answer the notice with the same facts: self-installed by the owner, an explicit Yes/No in setup, off at any time, a persistent notice, a normal icon, and fixed sentences that never include message text, links or app names.

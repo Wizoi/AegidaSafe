@@ -108,6 +108,8 @@
 
 - **Guardian messages use the owner's name, never "her"; only serious ones say "please call"** (Kevin, Oct 9: options B and D). Updates that are small go out as 0.0.1 steps: 0.3.1 next.
 
+- **Not asking Play Support about the guardian alerts beforehand** (Kevin, Oct 9). Risk accepted: Play's monitoring policy names parental and enterprise uses, and an adult picking her own guardian is not clearly covered, so a policy notice is possible later. The consent design (explicit Yes/No in setup, off any time, persistent notice, normal icon, fixed sentences only) is the answer to give if it comes; see `docs/play-support-question.md`.
+
 ## Open / next session
 - Create the Gradle project and run the **emulator spike**: confirm each `adb`/`cmd` scenario works on the API 36 Play image.
 - Kevin: look for an old Samsung phone on One UI 6+; look into Samsung Remote Test Lab.
