@@ -48,10 +48,17 @@ no launcher icon.
    ./gradlew publishListing                            # text, images and notes only, no new build
    ./gradlew promoteArtifact --from-track internal --promote-track alpha   # same build, no new versionCode
    ```
+   While the app is still a draft in the Console (forms not all done), Play only accepts **draft** releases outside the internal track:
+   add `--release-status draft` to `promoteArtifact` (`./gradlew :app:promoteReleaseArtifact --from-track internal --promote-track alpha --release-status draft`),
+   then finish and send it for review in the Console (Oct 9, versionCode 2: "Only releases with status draft may be created on draft app").
    `publishReleaseBundle` always uploads a new bundle and needs a never-used versionCode. To move a build Play already has to
    another track, use `promoteArtifact`. Do not add `--release-status draft` unless Play rejects with "draft app".
 7. Install from the opt-in link on the Pixel (uninstall any `-local` build first: different signature) and update from Play to
    check the update path. Add what you see to `findings.md`.
+
+Play also refuses to save any listing change without a contact email ("This app does not have a contact email address set"); it lives in
+`app/src/main/play/contact-email.txt` and is uploaded with the app details. A bare `BUILD SUCCESSFUL` from `publishReleaseListing` can mean an
+empty draft was saved when the upload step was skipped as up to date: add `--rerun` and read back with `bootstrapReleaseListing`.
 
 `bootstrapReleaseListing` shows what is live but **overwrites local listing files**. Run `git status` straight after and
 `git restore` anything it clobbered.

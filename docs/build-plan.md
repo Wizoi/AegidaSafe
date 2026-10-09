@@ -47,8 +47,9 @@ Open items inside phase 1:
 - [x] Echap indicators (CC BY 4.0) in the signed feed v2 (610 packages, 470 certificate hashes), refreshed daily by the workflow; `StalkerwareDetector`; credit in the feed NOTICE and in My settings. Walked on the emulator against the live feed (findings #47). Open: the owner-safety question when a spying app was planted by someone close to her (findings #47)
 
 ## Phase 4. Pixel pass and Play
-- [ ] Gaps in `emulator-vs-device.md` checked on Kevin's Pixel
-- [ ] Internal, then closed-test Play build (`QUERY_ALL_PACKAGES` declaration, notification-listener and foreground-service disclosures)
+- [x] Gaps in `emulator-vs-device.md` checked on Kevin's Pixel (Kevin's Oct 9 retest of the Play build; he keeps it running; findings #69 to #78)
+- [x] Internal Play build (0.2.0 on Oct 8, 0.3.0 next); all Console forms and declarations (`QUERY_ALL_PACKAGES`, notification access, foreground service, Data safety, privacy page) done
+- [ ] Closed-test release: 0.2.0 sent for review on Oct 9; 0.3.0 follows it
 - [ ] Ask Play Developer Support about automatic consented alerts before any release beyond the closed test
 - [ ] Name clearance: trademark, Play Console, domain, GitHub
 

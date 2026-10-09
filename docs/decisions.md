@@ -100,6 +100,12 @@
 - **Nothing public says the code is open while the repo is private** (Kevin, Oct 9). The store description and the privacy page do not mention open source or the MIT licence; `PlayListingTest.nothingPublicClaimsOpenSourceWhileTheRepoIsPrivate` fails if they do. When the repo is opened: delete that test, add "Aegida is free and open source under the MIT licence. Anyone can read how it works." back to the end of `full-description.txt`, and the licence sentence back to `docs/site/privacy.html`, then publish the listing and push.
 - **R8 mapping files are git-ignored** (25 MB each; the bundle carries them for Play), not committed as the old `.gitignore` comment said. Keep a copy per release outside the repo.
 
+## Setup and settings (Kevin, Oct 9)
+- **Skipping the notification step asks first, and is not a special message to the guardian.** "Skip this step?" with Go back / Skip anyway. The two permission warnings are not raised until setup is finished; if she skipped, they are raised then, and the existing guardian sentence goes out (only if she chose to tell her guardian). Nothing new is sent.
+- **No guardian confirmation.** No "Got it" button and no "Sam has confirmed" status: the guardian can read the message whenever they get to it.
+- **Scam-list freshness is a visible line in Settings** ("Lists updated <date>."), not a hidden gesture.
+- **The back-off after a guardian change** uses a new key-value setting (`guardians.pairedAt`), not a History column, so no Room migration.
+
 ## Open / next session
 - Create the Gradle project and run the **emulator spike**: confirm each `adb`/`cmd` scenario works on the API 36 Play image.
 - Kevin: look for an old Samsung phone on One UI 6+; look into Samsung Remote Test Lab.

@@ -394,8 +394,7 @@ def board_setup():
         shield(120), hdc(T, X.Setup.WELCOME_TITLE, 28), bd(T, X.Setup.WELCOME_BODY, 16, True), btn(T, X.Setup.WELCOME_START))
     p0 = phone(0, "Welcome", welcome, "Shown once, before any question. No safety picture yet, because she has not chosen one. Skipped if she has already started.", header_on=True, picture=False)
     p1 = phone(1, "About you and your guardian",
-               step(1) + hd(T, X.Setup.ABOUT_TITLE, 23) + bd(T, X.Setup.ABOUT_BODY, 14) + field(T, X.Setup.YOUR_NAME, OWNER)
-               + '<div style="font-size:19px;font-weight:700">%s</div>' % e(X.Setup.GUARDIAN_TITLE) + bd(T, X.Setup.GUARDIAN_BODY, 14)
+               step(1) + hd(T, X.Setup.ABOUT_TITLE, 23) + field(T, X.Setup.YOUR_NAME, OWNER) + bd(T, X.Setup.GUARDIAN_BODY, 14)
                + field(T, X.Setup.GUARDIAN_NAME, GUARD) + field(T, X.Setup.GUARDIAN_EMAIL, "sam@example.org") + field(T, X.Setup.GUARDIAN_PHONE, "")
                + btn(T, X.Common.CONTINUE),
                "One guardian only. Name, their email and (optional) their phone number for the Call button. Continue stays dimmed until name, guardian and a valid email are filled in. The screen scrolls.")
