@@ -65,4 +65,11 @@ class OkHttpHttpClientTest {
         assertEquals(BytesResult.Failed(301, FailureReason.HttpError), client.get(Endpoint.Feed.LIST, 100))
         assertEquals(2, server.requestCount)
     }
+
+    @Test fun aHeaderTheTransportCannotCarryIsAFailedSendNotACrash() = runTest {
+        // OkHttp throws IllegalArgumentException for a non-ASCII or newline header value (findings #48).
+        assertEquals(HttpResult.Failed(null, FailureReason.Unknown), client.post(endpoint, "x", mapOf("Title" to "Jos\u00e9")))
+        assertEquals(HttpResult.Failed(null, FailureReason.Unknown), client.post(endpoint, "x", mapOf("Title" to "a\nb")))
+        assertEquals(0, server.requestCount)
+    }
 }

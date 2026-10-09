@@ -32,13 +32,13 @@ class OkHttpHttpClient internal constructor(
 
     override suspend fun post(endpoint: Endpoint, body: String, headers: Map<String, String>): HttpResult {
         check(endpoint.host in Endpoint.ALLOWED_HOSTS) { "host not allowed" }
-        val request = Request.Builder()
-            .url(urlFor(endpoint))
-            .post(body.toRequestBody("text/plain; charset=utf-8".toMediaType()))
-            .apply { headers.forEach { (name, value) -> header(name, value) } }
-            .build()
         return withContext(Dispatchers.IO) {
             try {
+                val request = Request.Builder()
+                    .url(urlFor(endpoint))
+                    .post(body.toRequestBody("text/plain; charset=utf-8".toMediaType()))
+                    .apply { headers.forEach { (name, value) -> header(name, value) } }
+                    .build()
                 client.newCall(request).execute().use { response ->
                     if (response.isSuccessful) HttpResult.Ok(response.code, response.body?.string().orEmpty())
                     else HttpResult.Failed(response.code, FailureReason.HttpError)
@@ -48,6 +48,9 @@ class OkHttpHttpClient internal constructor(
             } catch (e: InterruptedIOException) {
                 HttpResult.Failed(null, FailureReason.Timeout)
             } catch (e: IOException) {
+                HttpResult.Failed(null, FailureReason.Unknown)
+            } catch (e: IllegalArgumentException) {
+                // A header value OkHttp will not carry: a failed send the outbox can report, never a crash.
                 HttpResult.Failed(null, FailureReason.Unknown)
             }
         }

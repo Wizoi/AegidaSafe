@@ -5,6 +5,7 @@ import com.aegida.core.net.HttpClient
 import com.aegida.core.net.HttpResult
 import com.aegida.core.net.NtfyTopic
 import java.time.Duration
+import java.util.Base64
 import javax.inject.Inject
 
 /**
@@ -16,7 +17,7 @@ class NtfySender @Inject constructor(private val http: HttpClient) {
 
     suspend fun send(topic: NtfyTopic, message: GuardianMessage): SendResult {
         val headers = buildMap {
-            put("Title", message.title)
+            put("Title", headerSafe(message.title))
             if (message.urgent) put("Priority", "urgent")
             message.delay?.let { put("X-Delay", "${it.toMinutes()}m") }
         }
@@ -24,6 +25,17 @@ class NtfySender @Inject constructor(private val http: HttpClient) {
             is HttpResult.Ok -> SendResult.Delivered
             is HttpResult.Failed -> SendResult.NotDelivered(result)
         }
+    }
+
+    /**
+     * HTTP headers carry plain ASCII only, and OkHttp throws on anything else, so a name like "José" would stop every
+     * guardian message (findings #48). Anything outside printable ASCII is sent as an RFC 2047 encoded word, which
+     * ntfy decodes (checked live, findings #59). A newline is outside printable ASCII too, so it is encoded and cannot end the header.
+     */
+    private fun headerSafe(text: String): String {
+        val clean = text.trim()
+        if (clean.all { it.code in 0x20..0x7e }) return clean
+        return "=?UTF-8?B?" + Base64.getEncoder().encodeToString(clean.toByteArray(Charsets.UTF_8)) + "?="
     }
 
     /** Cancels a scheduled message by its sequence id. A message that is not there is already cancelled. */

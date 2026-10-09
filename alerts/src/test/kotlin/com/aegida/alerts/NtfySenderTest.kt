@@ -62,4 +62,35 @@ class NtfySenderTest {
         val result = NtfySender(RecordingHttp(failure)).send(topic, message)
         assertTrue(result is SendResult.NotDelivered && result.failure == failure)
     }
+
+    /** What ntfy does with an RFC 2047 encoded-word title (checked live on ntfy.sh, findings #59). */
+    private fun decodeTitle(header: String): String {
+        val match = Regex("^=\\?UTF-8\\?B\\?([A-Za-z0-9+/=]+)\\?=$").matchEntire(header)
+        return if (match == null) header else String(java.util.Base64.getDecoder().decode(match.groupValues[1]), Charsets.UTF_8)
+    }
+
+    @Test fun anOwnerNameWithAccentsOrSymbolsGoesOutAsAnAsciiOnlyHeaderThatDecodesBack() = runTest {
+        listOf("José", "Zoë", "Mom \u2764", "Åsa Öberg").forEach { name ->
+            val http = RecordingHttp(HttpResult.Ok(200, "{}"))
+            NtfySender(http).send(topic, GuardianMessage(name, "$name's phone", urgent = false))
+            val title = http.sent.single().third.getValue("Title")
+            assertTrue("header must be plain ASCII: $title", title.all { it.code in 0x20..0x7e })
+            assertEquals(name, decodeTitle(title))
+            assertEquals("$name's phone", http.sent.single().second) // the body is UTF-8 as it is
+        }
+    }
+
+    @Test fun aNewlineInTheNameCannotBreakTheHeaderOrAddOne() = runTest {
+        val http = RecordingHttp(HttpResult.Ok(200, "{}"))
+        NtfySender(http).send(topic, GuardianMessage("Ruth\r\nX-Delay: 1m", "body", urgent = false))
+        val title = http.sent.single().third.getValue("Title")
+        assertTrue(title.none { it == '\r' || it == '\n' })
+        assertEquals(setOf("Title"), http.sent.single().third.keys)
+    }
+
+    @Test fun anOrdinaryNameIsSentAsItIs() = runTest {
+        val http = RecordingHttp(HttpResult.Ok(200, "{}"))
+        NtfySender(http).send(topic, GuardianMessage("Ruth", "body", urgent = false))
+        assertEquals("Ruth", http.sent.single().third.getValue("Title"))
+    }
 }
