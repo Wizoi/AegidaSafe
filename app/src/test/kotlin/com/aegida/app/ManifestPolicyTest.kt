@@ -3,6 +3,7 @@ package com.aegida.app
 import android.content.pm.PackageManager
 import androidx.test.core.app.ApplicationProvider
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -61,6 +62,17 @@ class ManifestPolicyTest {
         for (name in listOf("cloud-backup", "device-transfer")) {
             assertEquals(name, setOf("database", "file", "sharedpref"), excluded.getValue(name) intersect setOf("database", "file", "sharedpref"))
         }
+    }
+
+    /** Finding #67: the first Play upload had no launcher icon, so Mom would have seen the default robot. */
+    @Test fun theAppHasItsOwnLauncherIconRoundAndSquare() {
+        val manifest = java.io.File("src/main/AndroidManifest.xml").readText()
+        org.junit.Assert.assertTrue("manifest names no android:icon", manifest.contains("android:icon=\"@mipmap/ic_launcher\""))
+        org.junit.Assert.assertTrue("manifest names no android:roundIcon", manifest.contains("android:roundIcon=\"@mipmap/ic_launcher_round\""))
+        for (name in listOf("ic_launcher", "ic_launcher_round")) {
+            assertNotEquals("$name is missing", 0, context.resources.getIdentifier(name, "mipmap", context.packageName))
+        }
+        assertNotEquals("the application has no icon", 0, context.applicationInfo.icon)
     }
 
     companion object {
