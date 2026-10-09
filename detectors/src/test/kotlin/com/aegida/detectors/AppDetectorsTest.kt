@@ -64,4 +64,14 @@ class AppDetectorsTest {
     }
 
     @Test fun theBaselineKeepsUserAppsOnly() = assertEquals(setOf("org.keep.one"), baseline.apps)
+
+    @Test fun aKnownSpyingAppIsOneWarningNotAlsoANewAppQuestion() {
+        val feed = com.aegida.core.feed.ThreatFeed.of(
+            Fixtures.now, emptyList(), emptyList(), emptyList(),
+            packageNames = listOf("com.thetruth"), certificateSha1s = listOf("31a6ececd97cf39bc4126b8745cd94a7c30bf81c"),
+        )
+        val phone = atSetup + app("com.thetruth", installer = null) + app("org.renamed", installer = null).copy(certSha1s = setOf("31a6ececd97cf39bc4126b8745cd94a7c30bf81c")) + app("org.plain.sideload", installer = null)
+        val found = NewAppDetector().evaluate(inputs(snapshot = snapshot().copy(apps = phone), feed = feed).copy(baseline = baseline)).map { it.key.subject }
+        assertEquals(listOf("org.plain.sideload"), found)
+    }
 }

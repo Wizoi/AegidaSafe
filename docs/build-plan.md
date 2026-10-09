@@ -44,7 +44,7 @@ Open items inside phase 1:
 - [x] Emulator scenarios: `drift` (notification access, screen control), `new-apps` (installed by hand, remote-control app). Not yet: default browser/text/phone app changes, device-admin and overlay grants (need fixtures)
 
 ## Phase 3. Stalkerware list
-- [ ] Bundled and refreshed Echap indicators (CC-BY 4.0), `StalkerwareDetector`, About-screen attribution
+- [x] Echap indicators (CC BY 4.0) in the signed feed v2 (610 packages, 470 certificate hashes), refreshed daily by the workflow; `StalkerwareDetector`; credit in the feed NOTICE and in My settings. Walked on the emulator against the live feed (findings #47). Open: the owner-safety question when a spying app was planted by someone close to her (findings #47)
 
 ## Phase 4. Pixel pass and Play
 - [ ] Gaps in `emulator-vs-device.md` checked on Kevin's Pixel
