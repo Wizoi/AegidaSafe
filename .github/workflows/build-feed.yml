@@ -95,8 +95,8 @@ jobs:
           mkdir publish
           cp -r feed-repo/site/. publish/
           cp out/feed.bin out/feed.sig publish/
-          # The privacy policy page (Play Console needs a public URL): one source here, republished with every feed.
-          cp docs/site/privacy.html publish/
+          # The public pages (privacy policy, how it works): one source here in docs/site, republished with every feed.
+          cp docs/site/*.html publish/
           cd publish
           git init -q -b gh-pages
           git config user.name "aegida-feed-bot"

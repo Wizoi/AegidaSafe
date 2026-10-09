@@ -64,6 +64,11 @@ class PlayListingTest {
         assertEquals("the privacy policy makes a claim Aegida does not make", emptyList<String>(), words.findAll(text).map { it.value }.toList())
     }
 
+    /** The store description and the app both point to the same public page. */
+    @Test fun theStoreDescriptionLinksToTheHowItWorksPage() {
+        assertTrue(text("full-description.txt").contains(com.aegida.core.net.PublicPages.HOW_IT_WORKS))
+    }
+
     @Test fun theIconAndFeatureGraphicHaveTheSizesPlayAsks() {
         assertEquals(512 to 512, size("graphics/icon/icon.png"))
         assertEquals(1024 to 500, size("graphics/feature-graphic/feature-graphic.png"))

@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How Aegida works</title>
+<meta name="description" content="Aegida is a free Android app that looks out for scam messages and fake warnings and tells you in plain words. Read how it works, in simple words or in detail.">
+<meta property="og:title" content="How Aegida works">
+<meta property="og:description" content="A quiet helper that looks out for scams on your phone. Simple words, or the full detail.">
+<meta property="og:type" content="website">
+<style>
+  :root { --bg:#FFF4CC; --card:#FFFBEA; --ink:#1C1B1A; --soft:#4A4640; --teal:#0F6B73; --line:#E6D9A8; --gold:#F4B400; --on-teal:#FFFFFF; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#1C1B1A; --card:#262523; --ink:#F5EFD8; --soft:#CFC8B4; --teal:#7FD1D9; --line:#3A3835; --on-teal:#10272A; } }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:20px/1.6 Georgia, "Times New Roman", serif; }
+  a { color:var(--teal); }
+  .skip { position:absolute; left:-999px; top:0; background:var(--card); padding:.6rem 1rem; z-index:20; }
+  .skip:focus { left:8px; top:8px; }
+  .vh { position:absolute; opacity:0; width:1px; height:1px; margin:0; pointer-events:none; }
+  header.top { max-width:60rem; margin:0 auto; padding:.9rem 16px .3rem; display:flex; align-items:center; gap:.75rem; flex-wrap:wrap; }
+  header.top .name { font-size:1.6rem; font-weight:700; color:var(--teal); margin-right:auto; }
+  header.top a { font-size:1rem; }
+  .switchbar { position:sticky; top:0; z-index:10; background:var(--bg); padding:.5rem 16px .7rem; border-bottom:2px solid var(--line); }
+  .switch { max-width:36rem; margin:0 auto; display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .switch label { display:block; text-align:center; padding:.55rem .5rem; min-height:3.6rem; border:3px solid var(--teal); border-radius:16px; background:var(--card); color:var(--teal); font-weight:700; font-size:1.15rem; line-height:1.25; cursor:pointer; }
+  .switch label small { display:block; font-weight:400; font-size:.85rem; color:var(--soft); }
+  #view-simple:checked ~ .switchbar label[for="view-simple"], #view-detailed:checked ~ .switchbar label[for="view-detailed"] { background:var(--teal); color:var(--on-teal); }
+  #view-simple:checked ~ .switchbar label[for="view-simple"] small, #view-detailed:checked ~ .switchbar label[for="view-detailed"] small { color:var(--on-teal); }
+  #view-simple:focus-visible ~ .switchbar label[for="view-simple"], #view-detailed:focus-visible ~ .switchbar label[for="view-detailed"] { outline:4px solid var(--gold); outline-offset:3px; }
+  main { max-width:60rem; margin:0 auto; padding:0 16px 3rem; }
+  #detailed-view { display:none; }
+  #view-detailed:checked ~ main #simple-view { display:none; }
+  #view-detailed:checked ~ main #detailed-view { display:block; }
+  h1 { color:var(--teal); font-size:2.3rem; line-height:1.2; margin:1.4rem 0 .6rem; }
+  h2 { color:var(--teal); font-size:1.65rem; line-height:1.25; margin:2.6rem 0 .6rem; scroll-margin-top:7rem; }
+  h3 { font-size:1.25rem; margin:1.4rem 0 .3rem; }
+  p, li { max-width:44rem; }
+  .lead { font-size:1.3rem; max-width:40rem; }
+  .hero { display:grid; gap:1.5rem; align-items:center; grid-template-columns:1fr; }
+  @media (min-width: 760px) { .hero { grid-template-columns: 1.15fr 1fr; } }
+  figure { margin:1.4rem 0; }
+  figure.fig { background:#FFF4CC; color:#1C1B1A; border:2px solid #E6D9A8; border-radius:20px; padding:1rem; }
+  figure.fig svg { display:block; width:100%; max-width:560px; height:auto; margin:0 auto; }
+  figure.fig.narrow svg { max-width:380px; }
+  figcaption { font-size:1rem; color:var(--soft); margin-top:.7rem; max-width:44rem; }
+  figure.fig figcaption { color:#4A4640; }
+  .steps { display:grid; gap:1.2rem; grid-template-columns:1fr; margin:1.2rem 0; padding:0; list-style:none; }
+  @media (min-width: 760px) { .steps { grid-template-columns:repeat(3,1fr); } }
+  .steps li { background:var(--card); border:2px solid var(--line); border-radius:20px; padding:1rem 1.1rem 1.2rem; max-width:none; }
+  .steps li svg { display:block; width:110px; height:110px; margin:0 auto .3rem; }
+  .steps b { display:block; color:var(--teal); font-size:1.25rem; margin-bottom:.2rem; }
+  .pair { display:grid; gap:1.2rem; grid-template-columns:1fr; }
+  @media (min-width: 640px) { .pair { grid-template-columns:1fr 1fr; } }
+  .pair figure { margin:0; }
+  .trust { list-style:none; padding:0; display:grid; gap:.6rem; grid-template-columns:1fr; }
+  @media (min-width: 640px) { .trust { grid-template-columns:1fr 1fr; } }
+  .trust li { display:flex; gap:.7rem; align-items:flex-start; background:var(--card); border:2px solid var(--line); border-radius:14px; padding:.7rem .9rem; max-width:none; }
+  .trust svg { flex:0 0 28px; width:28px; height:28px; margin-top:.15rem; }
+  .callout { background:var(--card); border-left:8px solid var(--gold); border-radius:12px; padding:.8rem 1.1rem; margin:1.2rem 0; max-width:44rem; }
+  .habits { counter-reset:h; list-style:none; padding:0; }
+  .habits li { counter-increment:h; position:relative; padding-left:3rem; margin:.7rem 0; }
+  .habits li::before { content:counter(h); position:absolute; left:0; top:.1rem; width:2.2rem; height:2.2rem; border-radius:50%; background:var(--teal); color:var(--on-teal); font-weight:700; display:grid; place-items:center; }
+  details { background:var(--card); border:2px solid var(--line); border-radius:14px; padding:.1rem 1rem; margin:.7rem 0; max-width:44rem; }
+  summary { cursor:pointer; font-weight:700; padding:.7rem 0; font-size:1.15rem; color:var(--teal); }
+  details[open] summary { border-bottom:1px solid var(--line); margin-bottom:.4rem; }
+  summary:focus-visible, a:focus-visible { outline:4px solid var(--gold); outline-offset:3px; }
+  #detailed-view { font-size:18px; }
+  table { border-collapse:collapse; width:100%; margin:1rem 0; font-size:.95rem; line-height:1.45; background:var(--card); }
+  th, td { border:1px solid var(--line); padding:.55rem .7rem; text-align:left; vertical-align:top; }
+  th { background:var(--bg); color:var(--teal); }
+  @media (max-width: 680px) {
+    table, tbody, tr, td { display:block; width:100%; }
+    thead { position:absolute; left:-999px; }
+    tr { margin:0 0 .8rem; border:2px solid var(--line); border-radius:12px; overflow:hidden; }
+    td { border:0; border-bottom:1px solid var(--line); }
+    td::before { content:attr(data-label); display:block; font-weight:700; color:var(--teal); font-size:.85rem; }
+  }
+  @media (min-width: 681px) { table code { white-space:nowrap; } }
+  code { font-family:Consolas, "Courier New", monospace; font-size:.9em; background:var(--card); border:1px solid var(--line); border-radius:6px; padding:0 .3em; word-break:break-word; }
+  .note { color:var(--soft); font-size:.95rem; }
+  footer { max-width:60rem; margin:0 auto; padding:1.5rem 16px 3rem; border-top:2px solid var(--line); color:var(--soft); font-size:1rem; }
+  /* diagram marks: the figure panel is always cream, so these colours are fixed */
+  .box { fill:#FFFBEA; stroke:#0F6B73; stroke-width:2; }
+  .box-out { fill:#FFFFFF; stroke:#4A4640; stroke-width:2; }
+  .box-opt { fill:#FFFBEA; stroke:#0F6B73; stroke-width:2; stroke-dasharray:7 5; }
+  .boundary { fill:none; stroke:#0F6B73; stroke-width:3; stroke-dasharray:3 7; stroke-linecap:round; }
+  .ln { stroke:#1C1B1A; stroke-width:2.2; fill:none; }
+  .ln-opt { stroke:#0F6B73; stroke-width:2.2; fill:none; stroke-dasharray:7 5; }
+  .t { font:14px Georgia, serif; fill:#1C1B1A; }
+  .tb { font:bold 14px Georgia, serif; fill:#1C1B1A; }
+  .tl { font:13px Georgia, serif; fill:#4A4640; }
+  .ts { font:12px Georgia, serif; fill:#4A4640; }
+  .tt { font:bold 15px Georgia, serif; fill:#0F6B73; }
+</style>
+</head>
+<body>
+<a class="skip" href="#top-of-content">Skip to the page</a>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="mark" viewBox="0 0 96 96">
+      <path d="M48 6 L84 19 V46 C84 67 68 83 48 92 C28 83 12 67 12 46 V19 Z" fill="#0F6B73"/>
+      <g fill="#F4B400"><circle cx="64" cy="47" r="8"/><circle cx="59.3" cy="58.3" r="8"/><circle cx="48" cy="63" r="8"/><circle cx="36.7" cy="58.3" r="8"/><circle cx="32" cy="47" r="8"/><circle cx="36.7" cy="35.7" r="8"/><circle cx="48" cy="31" r="8"/><circle cx="59.3" cy="35.7" r="8"/></g>
+      <circle cx="48" cy="47" r="11" fill="#6B3E1B"/>
+    </symbol>
+    <symbol id="tick" viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="#2E7D32"/><path d="M6.5 12.5l4 4 7-8" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#1C1B1A"/></marker>
+    <marker id="arrow-opt" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#0F6B73"/></marker>
+  </defs>
+</svg>
+
+<input type="radio" name="view" id="view-simple" class="vh" checked>
+<input type="radio" name="view" id="view-detailed" class="vh">
+
+<header class="top">
+  <svg width="40" height="40" role="img" aria-label="Aegida"><use href="#mark"/></svg>
+  <span class="name">Aegida</span>
+  <a href="privacy.html">Privacy policy</a>
+</header>
+
+<div class="switchbar" role="group" aria-label="Choose how much detail to read">
+  <div class="switch">
+    <label for="view-simple">Simple<small>plain words</small></label>
+    <label for="view-detailed">Detailed<small>exactly how it works</small></label>
+  </div>
+</div>
+
+<main id="top-of-content">
+
+<!-- ============================ SIMPLE VIEW ============================ -->
+<div id="simple-view">
+
+  <div class="hero">
+    <div>
+      <h1>A quiet helper that looks out for scams on your phone</h1>
+      <p class="lead">Aegida is a free Android app. It looks at the notices on your phone and tells you, in plain words, when one looks like a scam. Only if you say so, it can also send a short note to one person you trust.</p>
+      <p>If a family member or a friend sent you this page, it is because they care about you.</p>
+    </div>
+    <figure class="fig narrow">
+      <svg viewBox="0 0 360 440" role="img" aria-label="A phone shows a message with a link, and below it Aegida's plain warning: a message has a link that looks like a scam, please don't tap it.">
+        <rect x="40" y="10" width="280" height="420" rx="34" fill="#1C1B1A"/>
+        <rect x="50" y="24" width="260" height="392" rx="26" fill="#FFF4CC"/>
+        <text x="70" y="62" font-family="Georgia, serif" font-size="21" font-weight="bold" fill="#0F6B73">Aegida</text>
+        <rect x="66" y="82" width="228" height="104" rx="16" fill="#FFFFFF" stroke="#E6D9A8" stroke-width="2"/>
+        <text x="82" y="108" font-family="Georgia, serif" font-size="14" font-weight="bold" fill="#1C1B1A">Bank</text>
+        <text x="82" y="132" font-family="Georgia, serif" font-size="14" fill="#1C1B1A">Your account is locked.</text>
+        <text x="82" y="156" font-family="Georgia, serif" font-size="13" fill="#0F6B73" text-decoration="underline">Verify at bank-login-check.example</text>
+        <rect x="66" y="204" width="228" height="196" rx="18" fill="#FFFBEA" stroke="#B8860B" stroke-width="2.5"/>
+        <circle cx="96" cy="238" r="17" fill="#B8860B"/>
+        <rect x="94.5" y="228" width="3" height="12" rx="1.5" fill="#fff"/><circle cx="96" cy="246" r="2" fill="#fff"/>
+        <text x="122" y="244" font-family="Georgia, serif" font-size="16" font-weight="bold" fill="#1C1B1A">1 thing needs a tap</text>
+        <text x="82" y="282" font-family="Georgia, serif" font-size="14" fill="#1C1B1A">A message has a link that</text>
+        <text x="82" y="302" font-family="Georgia, serif" font-size="14" fill="#1C1B1A">looks like a scam.</text>
+        <text x="82" y="322" font-family="Georgia, serif" font-size="14" fill="#1C1B1A">Please don't tap it.</text>
+        <rect x="82" y="346" width="196" height="36" rx="18" fill="none" stroke="#0F6B73" stroke-width="2.5"/>
+        <text x="180" y="370" text-anchor="middle" font-family="Georgia, serif" font-size="14" font-weight="bold" fill="#0F6B73">Call a guardian</text>
+      </svg>
+      <figcaption>What you would see: Aegida says so in plain words and tells you what to do. It says: "A message has a link that looks like a scam. Please don't tap it."</figcaption>
+    </figure>
+  </div>
+
+  <h2>How it works</h2>
+  <ol class="steps">
+    <li>
+      <svg viewBox="0 0 120 120" role="img" aria-label="A phone with a short checklist and a small clock showing five minutes">
+        <rect x="30" y="8" width="52" height="92" rx="10" fill="#FFFBEA" stroke="#0F6B73" stroke-width="4"/>
+        <g fill="#0F6B73"><circle cx="43" cy="34" r="4"/><rect x="52" y="31" width="22" height="6" rx="3"/><circle cx="43" cy="52" r="4"/><rect x="52" y="49" width="22" height="6" rx="3"/><circle cx="43" cy="70" r="4"/><rect x="52" y="67" width="22" height="6" rx="3"/></g>
+        <circle cx="88" cy="88" r="25" fill="#F4B400"/>
+        <text x="88" y="93" text-anchor="middle" font-family="Georgia, serif" font-size="13" font-weight="bold" fill="#1C1B1A">5 min</text>
+      </svg>
+      <b>1. Set it up</b>
+      In about five minutes. You give your first name and pick one person you trust, called your guardian. The words are big, and someone can sit with you the first time.
+    </li>
+    <li>
+      <svg viewBox="0 0 120 120" role="img" aria-label="Messages pass by on the left while the Aegida sunflower shield looks out, and one message is marked with an amber dot">
+        <g stroke="#0F6B73" stroke-width="3" fill="#FFFFFF"><rect x="4" y="20" width="30" height="21" rx="4"/><rect x="4" y="50" width="30" height="21" rx="4"/><rect x="4" y="80" width="30" height="21" rx="4"/></g>
+        <g stroke="#0F6B73" stroke-width="3" fill="none"><path d="M4 22l15 11 15-11"/><path d="M4 52l15 11 15-11"/><path d="M4 82l15 11 15-11"/></g>
+        <circle cx="32" cy="22" r="7" fill="#B8860B"/>
+        <use href="#mark" x="44" y="22" width="72" height="72"/>
+      </svg>
+      <b>2. It looks out quietly</b>
+      You do not need to open it each day. If a message has a link that looks like a scam, or a website sends you fake warnings, Aegida tells you in plain words and says what to do.
+    </li>
+    <li>
+      <svg viewBox="0 0 120 120" role="img" aria-label="A switch turned on, and one person you chose">
+        <rect x="14" y="14" width="92" height="44" rx="22" fill="#0F6B73"/>
+        <circle cx="84" cy="36" r="17" fill="#FFFFFF"/>
+        <circle cx="60" cy="84" r="13" fill="#6B3E1B"/>
+        <path d="M32 116c0-18 12-26 28-26s28 8 28 26z" fill="#F4B400"/>
+      </svg>
+      <b>3. You stay in charge</b>
+      Telling your guardian is your choice, and you can switch it off any time. Nothing is sent to anyone until you say yes.
+    </li>
+  </ol>
+
+  <h2>What you will see</h2>
+  <div class="pair">
+    <figure class="fig narrow">
+      <svg viewBox="0 0 240 360" role="img" aria-label="The Aegida home screen when it finds nothing: a green tick, your phone looks good, no known problems found">
+        <rect x="10" y="4" width="220" height="352" rx="30" fill="#1C1B1A"/>
+        <rect x="18" y="14" width="204" height="332" rx="22" fill="#FFF4CC"/>
+        <text x="34" y="50" font-family="Georgia, serif" font-size="18" font-weight="bold" fill="#0F6B73">Aegida</text>
+        <circle cx="120" cy="104" r="30" fill="#2E7D32"/><path d="M104 104l11 11 22-24" fill="none" stroke="#fff" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+        <text x="120" y="162" text-anchor="middle" font-family="Georgia, serif" font-size="16" font-weight="bold" fill="#1C1B1A">Your phone looks good.</text>
+        <text x="120" y="188" text-anchor="middle" font-family="Georgia, serif" font-size="13" fill="#1C1B1A">Checked today at 9:41 AM.</text>
+        <text x="120" y="212" text-anchor="middle" font-family="Georgia, serif" font-size="14" fill="#1C1B1A">No known problems found.</text>
+        <rect x="38" y="232" width="164" height="36" rx="18" fill="none" stroke="#0F6B73" stroke-width="2.5"/>
+        <text x="120" y="255" text-anchor="middle" font-family="Georgia, serif" font-size="13" font-weight="bold" fill="#0F6B73">Call a guardian</text>
+        <path d="M18 300 H222 V324 A22 22 0 0 1 200 346 H40 A22 22 0 0 1 18 324 Z" fill="#EEF3F2"/>
+        <rect x="26" y="306" width="60" height="28" rx="14" fill="#E8DEF8"/>
+        <g font-family="Georgia, serif" font-size="11" fill="#1C1B1A" text-anchor="middle"><text x="56" y="325" font-weight="bold">Home</text><text x="120" y="325">History</text><text x="184" y="325">My settings</text></g>
+      </svg>
+      <figcaption>When it finds nothing, it says so: "No known problems found."</figcaption>
+    </figure>
+    <figure class="fig narrow">
+      <svg viewBox="0 0 240 360" role="img" aria-label="The Aegida home screen when something looks wrong: an amber exclamation mark, one thing needs a tap, and the plain warning">
+        <rect x="10" y="4" width="220" height="352" rx="30" fill="#1C1B1A"/>
+        <rect x="18" y="14" width="204" height="332" rx="22" fill="#FFF4CC"/>
+        <text x="34" y="50" font-family="Georgia, serif" font-size="18" font-weight="bold" fill="#0F6B73">Aegida</text>
+        <circle cx="120" cy="104" r="30" fill="#B8860B"/><rect x="117.5" y="84" width="5" height="22" rx="2.5" fill="#fff"/><circle cx="120" cy="116" r="3.2" fill="#fff"/>
+        <text x="120" y="162" text-anchor="middle" font-family="Georgia, serif" font-size="16" font-weight="bold" fill="#1C1B1A">1 thing needs a tap</text>
+        <g font-family="Georgia, serif" font-size="13" fill="#1C1B1A" text-anchor="middle"><text x="120" y="188">A message has a link that</text><text x="120" y="206">looks like a scam.</text><text x="120" y="224">Please don't tap it.</text></g>
+        <rect x="38" y="240" width="164" height="36" rx="18" fill="none" stroke="#0F6B73" stroke-width="2.5"/>
+        <text x="120" y="263" text-anchor="middle" font-family="Georgia, serif" font-size="13" font-weight="bold" fill="#0F6B73">Call a guardian</text>
+        <path d="M18 300 H222 V324 A22 22 0 0 1 200 346 H40 A22 22 0 0 1 18 324 Z" fill="#EEF3F2"/>
+        <rect x="26" y="306" width="60" height="28" rx="14" fill="#E8DEF8"/>
+        <g font-family="Georgia, serif" font-size="11" fill="#1C1B1A" text-anchor="middle"><text x="56" y="325" font-weight="bold">Home</text><text x="120" y="325">History</text><text x="184" y="325">My settings</text></g>
+      </svg>
+      <figcaption>When something looks wrong, it says so plainly. It never uses red, and it never shouts.</figcaption>
+    </figure>
+  </div>
+  <p>A small notice on your screen says "Aegida is looking out for you", so you can see it is running. You can swipe it away.</p>
+
+  <h2>Someone you trust, only if you say yes</h2>
+  <figure class="fig">
+    <svg viewBox="0 0 400 270" role="img" aria-label="Your phone sends one short note, only if you say yes, to the phone of the one person you chose. The note reads: a message with a scam link arrived on Ruth's phone, Aegida warned Ruth.">
+      <rect x="8" y="40" width="78" height="150" rx="14" fill="#1C1B1A"/><rect x="13" y="48" width="68" height="134" rx="10" fill="#FFF4CC"/>
+      <use href="#mark" x="21" y="92" width="52" height="52"/>
+      <text x="47" y="212" text-anchor="middle" class="t">You</text>
+      <rect x="314" y="40" width="78" height="150" rx="14" fill="#1C1B1A"/><rect x="319" y="48" width="68" height="134" rx="10" fill="#FFF4CC"/>
+      <circle cx="353" cy="100" r="13" fill="#6B3E1B"/><path d="M329 150c0-16 10-22 24-22s24 6 24 22z" fill="#F4B400"/>
+      <text x="353" y="212" text-anchor="middle" class="t">One person</text><text x="353" y="230" text-anchor="middle" class="t">you chose</text>
+      <path d="M92 112 H308" class="ln-opt" marker-end="url(#arrow-opt)"/>
+      <text x="200" y="96" text-anchor="middle" class="tt">only if you say yes</text>
+      <rect x="104" y="128" width="192" height="104" rx="14" fill="#FFFFFF" stroke="#4A4640" stroke-width="2"/>
+      <text x="118" y="152" class="tb">Ruth</text>
+      <text x="118" y="174" class="t">A message with a scam link</text>
+      <text x="118" y="194" class="t">arrived on Ruth's phone.</text>
+      <text x="118" y="214" class="t">Aegida warned Ruth.</text>
+    </svg>
+    <figcaption>If you turn it on, Aegida sends one short note to the person you picked, so they can call you. It looks like this: "A message with a scam link arrived on Ruth's phone. Aegida warned Ruth."</figcaption>
+  </figure>
+  <ul>
+    <li>The note never has the words of your messages, links, or the names of your apps.</li>
+    <li>The first note they get says: "Aegida is set up on Ruth's phone. You will get a message here if it needs help."</li>
+    <li>They need only the free ntfy app. They cannot see your phone, and they cannot change anything on it.</li>
+    <li>You can pick a different person, or turn this off, whenever you like.</li>
+  </ul>
+
+  <h2>What Aegida will not do</h2>
+  <ul class="trust">
+    <li><svg aria-hidden="true"><use href="#tick"/></svg><span>It does not keep or send the words in your messages. It only looks for scam links, right on your phone.</span></li>
+    <li><svg aria-hidden="true"><use href="#tick"/></svg><span>It never opens a link from a message.</span></li>
+    <li><svg aria-hidden="true"><use href="#tick"/></svg><span>It does not look at your photos, contacts, location, microphone or camera, and it does not listen to calls.</span></li>
+    <li><svg aria-hidden="true"><use href="#tick"/></svg><span>It has no ads, no account to make and no tracking.</span></li>
+  </ul>
+  <div class="callout"><b>It cannot catch every scam.</b> When it says "No known problems found", it means it found none that it knows about. If something feels wrong, stop and call someone you trust.</div>
+
+  <h2>Three habits that help, with or without Aegida</h2>
+  <ol class="habits">
+    <li><b>Slow down.</b> Scammers want you to hurry, so you do not have time to think.</li>
+    <li><b>Be careful when someone you do not know contacts you.</b> A real bank or government office will never ask you to pay with gift cards.</li>
+    <li><b>Talk to someone you trust</b> before you do anything.</li>
+  </ol>
+  <p class="note">These habits follow the advice of the US Federal Trade Commission for older adults.</p>
+
+  <h2>Questions</h2>
+  <details><summary>Does it cost anything?</summary><p>No. Aegida is free, with no ads and no account.</p></details>
+  <details><summary>Who can see what is on my phone?</summary><p>Nobody. What Aegida looks at stays on your phone. The only thing that ever leaves is the short note to your guardian, and only if you turned that on.</p></details>
+  <details><summary>What does the person I choose get, exactly?</summary><p>One short note when something serious happens, such as the example above. They also get a note if Aegida has not been able to check in for two days, because the phone may be off. They do not get your messages, links or app names.</p></details>
+  <details><summary>Can I turn it off, or change the person?</summary><p>Yes, both, in My settings. If you pick someone else, the first person is told once, and their old link stops working.</p></details>
+  <details><summary>What if it says something is wrong and I am not sure?</summary><p>Do not tap the link. Slow down and call someone you trust. The "Call a guardian" button dials the number you gave.</p></details>
+  <details><summary>Will it work on my phone, and do I need the internet?</summary><p>Aegida works on Android phones with Android 10 or newer. It is not for iPhones. It checks on your phone, and uses the internet only to update its list of known scams and to send your guardian's note.</p></details>
+
+  <p>Aegida is in testing with a few families right now. If someone sent you this page, ask them to help you install it.</p>
+
+</div>
+
+<!-- ============================ DETAILED VIEW ============================ -->
+<div id="detailed-view">
+
+  <h1>How Aegida works, in detail</h1>
+  <p class="lead">For readers who want to check the mechanism. This page describes Aegida 0.3.2 and was checked against the app's code. Where something has not been tested on a real device, it says so.</p>
+
+  <h2>In two lines</h2>
+  <p>Aegida reads the title and text of notifications through Android's notification-access service, checks them on the phone against fixed rules and a signed list of known bad hosts, and tells the owner in plain words. If she turned it on, it sends one fixed sentence to one chosen person through ntfy.sh.</p>
+
+  <h2>What happens to a notification</h2>
+  <figure class="fig">
+    <svg viewBox="0 0 480 880" role="img" aria-label="Data flow. A notification from another app reaches Aegida's notification access on the phone, is checked by the detectors against hashed scam lists, becomes a finding in private storage, and shows as a warning on Home. Optionally one fixed sentence goes through ntfy.sh to the guardian's phone. The scam lists come from GitHub Pages and are signature-checked first.">
+      <rect x="140" y="10" width="200" height="44" rx="10" class="box-out"/><text x="240" y="37" text-anchor="middle" class="tb">Another app</text>
+      <path d="M240 54 V120" class="ln" marker-end="url(#arrow)"/><text x="252" y="76" class="tl">posts a notification</text>
+      <rect x="16" y="86" width="448" height="596" rx="22" class="boundary"/>
+      <text x="52" y="666" class="tt">On your phone: stays here</text>
+      <rect x="130" y="122" width="220" height="56" rx="10" class="box"/><text x="240" y="146" text-anchor="middle" class="tb">Notification access</text><text x="240" y="166" text-anchor="middle" class="t">reads title and text</text>
+      <path d="M240 178 V236" class="ln" marker-end="url(#arrow)"/><text x="252" y="205" class="tl">held in memory only,</text><text x="252" y="222" class="tl">not stored</text>
+      <rect x="130" y="236" width="220" height="56" rx="10" class="box"/><text x="240" y="260" text-anchor="middle" class="tb">Checks (9 rules)</text><text x="240" y="280" text-anchor="middle" class="t">links, pop-ups, apps, settings</text>
+      <rect x="28" y="236" width="84" height="56" rx="10" class="box"/><text x="70" y="260" text-anchor="middle" class="tb">Scam lists</text><text x="70" y="280" text-anchor="middle" class="t">hashes only</text>
+      <path d="M112 264 H128" class="ln" marker-end="url(#arrow)"/>
+      <rect x="364" y="236" width="92" height="56" rx="10" class="box"/><text x="410" y="255" text-anchor="middle" class="ts">also runs when</text><text x="410" y="271" text-anchor="middle" class="ts">the app opens</text><text x="410" y="287" text-anchor="middle" class="ts">and every day</text>
+      <path d="M364 264 H352" class="ln" marker-end="url(#arrow)"/>
+      <path d="M240 292 V350" class="ln" marker-end="url(#arrow)"/><text x="252" y="316" class="tl">a finding: site, app, time.</text><text x="252" y="333" class="tl">Never the message text</text>
+      <rect x="130" y="350" width="220" height="56" rx="10" class="box"/><text x="240" y="374" text-anchor="middle" class="tb">Private storage</text><text x="240" y="394" text-anchor="middle" class="t">findings, 90-day history</text>
+      <path d="M240 406 V458" class="ln" marker-end="url(#arrow)"/><text x="252" y="437" class="tl">tells the owner</text>
+      <rect x="130" y="458" width="220" height="56" rx="10" class="box"/><text x="240" y="482" text-anchor="middle" class="tb">Banner and Home screen</text><text x="240" y="502" text-anchor="middle" class="t">plain words, big text</text>
+      <path d="M350 378 H420 V588 H352" class="ln-opt" marker-end="url(#arrow-opt)"/><text x="414" y="470" text-anchor="end" class="tl">optional</text>
+      <rect x="130" y="560" width="220" height="56" rx="10" class="box-opt"/><text x="240" y="584" text-anchor="middle" class="tb">One fixed sentence</text><text x="240" y="604" text-anchor="middle" class="t">only if she turned it on</text>
+      <path d="M240 616 V724" class="ln-opt" marker-end="url(#arrow-opt)"/><text x="252" y="706" class="tl">one POST over https</text>
+      <rect x="130" y="724" width="220" height="48" rx="10" class="box-out"/><text x="240" y="753" text-anchor="middle" class="tb">ntfy.sh (public relay)</text>
+      <path d="M240 772 V812" class="ln-opt" marker-end="url(#arrow-opt)"/><text x="252" y="796" class="tl">delivered to the topic</text>
+      <rect x="130" y="812" width="220" height="48" rx="10" class="box-out"/><text x="240" y="841" text-anchor="middle" class="tb">Guardian's phone (ntfy app)</text>
+      <rect x="16" y="724" width="100" height="56" rx="10" class="box-out"/><text x="66" y="748" text-anchor="middle" class="tb">GitHub Pages</text><text x="66" y="768" text-anchor="middle" class="t">signed lists</text>
+      <path d="M40 724 V294" class="ln" marker-end="url(#arrow)"/>
+      <text x="50" y="420" class="ts">downloads</text><text x="50" y="436" class="ts">the signed</text><text x="50" y="452" class="ts">lists, checks</text><text x="50" y="468" class="ts">the signature</text><text x="50" y="484" class="ts">first</text>
+    </svg>
+    <figcaption>Figure 1. Solid lines always happen; dashed lines happen only if the owner turned on messages to her guardian. Everything inside the dotted boundary stays on the phone. Only two hosts are ever contacted: <code>wizoi.github.io</code> and <code>ntfy.sh</code>.</figcaption>
+  </figure>
+  <ol>
+    <li><b>Read.</b> Android's notification-access service gives Aegida the title and text of every notification another app posts. Each part is cut at 4,096 characters, so a link beyond that is not seen. Aegida's own notifications are skipped.</li>
+    <li><b>Check.</b> Nine detectors run on every check, one after another, so two triggers cannot overlap. Checks run when a notification arrives, when the listener reconnects, whenever the app is opened, and from a daily background job (every 24 hours, with up to 6 hours of flexibility).</li>
+    <li><b>Record.</b> A finding keeps the host, package, channel, app label and notification key. The text of the notification is not stored or logged.</li>
+    <li><b>Tell.</b> The owner sees a banner and the Home screen. Only website pop-ups are hidden; a message with a scam link is left in place, because it may come from family.</li>
+    <li><b>Optionally tell one person.</b> See "What leaves the phone" below.</li>
+  </ol>
+
+  <h2 id="checks">What it checks</h2>
+  <table>
+    <thead><tr><th scope="col">Check</th><th scope="col">What triggers it</th><th scope="col">What she sees</th></tr></thead>
+    <tbody>
+      <tr><td data-label="Check">Scam link</td><td data-label="What triggers it">A link in a notification whose host (or any parent domain) is in the host list, or whose exact host and path is in the URL list.</td><td data-label="What she sees">"A message has a link that looks like a scam. Please don't tap it."</td></tr>
+      <tr><td data-label="Check">Look-alike link</td><td data-label="What triggers it">A word in the host that equals one of 21 brand words once look-alike letters and digits are swapped (for example Cyrillic or Greek letters, 0 for o, rn for m), when the host is not that brand's own domain; or one label that mixes alphabets.</td><td data-label="What she sees">"A message has a link pretending to be a company you know. Please don't tap it."</td></tr>
+      <tr><td data-label="Check">Website pop-ups</td><td data-label="What triggers it">A notification on a website channel (Chrome's per-site channels). Every such notification is treated as unwanted.</td><td data-label="What she sees">The notification is hidden, and Aegida says so and offers the site's own switch.</td></tr>
+      <tr><td data-label="Check">Default apps changed</td><td data-label="What triggers it">The default browser, text, phone or assistant app differs from what the phone had when setup ended.</td><td data-label="What she sees">"Was that you?" with "Yes, that was me" and "No, show me".</td></tr>
+      <tr><td data-label="Check">Special access added</td><td data-label="What triggers it">A new app with notification access, screen control (accessibility) or device-administrator rights. Urgent.</td><td data-label="What she sees">"Was that you?"</td></tr>
+      <tr><td data-label="Check">New app from outside Google Play</td><td data-label="What triggers it">After setup, a non-system app whose installer is not Google Play. Apps already on the phone at setup are not flagged.</td><td data-label="What she sees">"Was that you?"</td></tr>
+      <tr><td data-label="Check">Remote-control apps</td><td data-label="What triggers it">One of eight known packages (AnyDesk, TeamViewer and its QuickSupport and Host variants, RustDesk, AirDroid, Chrome Remote Desktop, Splashtop SOS), matched by package name, even if installed from Google Play. Urgent.</td><td data-label="What she sees">"Was that you?"</td></tr>
+      <tr><td data-label="Check">Spying apps</td><td data-label="What triggers it">A non-system app whose package name, or signing-certificate SHA-1, is in the list from the Stalkerware Indicators project. Raised on every check until removed. Urgent.</td><td data-label="What she sees">"A spying app is on your phone. Tap to see it and remove it."</td></tr>
+      <tr><td data-label="Check">Website filter</td><td data-label="What triggers it">Only if she set up Private DNS in setup: raised if the setting is no longer that host.</td><td data-label="What she sees">"Website protection is off. Tap to turn it back on."</td></tr>
+      <tr><td data-label="Check">Health</td><td data-label="What triggers it">After setup: notification access switched off, notifications blocked, no daily check for 26 hours, or lists built more than 3 days ago.</td><td data-label="What she sees">"Aegida can no longer see your notifications. Tap to fix it." or "I couldn't check today."</td></tr>
+    </tbody>
+  </table>
+  <p class="note">Link shorteners are recognised but do not make a finding on their own. A link that matches nothing makes no finding.</p>
+
+  <h2 id="scam-lists">The scam lists</h2>
+  <figure class="fig">
+    <svg viewBox="0 0 480 660" role="img" aria-label="Pipeline. On GitHub each day: public lists are downloaded, built into one file of short hashes, signed with a private key kept as a GitHub secret, then published to GitHub Pages. On the phone: the signature and then the file are downloaded, the signature is checked before anything is read, size and date rules are checked, and the old lists are replaced only if every check passes.">
+      <rect x="16" y="10" width="448" height="318" rx="20" class="boundary"/><text x="32" y="34" class="tt">On GitHub, every day at 06:17 UTC</text>
+      <circle cx="48" cy="78" r="16" class="box"/><text x="48" y="84" text-anchor="middle" class="tb">1</text><text x="76" y="74" class="tb">Download the public lists</text><text x="76" y="92" class="tl">Phishing.Database (MIT), Stalkerware Indicators (CC BY 4.0)</text>
+      <path d="M48 94 V126" class="ln" marker-end="url(#arrow)"/>
+      <circle cx="48" cy="142" r="16" class="box"/><text x="48" y="148" text-anchor="middle" class="tb">2</text><text x="76" y="138" class="tb">Build one file of short hashes</text><text x="76" y="156" class="tl">8 bytes of SHA-256 per entry; no readable bad sites</text>
+      <path d="M48 158 V190" class="ln" marker-end="url(#arrow)"/>
+      <circle cx="48" cy="206" r="16" class="box"/><text x="48" y="212" text-anchor="middle" class="tb">3</text><text x="76" y="202" class="tb">Sign it (ECDSA P-256, SHA-256)</text><text x="76" y="220" class="tl">private key lives only as a GitHub secret</text>
+      <path d="M48 222 V254" class="ln" marker-end="url(#arrow)"/>
+      <circle cx="48" cy="270" r="16" class="box"/><text x="48" y="276" text-anchor="middle" class="tb">4</text><text x="76" y="266" class="tb">Verify again, then publish</text><text x="76" y="284" class="tl">feed.bin and feed.sig on GitHub Pages</text>
+      <path d="M240 328 V372" class="ln" marker-end="url(#arrow)"/><text x="252" y="356" class="tl">https download</text>
+      <rect x="16" y="372" width="448" height="270" rx="20" class="boundary"/><text x="32" y="396" class="tt">On the phone</text>
+      <circle cx="48" cy="440" r="16" class="box"/><text x="48" y="446" text-anchor="middle" class="tb">5</text><text x="76" y="436" class="tb">Download the signature, then the file</text><text x="76" y="454" class="tl">daily on Wi-Fi; on mobile data only if the lists are over 3 days old</text>
+      <path d="M48 456 V490" class="ln" marker-end="url(#arrow)"/>
+      <circle cx="48" cy="506" r="16" class="box"/><text x="48" y="512" text-anchor="middle" class="tb">6</text><text x="76" y="502" class="tb">Check the signature before reading</text><text x="76" y="520" class="tl">the public key is built into the app</text>
+      <path d="M48 522 V556" class="ln" marker-end="url(#arrow)"/>
+      <circle cx="48" cy="572" r="16" class="box"/><text x="48" y="578" text-anchor="middle" class="tb">7</text><text x="76" y="568" class="tb">Check size and date rules</text><text x="76" y="586" class="tl">enough entries, not from the future, newer, not far smaller</text>
+      <text x="76" y="616" class="tb">Replace the old lists only if every check passes</text>
+    </svg>
+    <figcaption>Figure 2. How the scam lists get to the phone. If any check fails, the last good lists stay.</figcaption>
+  </figure>
+  <ul>
+    <li><b>Format.</b> A file of sorted 8-byte values. A host is hashed as the host, a link as host plus path without a trailing slash, an app as <code>pkg:</code> plus its lower-case package name, and a certificate as <code>cert:</code> plus its lower-case SHA-1. A lookup is a binary search. A match shows that something matched, not which entry. The live file is about 9 MB.</li>
+    <li><b>Rules before it replaces the old lists.</b> At least 1,000 host and link entries; no more than 100,000 package or certificate entries; not dated more than an hour ahead; strictly newer than the stored lists; host and link count at least half of the stored count; and the file is rejected over 32 MiB. The new file is written to a temporary file and renamed, so a failure never leaves half a list.</li>
+    <li><b>Left out on purpose.</b> About 45 shared hosts (such as <code>github.io</code> and <code>bit.ly</code>) are dropped from the host list so one bad page does not block a whole site; those can match only by exact link. URLhaus is not used because its terms for republishing are unconfirmed.</li>
+    <li><b>Staleness.</b> "Lists old" means the file's own build date is more than three days old, not the last download. Home then says it could not check, instead of "No known problems found".</li>
+  </ul>
+
+  <h2 id="leaves">What leaves the phone</h2>
+  <table>
+    <thead><tr><th scope="col">What</th><th scope="col">To whom</th><th scope="col">When</th><th scope="col">Contents</th></tr></thead>
+    <tbody>
+      <tr><td data-label="What">Scam-list download</td><td data-label="To whom"><code>wizoi.github.io</code> (GitHub Pages)</td><td data-label="When">Daily job and first run</td><td data-label="Contents">A plain GET for <code>feed.sig</code> then <code>feed.bin</code>. No identifiers. GitHub sees an internet address, as any website does.</td></tr>
+      <tr><td data-label="What">Note to the guardian</td><td data-label="To whom"><code>ntfy.sh</code></td><td data-label="When">Only if she turned it on, and only when a warning needs it</td><td data-label="Contents">One HTTPS POST of a fixed sentence, titled with her first name; "urgent" priority for urgent kinds. Never links, message text or app names. Timeouts of 15 seconds, redirects off.</td></tr>
+      <tr><td data-label="What">Invitation email</td><td data-label="To whom">Her own email app</td><td data-label="When">Once in setup, or when she taps "Send the invitation again"</td><td data-label="Contents">The ntfy install links and the private topic link. She presses Send; Aegida cannot tell whether it was sent.</td></tr>
+    </tbody>
+  </table>
+  <ul>
+    <li><b>The topic is the password.</b> A topic is <code>aegida_</code> plus 40 random letters and digits from a cryptographically strong random generator, about 238 bits, made on the phone. There is no account, token or API key. Anyone who has the link could read the notes or send a false one, which is why the invitation says to keep it private, and why changing the guardian makes a new topic.</li>
+    <li><b>"Hasn't checked in".</b> After every daily check Aegida re-arms one delayed message (two days) under the same sequence id, which replaces the waiting one. If the phone stays silent for about two days, ntfy delivers it. Turning alerts off cancels it.</li>
+    <li><b>Repeats.</b> For non-urgent kinds, the guardian is told again only after 24 hours, then 48, 96, and 7 days, if the same kind keeps coming back. Urgent kinds are never held back. A warning still open after a day gets one reminder. After a guardian change, earlier history does not count for the new guardian.</li>
+    <li><b>Offline.</b> A note that cannot be sent is queued and retried after every check (15 minutes, doubling, up to 6 hours), and given up after 7 days, which History says. Messages for a replaced guardian are dropped.</li>
+    <li><b>Never leaves the phone.</b> The text of notifications, contacts, texts, calls, location, microphone, camera, the list of installed apps, and the findings. There is no analytics, crash-reporting or advertising code: the app's libraries are Jetpack Compose, Hilt, Room, WorkManager, OkHttp and kotlinx.serialization.</li>
+    <li><b>Stored on the phone.</b> Her name and picture, the guardian's name, email and phone number, the topic, a baseline of the phone from when setup ended, findings, 90 days of history, the queue, and the downloaded lists, in the app's private storage. It is excluded from cloud backup and phone-to-phone transfer. It is not encrypted by Aegida beyond what Android itself does for app storage.</li>
+  </ul>
+  <details>
+    <summary>Every note a guardian can receive</summary>
+    <ul>
+      <li>Aegida is set up on Ruth's phone. You will get a message here if it needs help.</li>
+      <li>A message with a scam link arrived on Ruth's phone. Aegida warned Ruth.</li>
+      <li>A message pretending to be a well-known company arrived on Ruth's phone. Aegida warned Ruth.</li>
+      <li>A website was sending fake warnings to Ruth's phone. Aegida hid them.</li>
+      <li>Website protection was turned off on Ruth's phone.</li>
+      <li>Aegida can no longer check notifications on Ruth's phone.</li>
+      <li>Aegida can't show warnings on Ruth's phone.</li>
+      <li>The app that opens websites on Ruth's phone was changed. Aegida asked Ruth: “Was that you?”</li>
+      <li>The app for text messages on Ruth's phone was changed. Aegida asked Ruth: “Was that you?”</li>
+      <li>The app for phone calls on Ruth's phone was changed. Aegida asked Ruth: “Was that you?”</li>
+      <li>The assistant app on Ruth's phone was changed. Aegida asked Ruth: “Was that you?”</li>
+      <li>An app was given access to read notifications on Ruth's phone. Aegida asked Ruth: “Was that you?”</li>
+      <li>An app was given control of the screen on Ruth's phone. Aegida asked Ruth: “Was that you?”</li>
+      <li>An app was given special control over Ruth's phone. Aegida asked Ruth: “Was that you?”</li>
+      <li>A new app from outside the Play Store was added to Ruth's phone. Aegida asked Ruth: “Was that you?”</li>
+      <li>An app that lets someone control Ruth's phone from far away is on it. Aegida asked Ruth: “Was that you?”</li>
+      <li>An app that can secretly spy was found on Ruth's phone. Aegida warned Ruth.</li>
+      <li>Ruth hasn't dealt with a warning from Aegida yet. It has been a day. It may be a good time to give Ruth a call.</li>
+      <li>Ruth hasn't dealt with an urgent warning from Aegida yet. It has been a day. Please call Ruth now.</li>
+      <li>Ruth confirmed the change Aegida asked about. Nothing more to do.</li>
+      <li>Ruth confirmed the change Aegida asked about. If you were not expecting it, please call Ruth.</li>
+      <li>Ruth picked a different guardian in Aegida. You will not get messages about Ruth's phone from now on. If you did not expect this, please call Ruth.</li>
+      <li>Aegida hasn't checked in on Ruth's phone for 2 days. The phone may be off or asleep. It may be a good time to call Ruth.</li>
+    </ul>
+  </details>
+
+  <h2 id="permissions">Permissions</h2>
+  <table>
+    <thead><tr><th scope="col">Permission</th><th scope="col">Why</th></tr></thead>
+    <tbody>
+      <tr><td data-label="Permission">Notification access (switched on by the owner in Android settings)</td><td data-label="Why">To read the title and text of notifications for scam links.</td></tr>
+      <tr><td data-label="Permission"><code>INTERNET</code></td><td data-label="Why">To download the scam lists and send the guardian's note.</td></tr>
+      <tr><td data-label="Permission"><code>POST_NOTIFICATIONS</code></td><td data-label="Why">To show Aegida's warnings.</td></tr>
+      <tr><td data-label="Permission"><code>FOREGROUND_SERVICE</code> and <code>FOREGROUND_SERVICE_SPECIAL_USE</code></td><td data-label="Why">The visible "Aegida is looking out for you" notice. It can be swiped away, and it helps keep the phone from putting Aegida to sleep.</td></tr>
+      <tr><td data-label="Permission"><code>RECEIVE_BOOT_COMPLETED</code></td><td data-label="Why">To bring that notice back after a restart or update.</td></tr>
+      <tr><td data-label="Permission"><code>QUERY_ALL_PACKAGES</code></td><td data-label="Why">To list installed apps, so it can notice a new, remote-control or spying app. A narrower list cannot see an unknown app.</td></tr>
+      <tr><td data-label="Permission">Added by the work scheduler</td><td data-label="Why"><code>ACCESS_NETWORK_STATE</code> and <code>WAKE_LOCK</code>, for the daily job.</td></tr>
+      <tr><td data-label="Permission"><b>Not requested</b></td><td data-label="Why">SMS, call recording or audio, screen overlays, full-screen alerts, battery-optimisation exemption, an accessibility service, a VPN, location, contacts, camera. The build fails if any of these appears in the app.</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="limits">What it cannot do</h2>
+  <ul>
+    <li><b>It is not a scan of the whole phone.</b> It reads notification titles and text only. A scam text that never makes a notification, or a messaging app that hides previews, is not seen. Android 15 and newer hides the content of one-time-code notifications from apps like this.</li>
+    <li><b>It cannot tell that a link is fine.</b> It matches known lists and the rules above. No match means "No known problems found", which is not a promise about everything.</li>
+    <li><b>New-app and spying-app checks are limited.</b> They cover the lists, plus "installed from outside Google Play" for apps that arrive after setup. A new app is noticed at the next check (a notification, opening the app, or the daily job), not the moment it is installed.</li>
+    <li><b>It cannot change settings for her.</b> Android needs her tap. She can uninstall Aegida or remove its access; the guardian then hears if alerts are on and the notification-access warning is raised, or after about two days of silence.</li>
+    <li><b>It cannot know the invitation arrived.</b> Aegida cannot tell whether the email was sent or the guardian subscribed in ntfy.</li>
+    <li><b>Samsung phones.</b> Samsung's Auto Blocker cannot be read by a Google Play app, so Aegida takes the owner's word. Samsung may put an unopened app to sleep after about three days; this has not yet been tested on a real phone.</li>
+    <li><b>ntfy.sh is a free public service with no promise about uptime.</b> If it is down or limits traffic, notes are queued and retried.</li>
+  </ul>
+
+  <h2 id="failures">When things go wrong</h2>
+  <table>
+    <thead><tr><th scope="col">Situation</th><th scope="col">What happens</th></tr></thead>
+    <tbody>
+      <tr><td data-label="Situation">Phone offline</td><td data-label="What happens">Checks still run on the stored lists. A failed download only makes the lists older. Notes to the guardian are queued; after a day undelivered she sees "Aegida couldn't reach your guardian for a day. Please call them."</td></tr>
+      <tr><td data-label="Situation">Phone off or asleep</td><td data-label="What happens">Nothing runs. After 26 hours without a daily check Home says "I couldn't check today." The guardian's waiting "hasn't checked in" note arrives after about two days.</td></tr>
+      <tr><td data-label="Situation">Access switched off</td><td data-label="What happens">She sees "Tap to fix it", and the guardian is told if alerts are on.</td></tr>
+      <tr><td data-label="Situation">App killed mid-check</td><td data-label="What happens">The warning is stored last, so a killed run repeats it in full. A duplicate is accepted over a lost warning. The lists file is replaced atomically.</td></tr>
+      <tr><td data-label="Situation">Two triggers at once</td><td data-label="What happens">One lock serialises every check, tap and alert change.</td></tr>
+      <tr><td data-label="Situation">Lists too old</td><td data-label="What happens">Home says it could not check, instead of "No known problems found".</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Rules the build enforces</h2>
+  <ul>
+    <li>Network access goes through one client to two fixed hosts. There is no way to fetch an address taken from a message or notification.</li>
+    <li>Banned in the build: an accessibility service, a VPN service, overlays, full-screen alerts, a battery-exemption request, SMS and audio recording. A new permission needs an explicit decision.</li>
+    <li>No secrets in the app. The scam-list signing key is held only as a GitHub secret; the app contains only the public key.</li>
+    <li>Every sentence the owner or guardian reads lives in one place, and automated checks reject words that promise too much and all-capital labels.</li>
+  </ul>
+
+</div>
+</main>
+
+<footer>
+  <p>This page describes Aegida 0.3.2. Updated October 9, 2026.</p>
+  <p>Questions: <a href="mailto:kidzi+aegida@idzifamily.com">kidzi+aegida@idzifamily.com</a> &middot; <a href="privacy.html">Privacy policy</a></p>
+</footer>
+
+<script>
+(function () {
+  var s = document.getElementById('view-simple'), d = document.getElementById('view-detailed');
+  function fromHash() { if (location.hash === '#detailed') { d.checked = true; } else if (location.hash === '#simple') { s.checked = true; } }
+  fromHash();
+  window.addEventListener('hashchange', fromHash);
+  [s, d].forEach(function (r) {
+    r.addEventListener('change', function () {
+      if (history.replaceState) { history.replaceState(null, '', r === d ? '#detailed' : '#simple'); }
+      window.scrollTo(0, 0);
+    });
+  });
+})();
+</script>
+</body>
+</html>
