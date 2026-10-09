@@ -1,12 +1,12 @@
 # Aegida
 
-Aegida (from "aegis", a shield) is an Android app that helps an older parent keep her phone set up
-safely. It hides fake virus pop-ups, spots dangerous apps and links, notices when a safety setting
-changes, and tells family "guardians" when something serious happens.
+Aegida (from "aegis", a shield) is a free Android app that looks out for scams on an older person's phone. It hides
+fake website pop-ups, spots scam links, spying apps and remote-control apps, notices when an important setting changes,
+and, only if the owner turns it on, sends one chosen family member (the "guardian") a short note when something serious happens.
 
-Status: working app, being tested on an emulator before a Play closed test. Link and website-pop-up checks, drift and new-app
-detection, remote-control and spying-app detection, and guardian alerts are built; see the [build plan](docs/build-plan.md)
-for what is done and what is not. Research is in [research/](research/), storyboard and logo in [design/](design/README.md).
+How it works, in simple words or in detail: https://wizoi.github.io/Aegida-Feed/how-it-works.html
+
+Status: a working app in Google Play closed testing. Research is in [research/](research/), storyboard and logo in [design/](design/README.md).
 
 The source is public so that anyone can audit what the app does on an older person's phone. What it reads, what it
 stores and what it sends is described in [docs/privacy-and-data.md](docs/privacy-and-data.md). To report a security

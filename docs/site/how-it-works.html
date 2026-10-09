@@ -377,7 +377,7 @@
   <ul>
     <li><b>Format.</b> A file of sorted 8-byte values. A host is hashed as the host, a link as host plus path without a trailing slash, an app as <code>pkg:</code> plus its lower-case package name, and a certificate as <code>cert:</code> plus its lower-case SHA-1. A lookup is a binary search. A match shows that something matched, not which entry. The live file is about 9 MB.</li>
     <li><b>Rules before it replaces the old lists.</b> At least 1,000 host and link entries; no more than 100,000 package or certificate entries; not dated more than an hour ahead; strictly newer than the stored lists; host and link count at least half of the stored count; and the file is rejected over 32 MiB. The new file is written to a temporary file and renamed, so a failure never leaves half a list.</li>
-    <li><b>Left out on purpose.</b> About 45 shared hosts (such as <code>github.io</code> and <code>bit.ly</code>) are dropped from the host list so one bad page does not block a whole site; those can match only by exact link. URLhaus is not used because its terms for republishing are unconfirmed.</li>
+    <li><b>Left out on purpose.</b> About 45 shared hosts (such as <code>github.io</code> and <code>bit.ly</code>) are dropped from the host list so one bad page does not block a whole site; those can match only by exact link.</li>
     <li><b>Staleness.</b> "Lists old" means the file's own build date is more than three days old, not the last download. Home then says it could not check, instead of "No known problems found".</li>
   </ul>
 

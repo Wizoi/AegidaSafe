@@ -14,11 +14,10 @@ published at https://wizoi.github.io/Aegida-Feed/ (with the notices in `NOTICE.t
   prefixes (a change from the original). A copy of `ioc.yaml` is kept as test data
   (`feedtool/src/test/resources/feeds/echap-ioc.yaml`). No endorsement by Echap or the Coalition Against Stalkerware
   is suggested.
-- URLhaus (abuse.ch) is **not** used: its terms do not clearly allow republishing (docs/findings.md #27).
 
 ## Software
 
 The app uses open-source libraries (Kotlin, AndroidX, Jetpack Compose, Room, Hilt, WorkManager, OkHttp and others)
 under their own licences, as listed in `gradle/libs.versions.toml`. The Gradle wrapper is Apache-2.0.
 
-Aegida's own licence is stated in `LICENSE` once chosen.
+Aegida itself is released under the MIT licence, in `LICENSE`.

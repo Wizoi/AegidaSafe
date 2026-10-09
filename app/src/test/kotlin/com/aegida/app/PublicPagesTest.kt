@@ -81,6 +81,28 @@ class PublicPagesTest {
         assertEquals("these notes are not on the page", emptyList<String>(), missing)
     }
 
+    /**
+     * Kevin, Oct 9: public text never mentions a feature that is not built. This list is what the product brief and the old
+     * plans promised that the code does not do (findings #81): a source we left out, a checker we never added, a second guardian.
+     */
+    @Test fun noPublicTextMentionsAFeatureThatIsNotBuilt() {
+        val unbuilt = Regex("""URLhaus|Safe Browsing|Play Protect|Play Integrity|MalwareBazaar|second guardian|weekly digest|call screening|coming soon|roadmap""", RegexOption.IGNORE_CASE)
+        val publicFiles = listOf(
+            "../docs/site/how-it-works.html", "../docs/site/privacy.html", "../README.md", "../THIRD_PARTY_NOTICES.md", "../SECURITY.md",
+            "src/main/play/listings/en-US/title.txt", "src/main/play/listings/en-US/short-description.txt", "src/main/play/listings/en-US/full-description.txt",
+        ).map { File(it) } + File("src/main/play/release-notes/en-US").listFiles().orEmpty().toList()
+        for (file in publicFiles) {
+            assertEquals("${file.path} mentions something that is not built", emptyList<String>(), unbuilt.findAll(file.readText()).map { it.value }.toList())
+        }
+    }
+
+    /** The README is the first public page of the repo: the same words as the app ("looks out for", never "safe", no "her"). */
+    @Test fun theReadmeUsesTheAppsWordsAndNeverAssumesAPronoun() {
+        val readme = File("../README.md").readText()
+        assertEquals(emptyList<String>(), Regex("""\b(safe|safely|safety|secure|dangerous|guarantee[ds]?|protected)\b""", RegexOption.IGNORE_CASE).findAll(readme).map { it.value }.toList())
+        assertEquals(emptyList<String>(), Regex("""\b(her|hers|she)\b""", RegexOption.IGNORE_CASE).findAll(readme).map { it.value }.toList())
+    }
+
     @Test fun itSaysWhichVersionOfTheAppItDescribesAndLinksToThePrivacyPage() {
         val version = Regex("""versionName\s*=\s*"([^"]+)"""").find(File("build.gradle.kts").readText())!!.groupValues[1]
         assertTrue("the page must say it describes Aegida $version (update it with each release)", plain.contains("Aegida $version"))
