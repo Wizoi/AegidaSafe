@@ -17,7 +17,7 @@ import com.aegida.platform.R
  * the owner's phone are heads-up banners: no full-screen intent, no overlay. A tap opens the screen that fixes
  * the problem, or the app when there is no single screen for it.
  */
-class NotificationPoster(private val context: Context) : OwnerNotifier {
+class NotificationPoster(private val context: Context, private val art: BannerArt = BannerArt { null }) : OwnerNotifier {
 
     private val manager: NotificationManager get() = context.getSystemService(NotificationManager::class.java)
 
@@ -36,6 +36,7 @@ class NotificationPoster(private val context: Context) : OwnerNotifier {
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(Texts.APP_NAME)
             .setContentText(text)
+            .apply { art.bitmap()?.let { setLargeIcon(it) } }
             .setStyle(Notification.BigTextStyle().bigText(text))
             .setContentIntent(tapIntent(finding))
             .setAutoCancel(true)

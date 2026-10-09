@@ -53,6 +53,15 @@ class NotificationPosterTest {
         assertTrue(n.flags and Notification.FLAG_AUTO_CANCEL != 0)
     }
 
+    @Test fun aBannerCarriesHerPictureWhenThereIsOneAndNothingWhenThereIsNot() {
+        val picture = android.graphics.Bitmap.createBitmap(8, 8, android.graphics.Bitmap.Config.ARGB_8888)
+        NotificationPoster(context, com.aegida.platform.notify.BannerArt { picture }).show(siteFinding)
+        assertTrue(posted().single().getLargeIcon() != null)
+        manager.cancelAll()
+        poster.show(siteFinding)
+        assertNull(posted().single().getLargeIcon())
+    }
+
     @Test fun aSiteBannerOpensThatSitesOwnSwitch() {
         poster.show(siteFinding)
         val intent = shadowOf(posted().single().contentIntent).savedIntent

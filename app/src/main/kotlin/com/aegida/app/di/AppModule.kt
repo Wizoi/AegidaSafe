@@ -65,7 +65,8 @@ abstract class AppModule {
         @Provides fun feed(store: AegidaStore): FeedStore = store.feed
 
         @Provides @Singleton
-        fun notifications(@ApplicationContext context: Context): NotificationPoster = NotificationPoster(context)
+        fun notifications(@ApplicationContext context: Context, store: AegidaStore): NotificationPoster =
+            NotificationPoster(context, com.aegida.app.ui.PictureBanner(context, store.setup))
 
         @Provides fun ownerNotifier(poster: NotificationPoster): OwnerNotifier = poster
 

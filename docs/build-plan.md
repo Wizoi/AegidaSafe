@@ -29,7 +29,7 @@ Gate (design section 11): guard tests green; emulator scenarios for link check, 
 | 1j | Emulator scenarios: `emulator-checks.sh scenarios` 10/10 and `failures` 7/7 (offline daily job keeps the last feed and raises no alarm; a phone that never runs its check gets MissedCheck and ListsOld). Guardian transport built and JVM-tested (Oct 8): scheduled and cancellable ntfy messages, dead man's switch (due in 2 days, pushed back by each daily check), alerts switch, outbox with back-off and retry, `GuardianUnreachable` after 24 h. Done since: public ntfy.sh honours sequence ids for replace and cancel (live test, findings #44); outbox on the emulator, offline (`guardian-offline` 0 failed, #43); 37 mutation checks; a check killed mid-way no longer loses a warning (#42). Still to do: heartbeat arming and guardian change from the real app against live ntfy, with a phone subscribed | `emulator-checks.sh` | mostly done |
 
 Open items inside phase 1:
-- **Her picture on banners:** decided (Kevin): the shield with her picture as a watermark. Needs rendering to a bitmap for `setLargeIcon`. To build.
+- **Her picture on banners:** decided (Kevin) and built: the shield over her picture as a faint watermark, drawn by `PictureBanner` and set as the banner's large icon (JVM/Robolectric-tested). Not yet looked at on the emulator or a phone.
 - **Event warnings that repeat:** a scam message acknowledged and then repeated warns Mom and the guardian again (tested, `FindingActionsTest`); decided (Kevin): needs a back-off so guardians are not told constantly; build with escalation in phase 2.
 - **Home wording:** approved by Kevin. The storyboard says "Everything is as it should be."; Home says "No known problems found." instead, as CLAUDE.md requires.
 - Dead man's switch: built and its replace/cancel behaviour confirmed live (findings #44); the app-side arming still needs a live run with a subscribed phone.
@@ -60,5 +60,5 @@ Open items inside phase 1:
 ## Later
 Remote-access and banking warning, opt-in call screening, weekly guardian digest, manual "Check this".
 - **Code naming:** the person with the phone is the *owner* in code (decided Oct 8).
-- **Blank owner name:** guardian messages fall back to "Aegida" (reads badly); choose better wording.
+- **Blank owner name:** setup will not continue without a name, so a blank only appears on a database from before that rule; guardian messages then say "Aegida". Left as is.
 - **Changing the guardian:** decided (Kevin): allowed, with a popup telling her to let the previous guardian know; nothing is sent automatically. Built: GuardianChange (new private topic for the new guardian, old heartbeat cancelled, new guardian told if alerts are on) and the My settings screen with the popup; not yet walked on the emulator.
