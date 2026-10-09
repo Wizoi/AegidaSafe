@@ -5,7 +5,7 @@
 The app checks links and installed apps against a signed list that is built daily in this repository's workflow and
 published at https://wizoi.github.io/Aegida-Feed/ (with the notices in `NOTICE.txt` there).
 
-- **Phishing.Database**: https://github.com/Phishing-Database/Phishing.Database, MIT licence, copyright Mitchell Krog,
+- **Phishing.Database**: https://github.com/Phishing-Database/Phishing.Database, MIT license, copyright Mitchell Krog,
   Nissar Chababy and Phishing.Database contributors. Used for the scam website and link entries. Excerpts of its lists
   are used as test data under `feedtool/src/test/resources/feeds/`.
 - **Stalkerware Indicators of Compromise**: https://github.com/AssoEchap/stalkerware-indicators, published by Echap
@@ -18,6 +18,6 @@ published at https://wizoi.github.io/Aegida-Feed/ (with the notices in `NOTICE.t
 ## Software
 
 The app uses open-source libraries (Kotlin, AndroidX, Jetpack Compose, Room, Hilt, WorkManager, OkHttp and others)
-under their own licences, as listed in `gradle/libs.versions.toml`. The Gradle wrapper is Apache-2.0.
+under their own licenses, as listed in `gradle/libs.versions.toml`. The Gradle wrapper is Apache-2.0.
 
-Aegida itself is released under the MIT licence, in `LICENSE`.
+Aegida itself is released under the MIT license, in `LICENSE`.

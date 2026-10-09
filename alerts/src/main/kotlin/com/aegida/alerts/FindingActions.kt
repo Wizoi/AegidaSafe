@@ -47,7 +47,7 @@ class FindingActions @Inject constructor(
     }
 
     private suspend fun accept(key: FindingKey): Boolean {
-        if (key.problem.fix != Fix.ConfirmChange) return false
+        if (key.problem.fix != Fix.ConfirmChange && key.problem.fix != Fix.ConfirmEvent) return false
         if (findings.get(key)?.state?.needsHer != true) return false
         val baseline = baselines.baseline() ?: return false
         baselines.save(baseline.accepting(key.problem, key.subject, snapshotter.take()))

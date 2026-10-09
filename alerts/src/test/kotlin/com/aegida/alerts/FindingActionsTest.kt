@@ -70,8 +70,8 @@ class FindingActionsTest {
 
     @Test fun eachProblemHasTheFixThatMatchesHowItClears() {
         // Event findings never clear by themselves, so they must be acknowledgeable; setting findings clear when fixed.
-        val eventProblems = Problem.entries.filter { it.fix == Fix.Acknowledge || it.fix == Fix.SettingsThenAcknowledge }
-        assertEquals(setOf(Problem.ScamLink, Problem.LookalikeLink, Problem.SiteNotifications), eventProblems.toSet())
+        val eventProblems = Problem.entries.filter { it.fix == Fix.Acknowledge || it.fix == Fix.SettingsThenAcknowledge || it.fix == Fix.ConfirmEvent }
+        assertEquals(setOf(Problem.ScamLink, Problem.LookalikeLink, Problem.SiteNotifications, Problem.NewWebsiteNotifications), eventProblems.toSet())
         assertTrue(Problem.entries.filter { it.severity >= com.aegida.core.model.Severity.NeedsTap }.none { it.fix == Fix.None })
         assertTrue(Problem.entries.filter { it.severity == com.aegida.core.model.Severity.Info }.all { it.fix == Fix.None })
     }
@@ -87,6 +87,29 @@ class FindingActionsTest {
         assertEquals("org.other.browser", baselines.value!!.browser)
         assertEquals(FindingState.Acknowledged, findings.get(changed.key)!!.state)
         assertFalse(actions.acceptChange(changed.key)) // nothing open any more
+    }
+
+    private val newSite = "http://localhost:8765"
+    private suspend fun aNewWebsite(): Finding {
+        baselines.value = Baseline.of(phone)
+        val f = Finding(FindingKey(DetectorId.PopupSpam, Problem.NewWebsiteNotifications, newSite), emptyMap(), now, now)
+        pipeline.handle(listOf(f), setOf(DetectorId.PopupSpam))
+        return f
+    }
+
+    @Test fun aNewWebsiteIsToldToTheGuardianAsAQuestionAndHidden() = runTest { // Kevin, Oct 9
+        val f = aNewWebsite()
+        assertEquals(listOf("A website that was not there before started sending notifications on Ruth's phone. Aegida asked Ruth: “Was that you?”"), http.bodies)
+        assertEquals(listOf(f.key), owner.shown)
+    }
+
+    @Test fun sayingANewWebsiteWasHersLetsItThroughNextTimeAndTheGuardianHearsIt() = runTest {
+        val f = aNewWebsite()
+        http.posts.clear(); http.bodies.clear()
+        assertTrue(actions.acceptChange(f.key))
+        assertEquals(setOf(newSite), baselines.value!!.websites)
+        assertEquals(FindingState.Acknowledged, findings.get(f.key)!!.state)
+        assertEquals(listOf("Ruth confirmed the change Aegida asked about. Nothing more to do."), http.bodies)
     }
 
     @Test fun onlyAWasThatYouQuestionCanBeAcceptedIntoTheBaseline() = runTest {

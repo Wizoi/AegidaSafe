@@ -208,7 +208,7 @@ private fun MainContent(state: MainState, vm: MainViewModel) {
             Fix.SettingsThenAcknowledge -> { context.startSafely(screen); vm.acknowledge(finding) }
             Fix.WebsiteFilterGuide -> page = Page.FilterGuide
             Fix.Acknowledge -> page = Page.Advice(finding)
-            Fix.ConfirmChange -> page = Page.Confirm(finding)
+            Fix.ConfirmChange, Fix.ConfirmEvent -> page = Page.Confirm(finding)
             Fix.CallGuardian -> context.startSafely(FixActions.callGuardian(state.guardians.firstGuardianPhone))
             Fix.None -> Unit
         }
@@ -283,6 +283,8 @@ private fun MainContent(state: MainState, vm: MainViewModel) {
                     BigButton(Texts.Home.CONFIRM_YES, { vm.acceptChange(current.finding); page = Page.None })
                     QuietButton(Texts.Home.CONFIRM_NO, {
                         context.startSafely(FixActions.settingsIntentFor(current.finding, context.packageName))
+                        // Something that happened once is never detected again, so "no" counts it as seen once she has been shown the switch.
+                        if (current.finding.key.problem.fix == Fix.ConfirmEvent) vm.acknowledge(current.finding)
                         page = Page.None
                     })
                     Body(Texts.Home.CONFIRM_NO_HELP)

@@ -96,6 +96,18 @@ class PublicPagesTest {
         }
     }
 
+    /** Kevin, Oct 9: US English in everything public ("license", "recognized", "optimization"), as in the app. */
+    @Test fun publicTextIsInUsEnglish() {
+        val british = Regex("""(?i)\b(licen[c]es?|optimis\w+|serialis\w+|recognis\w+|organis\w+|colour\w*|behaviour\w*|centre\w*|favour\w*|catalogue|programme|analyse\w*|defence|authoris\w+|whilst|grey|summaris\w+|realis\w+|minimis\w+|customis\w+|personalis\w+)\b""")
+        val publicFiles = listOf(
+            "../docs/site/how-it-works.html", "../docs/site/privacy.html", "../README.md", "../THIRD_PARTY_NOTICES.md", "../SECURITY.md",
+            "src/main/play/listings/en-US/title.txt", "src/main/play/listings/en-US/short-description.txt", "src/main/play/listings/en-US/full-description.txt",
+        ).map { File(it) } + File("src/main/play/release-notes/en-US").listFiles().orEmpty().toList()
+        for (file in publicFiles) {
+            assertEquals("${file.path} uses British spelling", emptyList<String>(), british.findAll(file.readText()).map { it.value }.toList())
+        }
+    }
+
     /** The README is the first public page of the repo: the same words as the app ("looks out for", never "safe", no "her"). */
     @Test fun theReadmeUsesTheAppsWordsAndNeverAssumesAPronoun() {
         val readme = File("../README.md").readText()

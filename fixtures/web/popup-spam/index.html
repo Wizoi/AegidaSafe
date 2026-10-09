@@ -1,24 +1,31 @@
 <!doctype html>
-<!-- Test fixture: imitates a website-notification spam page. Served only to the emulator via
-     adb reverse (scripts/emulator-checks.sh); never published. Contains no real scam content. -->
+<!-- Test fixture: imitates a website sending notifications. Served only to the emulator via
+     adb reverse (scripts/emulator-checks.sh, scripts/emulator_websites.py); never published. Contains no real scam content.
+     Plain: a fake virus warning. With ?calm in the address: an ordinary "New recipe posted" notification, like a site she chose. -->
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
-<title>Fixture: notification spam</title></head>
+<title>Fixture: website notifications</title></head>
 <body style="font-size:28px">
 <p>Fixture page for Aegida tests.</p>
 <button id="allow" style="font-size:40px;padding:24px">Allow</button>
+<button id="again" style="font-size:40px;padding:24px">Again</button>
 <p id="status">waiting</p>
 <script>
 const status = (t) => document.getElementById('status').textContent = t;
+const calm = location.search.includes('calm');
+const title = calm ? 'New recipe posted' : 'VIRUS DETECTED! Your phone is infected';
+const body = calm ? 'Lemon cake (Aegida test fixture)' : 'Tap now to clean your device (Aegida test fixture)';
+let count = 0;
 navigator.serviceWorker.register('sw.js').then(() => status('sw registered'));
+async function show() {
+  const reg = await navigator.serviceWorker.ready;
+  count += 1;
+  await reg.showNotification(title, { body, tag: count === 1 ? 'aegida-fixture' : 'aegida-fixture-' + count });
+  status('notification shown ' + count);
+}
 document.getElementById('allow').onclick = async () => {
   const p = await Notification.requestPermission();
   status('permission: ' + p);
-  if (p === 'granted') {
-    const reg = await navigator.serviceWorker.ready;
-    await reg.showNotification('VIRUS DETECTED! Your phone is infected', {
-      body: 'Tap now to clean your device (Aegida test fixture)', tag: 'aegida-fixture'
-    });
-    status('notification shown');
-  }
+  if (p === 'granted') await show();
 };
+document.getElementById('again').onclick = show;
 </script></body></html>

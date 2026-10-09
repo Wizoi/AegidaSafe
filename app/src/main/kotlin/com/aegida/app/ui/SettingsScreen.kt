@@ -40,7 +40,6 @@ fun SettingsScreen(
     val picture = SafetyPicture.fromId(setup.pictureId)
     AegidaScreen(setup.pictureId) {
         Text(Texts.Settings.TITLE, style = MaterialTheme.typography.headlineMedium, modifier = Modifier.semantics { heading() })
-        QuietButton(Texts.Settings.HOW_IT_WORKS, onHowItWorks)
         SettingCard {
             ValueRow(Texts.Settings.NAME, guardians.ownerName.ifBlank { Texts.Settings.NOT_SET })
             ValueRow(Texts.Settings.GUARDIAN, guardians.firstGuardianName.ifBlank { Texts.Settings.NOT_SET })
@@ -71,6 +70,7 @@ fun SettingsScreen(
             ValueRow(Texts.Settings.CREDITS_TITLE, Texts.Settings.CREDITS)
             Text(TimeText.listsLine(listsUpdatedAt, zone, locale), style = MaterialTheme.typography.bodyLarge)
         }
+        QuietButton(Texts.Settings.HOW_IT_WORKS, onHowItWorks)
     }
 }
 

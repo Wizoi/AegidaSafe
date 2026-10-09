@@ -149,6 +149,17 @@ object Guards {
         onlyIn = { it.path.contains("/core/text/") },
     )
 
+    /**
+     * Kevin, Oct 9: "licence" on the settings page. The owner's words are US English ("license", "color", "recognized"). Only
+     * what the owner can read is checked here (the copy files); PublicPagesTest checks the public pages and store text.
+     */
+    val usSpelling = Rule(
+        "CopyRules: US spelling",
+        Regex("""(?i)\b(licen[c]es?|optimis\w+|serialis\w+|recognis\w+|organis\w+|colour\w*|behaviour\w*|centre\w*|favour\w*|catalogue|programme|analyse\w*|defence|authoris\w+|whilst|grey|summaris\w+|realis\w+|minimis\w+|customis\w+|personalis\w+)\b"""),
+        "write US English (license, color, recognized, optimization)",
+        onlyIn = { it.path.contains("/core/text/") },
+    )
+
     val noRed = Rule(
         "CopyRules: never red",
         Regex("""Color\.Red|0x[fF]{2}[fF][fF0-9]0{4}\b|#[fF][fF]0000"""),

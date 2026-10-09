@@ -11,6 +11,9 @@ interface FindingStore {
     suspend fun open(): List<Finding>
     suspend fun get(key: FindingKey): Finding?
     suspend fun put(finding: Finding)
+
+    /** Deletes resolved findings last seen before [before] (open and acknowledged ones stay) and returns how many. */
+    suspend fun prune(before: java.time.Instant): Int
 }
 
 /** Heads-up banners on the owner's phone. Implemented by NotificationPoster (the only notification owner). */

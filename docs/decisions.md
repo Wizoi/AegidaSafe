@@ -112,6 +112,8 @@
 
 - **Guardian messages stay on the public ntfy.sh** (Kevin, Oct 9). No token or account: the random topic name is the password. ntfy limits per visitor (IP), and Aegida sends a handful of small messages per phone a day, so family scale is far inside the limits (the figures read were the server defaults; ntfy.sh's own settings were not confirmed). Risk accepted: a free public service with no guarantee. If Aegida grows to hundreds of users, or alerts stop arriving, move to a self-hosted ntfy: change `Endpoint.NTFY_HOST` and the allowed hosts, and re-send invitations (the topic link includes the host).
 
+- **Website notifications (Kevin, Oct 9):** a website that sends a notification for the first time is hidden and the owner is asked "Was that you?"; Yes remembers it, and the guardian is told that it was asked. Android does not let Aegida list the sites that already have notifications (findings #84), so a site the owner already had is asked about once too. Words like "virus" are still hidden at once.
+
 ## Open / next session
 - Create the Gradle project and run the **emulator spike**: confirm each `adb`/`cmd` scenario works on the API 36 Play image.
 - Kevin: look for an old Samsung phone on One UI 6+; look into Samsung Remote Test Lab.

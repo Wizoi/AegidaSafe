@@ -179,7 +179,7 @@ object Texts {
         const val CREDITS_TITLE = "Where the lists come from"
         const val LISTS_UPDATED = "Lists updated %s."
         const val LISTS_NOT_YET = "The lists have not been downloaded yet."
-        const val CREDITS = "Scam websites: Phishing.Database (MIT licence). Spying apps: Stalkerware Indicators by Echap (CC BY 4.0). Both are stored in a shortened, scrambled form."
+        const val CREDITS = "Scam websites: Phishing.Database (MIT license). Spying apps: Stalkerware Indicators by Echap (CC BY 4.0). Both are stored in a shortened, scrambled form."
         const val RESEND_INVITE = "Send the invitation again"
         const val CHANGE_GUARDIAN = "Pick a different guardian"
         const val CHANGE_GUARDIAN_TITLE = "Pick a new guardian"

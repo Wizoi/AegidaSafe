@@ -43,6 +43,14 @@ enum class Problem(
         hidesNotification = true,
         fix = Fix.SettingsThenAcknowledge,
     ),
+    NewWebsiteNotifications(
+        Severity.NeedsTap,
+        "A website you have not used before wants to send you notifications. Was that you?",
+        "A website that was not there before started sending notifications on %1\$s's phone. Aegida asked %1\$s: “Was that you?”",
+        whatHappened = "A new website started sending notifications",
+        hidesNotification = true,
+        fix = Fix.ConfirmEvent,
+    ),
     WebsiteFilterOff(
         Severity.NeedsTap,
         "Website protection is off. Tap to turn it back on.",
@@ -172,6 +180,12 @@ enum class Fix {
 
     /** "Was that you?": yes moves the baseline to what the phone has now; no opens the screen to change it back. */
     ConfirmChange,
+
+    /**
+     * "Was that you?" about something that happened once and will not be detected again (a website that started notifying): yes
+     * adds it to the baseline; no opens its switch and counts it as seen, because nothing would ever clear it by itself.
+     */
+    ConfirmEvent,
 
     /** Say what it is and let her mark it seen ("Messages like this are scams. You can delete it."). */
     Acknowledge,

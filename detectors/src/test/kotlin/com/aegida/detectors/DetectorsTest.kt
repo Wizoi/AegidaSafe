@@ -1,6 +1,7 @@
 package com.aegida.detectors
 
 import com.aegida.core.model.Aegida
+import com.aegida.core.model.Baseline
 import com.aegida.core.model.Evidence
 import com.aegida.core.model.PrivateDns
 import com.aegida.core.model.Setup
@@ -58,6 +59,39 @@ class PopupSpamDetectorTest {
         val calm = chromeSiteNotification.copy(title = "New recipe posted", text = "Lemon cake")
         assertEquals(emptyList<Any>(), detector.evaluate(inputs(setup = setup, event = calm)))
         assertEquals(1, detector.evaluate(inputs(setup = setup, event = chromeSiteNotification)).size)
+    }
+
+    // Kevin, Oct 9: sites she already had when setup ended are left alone; a new one is asked about, not simply blocked.
+    private val site = "http://localhost:8765"
+    private val calm = chromeSiteNotification.copy(title = "New recipe posted", text = "Lemon cake")
+    private fun baselineWith(websites: Set<String>?) = Baseline(
+        browser = null, smsApp = null, dialerApp = null, notificationListeners = emptySet(), accessibilityApps = emptySet(),
+        deviceAdmins = emptySet(), websites = websites,
+    )
+
+    @Test fun aSiteThatAppearedAfterSetupIsAskedAboutAndNotSimplyBlocked() {
+        val finding = detector.evaluate(inputs(event = calm, baseline = baselineWith(setOf("https://news.example")))).single()
+        assertEquals(Problem.NewWebsiteNotifications, finding.key.problem)
+        assertEquals(site, finding.key.subject)
+        assertEquals("com.android.chrome", finding.evidence[Evidence.PACKAGE])
+        assertEquals(calm.channelId, finding.evidence[Evidence.CHANNEL_ID])
+    }
+
+    @Test fun aSiteSheAlreadyHadWhenSetupEndedIsLeftAloneUnlessItTurnsScary() {
+        val known = baselineWith(setOf(site))
+        assertEquals(emptyList<Any>(), detector.evaluate(inputs(event = calm, baseline = known)))
+        assertEquals(Problem.SiteNotifications, detector.evaluate(inputs(event = chromeSiteNotification, baseline = known)).single().key.problem)
+    }
+
+    @Test fun aNewSiteWithFakeVirusWordsIsCalledFakeNotAskedAbout() {
+        // "Was that you?" would offer to allow a fake virus warning; the plain "these are not real" message fits.
+        val finding = detector.evaluate(inputs(event = chromeSiteNotification, baseline = baselineWith(emptySet()))).single()
+        assertEquals(Problem.SiteNotifications, finding.key.problem)
+    }
+
+    @Test fun beforeTheListOfSitesIsRecordedItBehavesAsBefore() {
+        assertEquals(Problem.SiteNotifications, detector.evaluate(inputs(event = calm)).single().key.problem)
+        assertEquals(Problem.SiteNotifications, detector.evaluate(inputs(event = calm, baseline = baselineWith(null))).single().key.problem)
     }
 
     @Test fun ordinaryAppNotificationsAreIgnored() {

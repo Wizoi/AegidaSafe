@@ -67,6 +67,20 @@ class RoomStoresTest {
         assertEquals(emptyList<Finding>(), store.open())
     }
 
+    @Test fun resolvedFindingsPruneByAgeButOpenAndRecentOnesStay() = runTest { // findings #81 (c)
+        val store = RoomFindingStore(db.findings())
+        fun at(subject: String, daysAgo: Long, state: FindingState) =
+            finding.copy(key = finding.key.copy(subject = subject), lastSeen = now.minus(Duration.ofDays(daysAgo)), state = state)
+        val oldResolved = at("old-resolved", 91, FindingState.Resolved)
+        val recentResolved = at("recent-resolved", 89, FindingState.Resolved)
+        val oldOpen = at("old-open", 200, FindingState.Open)
+        val oldSeen = at("old-acknowledged", 200, FindingState.Acknowledged)
+        listOf(oldResolved, recentResolved, oldOpen, oldSeen).forEach { store.put(it) }
+        assertEquals(1, store.prune(now.minus(Duration.ofDays(90))))
+        assertNull(store.get(oldResolved.key))
+        listOf(recentResolved, oldOpen, oldSeen).forEach { assertEquals(it, store.get(it.key)) }
+    }
+
     @Test fun historyIsNewestFirstAndPrunesByAge() = runTest {
         val log = RoomHistoryLog(db.history())
         val old = HistoryEntry(now.minus(Duration.ofDays(91)), Problem.ScamLink, Outcome.OwnerWarned)
@@ -104,9 +118,14 @@ class RoomStoresTest {
             browser = "com.android.chrome", smsApp = null, dialerApp = "com.google.android.dialer",
             notificationListeners = setOf("app.b", "app.a"), accessibilityApps = emptySet(), deviceAdmins = setOf("app.admin"),
             assistant = "org.assistant", apps = setOf("org.one", "org.two"), acceptedRemoteApps = setOf("com.anydesk.anydeskandroid"),
+            websites = setOf("http://localhost:8765", "https://news.example"),
         )
         settings.save(baseline)
         assertEquals(baseline, settings.baseline())
+        settings.save(baseline.copy(websites = null))
+        assertNull("not recorded stays not recorded", settings.baseline()!!.websites)
+        settings.save(baseline.copy(websites = emptySet()))
+        assertEquals("recorded and none stays none", emptySet<String>(), settings.baseline()!!.websites)
         settings.save(baseline.copy(browser = null, accessibilityApps = setOf("app.screen")))
         assertEquals(baseline.copy(browser = null, accessibilityApps = setOf("app.screen")), settings.baseline())
         settings.save(baseline.copy(apps = null))

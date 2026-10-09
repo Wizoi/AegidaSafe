@@ -49,7 +49,7 @@ class GuardianTextTest {
 
     @Test fun theAskedAboutSentencesQuoteWhatTheOwnerWasAsked() {
         // "Aegida asked her if that was her" became a quote of what she saw on screen: no pronoun needed.
-        val asked = Problem.entries.filter { it.fix == com.aegida.core.text.Fix.ConfirmChange }.mapNotNull { it.forGuardian(owner) }
+        val asked = Problem.entries.filter { it.fix == com.aegida.core.text.Fix.ConfirmChange || it.fix == com.aegida.core.text.Fix.ConfirmEvent }.mapNotNull { it.forGuardian(owner) }
         assertTrue(asked.isNotEmpty())
         asked.forEach { assertTrue(it, it.contains("Was that you?")) }
     }

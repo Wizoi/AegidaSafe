@@ -81,6 +81,9 @@ class InviteAndFixTest {
         val withChannel = finding(Problem.SiteNotifications, mapOf(Evidence.PACKAGE to "com.android.chrome", Evidence.CHANNEL_ID to "web:http://x;1"))
         assertEquals(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS, FixActions.settingsIntentFor(withChannel, "p")!!.action)
         assertNull(FixActions.settingsIntentFor(finding(Problem.SiteNotifications), "p"))
+        // A new website she is asked about opens the same switch when she says no (Kevin, Oct 9).
+        val newSite = finding(Problem.NewWebsiteNotifications, mapOf(Evidence.PACKAGE to "com.android.chrome", Evidence.CHANNEL_ID to "web:http://x;1"))
+        assertEquals(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS, FixActions.settingsIntentFor(newSite, "p")!!.action)
     }
 
     @Test fun problemsFixedInsideAegidaHaveNoSettingsScreen() {

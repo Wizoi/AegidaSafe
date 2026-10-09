@@ -45,7 +45,8 @@ object Fixtures {
         feed: ThreatFeed? = feed(),
         event: NotificationEvent? = null,
         lastDailyCheck: CheckRun? = CheckRun(Trigger.Daily, now.minus(Duration.ofHours(20)), now.minus(Duration.ofHours(20))),
-    ) = Inputs(snapshot, now, setup, feed, event, lastDailyCheck)
+        baseline: com.aegida.core.model.Baseline? = null,
+    ) = Inputs(snapshot, now, setup, feed, event, lastDailyCheck, baseline = baseline)
 
     /** Posted with `cmd notification post` on the Aegida36 emulator (channel shell_cmd, package com.android.shell). */
     fun message(text: String, title: String = "Bank alert") =

@@ -21,4 +21,4 @@ problem, see [SECURITY.md](SECURITY.md).
 - Emulator versus device gaps: [docs/emulator-vs-device.md](docs/emulator-vs-device.md)
 - Samsung validation options: [docs/samsung-validation-options.md](docs/samsung-validation-options.md)
 
-Distribution: Google Play closed testing first. Third-party data and licences: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+Distribution: Google Play closed testing first. Third-party data and licenses: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

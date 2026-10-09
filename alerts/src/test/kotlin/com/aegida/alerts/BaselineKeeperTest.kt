@@ -50,6 +50,20 @@ class BaselineKeeperTest {
         assertEquals(setOf("org.one"), baselines.value!!.apps)
     }
 
+    @Test fun theFirstBaselineStartsWithNoWebsitesSoEachIsAskedAboutOnce() = runTest { // findings #84
+        setup.value = Setup.NotDone.copy(stepsDone = SetupStep.entries.size)
+        keeper.keep(phone)
+        assertEquals(emptySet<String>(), baselines.value!!.websites)
+    }
+
+    @Test fun aBaselineFromBeforeWebsitesWereRecordedGetsAnEmptyListOnce() = runTest { // Kevin, Oct 9
+        setup.value = Setup.NotDone.copy(stepsDone = SetupStep.entries.size)
+        val old = Baseline.of(phone).copy(websites = null)
+        baselines.value = old
+        keeper.keep(phone)
+        assertEquals(old.copy(websites = emptySet()), baselines.value)
+    }
+
     @Test fun aDefaultTheBaselineCouldNotReadAtSetupIsAdoptedOnceWhenItBecomesReadable() = runTest { // findings #70
         setup.value = Setup.NotDone.copy(stepsDone = SetupStep.entries.size)
         val old = Baseline.of(phone).copy(smsApp = null, assistant = null)

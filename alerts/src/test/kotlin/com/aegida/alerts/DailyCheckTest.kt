@@ -11,6 +11,10 @@ import com.aegida.core.feed.ThreatFeed
 import com.aegida.core.health.CheckRun
 import com.aegida.core.health.Trigger
 import com.aegida.core.net.HttpResult
+import com.aegida.core.model.DetectorId
+import com.aegida.core.model.Finding
+import com.aegida.core.model.FindingKey
+import com.aegida.core.model.FindingState
 import com.aegida.core.model.PrivateDns
 import com.aegida.core.model.Snapshot
 import com.aegida.core.net.BytesResult
@@ -25,6 +29,7 @@ import com.aegida.detectors.Evaluator
 import com.aegida.detectors.HealthDetector
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.security.KeyPairGenerator
 import java.security.Signature
@@ -57,6 +62,7 @@ class DailyCheckTest {
         FeedUpdater(http, FeedVerifier(keys.public.encoded), feedStore) { now },
         CheckRunner({ snapshot }, evaluator, pipeline, BaselineKeeper(FakeSetupStore(), FakeBaselines()), OutboxFlusher(outbox, NtfySender(http), history, guardians, { now }), AlertGate()),
         history,
+        findings,
         checkLog,
         feedStore,
         switch,
@@ -149,6 +155,20 @@ class DailyCheckTest {
     @Test fun onMobileDataWithNoListsAtAllTheyAreDownloaded() = runTest {
         publish(now.minus(Duration.ofHours(1)))
         assertEquals(FeedUpdate.Updated(now.minus(Duration.ofHours(1))), daily.run(downloadFeed = false).feed)
+    }
+
+    @Test fun resolvedFindingsOlderThanNinetyDaysAreDroppedWithHistory() = runTest { // findings #81 (c)
+        fun resolved(subject: String, daysAgo: Long) = Finding(
+            FindingKey(DetectorId.PopupSpam, Problem.SiteNotifications, subject), emptyMap(),
+            now.minus(Duration.ofDays(daysAgo + 1)), now.minus(Duration.ofDays(daysAgo)), FindingState.Resolved,
+        )
+        findings.put(resolved("http://old.example", 91))
+        findings.put(resolved("http://recent.example", 89))
+        val result = daily.run()
+        assertEquals(1, result.findingsPruned)
+        val subjects = findings.rows.keys.map { it.subject }
+        assertTrue("http://recent.example" in subjects)
+        assertTrue("http://old.example" !in subjects)
     }
 
     @Test fun checkRunsOlderThanThirtyDaysAreDroppedAndTheNewestDailyOneIsKept() = runTest {

@@ -201,6 +201,23 @@ class ScreensTest(private val dark: Boolean, private val fontScale: Float) {
         reachable(Texts.Setup.FILTER_TITLE)
     }
 
+    /** Kevin, Oct 9: the "How does this work?" button is the last thing on My settings, below her choices and the credits. */
+    @Test fun theHowDoesThisWorkButtonIsAtTheBottomOfMySettings() {
+        show {
+            SettingsScreen(
+                Setup(null, emptySet(), pictureId = picture),
+                Guardians(alertsOn = false, ownerName = "Ruth", firstTopic = null, firstGuardianName = "Kevin"),
+                filterOn = false, onChangePicture = {}, onChangeGuardian = {}, onResendInvite = {}, onAlerts = {}, onFilterHelp = {}, onHowItWorks = {},
+                listsUpdatedAt = now.minus(Duration.ofDays(2)), zone = zone, locale = locale,
+            )
+        }
+        fun y(text: String) = compose.onNodeWithText(text).fetchSemanticsNode().positionInRoot.y
+        val button = y(Texts.Settings.HOW_IT_WORKS)
+        for (above in listOf(Texts.Settings.NAME, Texts.Settings.GUARDIAN, Texts.Settings.PICTURE, Texts.Settings.TELL_GUARDIANS, Texts.Settings.CREDITS_TITLE)) {
+            assertTrue("the button should be below \"$above\"", button > y(above))
+        }
+    }
+
     @Test fun changingTheGuardianFirstAsksHerToTellTheOldOneAndOnlySavesAfterShesAgreed() {
         var saved: List<String>? = null
         show { ChangeGuardianScreen(picture, "Kevin") { a, b, c -> saved = listOf(a, b, c) } }

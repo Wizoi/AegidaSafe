@@ -41,6 +41,8 @@ internal class RoomFindingStore(private val dao: FindingDao) : FindingStore {
         ),
     )
 
+    override suspend fun prune(before: Instant): Int = dao.prune(before.toEpochMilli())
+
     private fun FindingEntity.toFinding() = Finding(
         key = FindingKey(DetectorId.valueOf(detectorId), Problem.valueOf(problem), subject),
         evidence = Json.decodeFromString<Map<String, String>>(evidenceJson),
@@ -125,6 +127,7 @@ internal class RoomSettings(private val dao: SettingDao) : SetupStore, GuardianS
             assistant = v[BASELINE_ASSISTANT]?.takeIf { it.isNotEmpty() },
             apps = if (v[BASELINE_APPS_TAKEN] == "true") set(BASELINE_APPS) else null,
             acceptedRemoteApps = set(BASELINE_REMOTE_OK),
+            websites = if (v[BASELINE_WEBSITES_TAKEN] == "true") set(BASELINE_WEBSITES) else null,
         )
     }
 
@@ -141,6 +144,8 @@ internal class RoomSettings(private val dao: SettingDao) : SetupStore, GuardianS
             SettingEntity(BASELINE_APPS_TAKEN, (baseline.apps != null).toString()),
             SettingEntity(BASELINE_APPS, baseline.apps.orEmpty().sorted().joinToString("\n")),
             SettingEntity(BASELINE_REMOTE_OK, baseline.acceptedRemoteApps.sorted().joinToString("\n")),
+            SettingEntity(BASELINE_WEBSITES_TAKEN, (baseline.websites != null).toString()),
+            SettingEntity(BASELINE_WEBSITES, baseline.websites.orEmpty().sorted().joinToString("\n")),
         ),
     )
 
@@ -156,6 +161,8 @@ internal class RoomSettings(private val dao: SettingDao) : SetupStore, GuardianS
         const val BASELINE_APPS_TAKEN = "baseline.appsTaken"
         const val BASELINE_APPS = "baseline.apps"
         const val BASELINE_REMOTE_OK = "baseline.acceptedRemoteApps"
+        const val BASELINE_WEBSITES_TAKEN = "baseline.websitesTaken"
+        const val BASELINE_WEBSITES = "baseline.websites"
         const val FILTER_HOST = "setup.websiteFilterHost"
         const val ALLOWED_SITES = "setup.allowedSites"
         const val ALERTS_ON = "guardians.alertsOn"

@@ -29,6 +29,8 @@ class Findings : FindingStore {
     override suspend fun open() = rows.values.filter { it.state.needsHer }
     override suspend fun get(key: FindingKey) = rows[key]
     override suspend fun put(finding: Finding) { rows[finding.key] = finding }
+    override suspend fun prune(before: Instant): Int =
+        rows.values.filter { it.state == FindingState.Resolved && it.lastSeen.isBefore(before) }.map { rows.remove(it.key) }.size
 }
 
 class Owner : OwnerNotifier {

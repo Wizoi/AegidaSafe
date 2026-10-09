@@ -18,6 +18,8 @@ data class Baseline(
     val apps: Set<String>? = null,
     /** Remote-control apps she said were hers. */
     val acceptedRemoteApps: Set<String> = emptySet(),
+    /** The websites that already had notifications when setup ended, plus ones she said were hers; null if not recorded yet. */
+    val websites: Set<String>? = null,
 ) {
     /**
      * She said the change behind [problem] to [subject] (the app) was hers. Only that one thing moves into the
@@ -33,6 +35,8 @@ data class Baseline(
         Problem.AccessibilityAdded -> if (subject in now.accessibilityApps) copy(accessibilityApps = accessibilityApps + subject) else this
         Problem.AdminAdded -> if (subject in now.deviceAdmins) copy(deviceAdmins = deviceAdmins + subject) else this
         Problem.NewAppOutsidePlay -> if (now.apps.any { it.packageName == subject }) copy(apps = apps.orEmpty() + subject) else this
+        // Android does not list the sites that have notifications (findings #84), so her yes is the only way a site gets here.
+        Problem.NewWebsiteNotifications -> copy(websites = websites.orEmpty() + subject)
         Problem.RemoteControlApp -> if (subject in RemoteControlApps.PACKAGES && now.apps.any { it.packageName == subject }) copy(acceptedRemoteApps = acceptedRemoteApps + subject) else this
         else -> this
     }
@@ -43,6 +47,7 @@ data class Baseline(
             snapshot.notificationListeners, snapshot.accessibilityApps, snapshot.deviceAdmins,
             assistant = snapshot.assistant,
             apps = userApps(snapshot),
+            websites = emptySet(), // every site is asked about once, the first time it notifies
         )
 
         fun userApps(snapshot: Snapshot): Set<String> = snapshot.apps.filterNot { it.isSystem }.map { it.packageName }.toSet()

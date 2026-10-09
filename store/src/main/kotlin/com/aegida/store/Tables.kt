@@ -28,6 +28,9 @@ interface FindingDao {
 
     @Query("SELECT * FROM finding WHERE state IN ('Open', 'Escalated') ORDER BY firstSeenMillis")
     suspend fun open(): List<FindingEntity>
+
+    @Query("DELETE FROM finding WHERE state = 'Resolved' AND lastSeenMillis < :beforeMillis")
+    suspend fun prune(beforeMillis: Long): Int
 }
 
 @Entity(tableName = "history")
