@@ -8,6 +8,7 @@
 #   scripts/emulator-checks.sh popup-page serve the website-notification-spam fixture and open it in Chrome
 #   scripts/emulator-checks.sh scenarios  feature scenarios on a cleared app: pop-up warning, messages, daily feed, listed link
 #   scripts/emulator-checks.sh failures   offline daily job, and a phone that never runs its daily check (reads the app's database)
+#   scripts/emulator-checks.sh guardian-offline  a warning that cannot reach the guardian is kept, retried, then reported (offline: nothing is sent)
 #   scripts/emulator-checks.sh shots      light and dark screenshots at 100% and 200% font into build/emulator-shots
 # It refuses any serial that is not emulator-*, so it can never touch a real phone by mistake.
 set -u
@@ -206,6 +207,72 @@ PYEOF
   sh_ am force-stop $PKG; sh_ am start -n "$PKG/.MainActivity" >/dev/null
   wait_for "a missed daily check and old lists are both noticed" '[ "$(db_query "$Q_OPEN")" = "ListsOld,MissedCheck" ]' 40
   have "com.aegida.app 1000 Health:MissedCheck" && no "info-level findings do not pop up a banner" || ok "info-level findings do not pop up a banner"
+
+  echo "$FAILS failed"; [ "$FAILS" = 0 ]
+  ;;
+guardian-offline)
+  # The guardian outbox on a real system, with NO network so nothing is ever sent to ntfy: a warning that cannot
+  # be delivered is kept, retried, and after a day becomes "couldn't reach your guardian". Guardian settings are
+  # seeded into the app's database (no sqlite3 on the phone, so the file is edited here and put back).
+  FAILS=0
+  export JAVA_HOME="${JAVA_HOME:-/c/Program Files/Android/Android Studio/jbr}"; export ANDROID_SERIAL="$SERIAL"
+  LISTED=$(sed -n '4p' feedtool/src/test/resources/feeds/phishing-domains.txt | tr -d '\r')
+  ./gradlew.bat installDebug -PlocalBuild --console=plain 2>&1 | grep -q "BUILD SUCCESSFUL" || { echo "install failed"; exit 1; }
+  sh_ pm clear $PKG >/dev/null
+  sh_ pm grant $PKG android.permission.POST_NOTIFICATIONS
+  sh_ cmd notification allow_listener "$PKG/$PKG.AegidaListenerService" >/dev/null
+  sh_ am start -n "$PKG/.MainActivity" >/dev/null
+  wait_for "the 'Aegida is protecting you' notice is up" 'have "com.aegida.app 1 null"'
+  restore() { sh_ cmd connectivity airplane-mode disable >/dev/null; sh_ cmd alarm set-time $(( $(date +%s) * 1000 )) >/dev/null; sh_ settings put global auto_time 1; [ -n "${KEEP:-}" ] || sh_ pm clear $PKG >/dev/null; }
+  trap restore EXIT
+  job_id() { sh_ dumpsys jobscheduler | grep -oE "JOB #u[0-9a-z]+/[0-9]+: [a-f0-9]+ com.aegida.app" | head -1 | sed -E 's#JOB \#u[0-9a-z]+/([0-9]+):.*#\1#'; }
+  DB="$TEMP/aegida-gd-db"; rm -rf "$DB"; mkdir -p "$DB"
+  pull_db() { for f in aegida.db aegida.db-wal aegida.db-shm; do adb exec-out run-as $PKG cat databases/$f > "$DB/$f" 2>/dev/null; done; }
+  db_query() { pull_db; python -I - "$DB/aegida.db" "$1" <<'PYEOF'
+import sqlite3, sys
+for row in sqlite3.connect(sys.argv[1]).execute(sys.argv[2]):
+    print("|".join("" if c is None else str(c) for c in row))
+PYEOF
+  }
+  wait_for "the first daily check ran by itself" '[ "$(db_query "select count(*) from check_run where \"trigger\" = '"'"'Daily'"'"'")" -ge 1 ] 2>/dev/null' 90
+
+  # No network from here on: the seeded guardian must never be sent a real message. (Turning the listener off
+  # raises its own warning, which would otherwise go out to the throwaway topic.)
+  sh_ cmd connectivity airplane-mode enable >/dev/null; sleep 5
+  echo "-- seed: alerts on, a guardian paired (a throwaway topic nobody listens to)"
+  # The system rebinds the listener (and so restarts the app) right after a force-stop, which would hold the database open
+  # while it is replaced; switch the listener off first.
+  sh_ cmd notification disallow_listener "$PKG/$PKG.AegidaListenerService" >/dev/null; sh_ am force-stop $PKG >/dev/null; sleep 2
+  [ -z "$(sh_ pidof $PKG)" ] || { sh_ am force-stop $PKG >/dev/null; sleep 2; }
+  pull_db
+  python -I - "$DB/aegida.db" <<'PYEOF'
+import sqlite3, sys, secrets
+c = sqlite3.connect(sys.argv[1])
+for k, v in [("guardians.alertsOn", "true"), ("guardians.ownerName", "Ruth"), ("guardians.firstTopic", "aegida_" + secrets.token_urlsafe(24).replace("-", "x")[:32]), ("guardians.firstName", "Kevin")]:
+    c.execute("insert or replace into setting(name, value) values (?, ?)", (k, v))
+c.commit(); c.execute("pragma wal_checkpoint(truncate)"); c.execute("pragma journal_mode=delete"); c.close()
+PYEOF
+  adb push "$DB/aegida.db" /data/local/tmp/seed.db >/dev/null
+  sh_ "chmod 666 /data/local/tmp/seed.db; run-as $PKG sh -c 'rm -f databases/aegida.db-wal databases/aegida.db-shm; cp /data/local/tmp/seed.db databases/aegida.db'; rm /data/local/tmp/seed.db"
+  sh_ am start -n "$PKG/.MainActivity" >/dev/null; sleep 4
+  # A force-stop unbinds the listener; allow it again so the system binds it to the restarted app.
+  sh_ cmd notification disallow_listener "$PKG/$PKG.AegidaListenerService" >/dev/null; sh_ cmd notification allow_listener "$PKG/$PKG.AegidaListenerService" >/dev/null; sleep 10
+
+  echo "-- offline: a listed scam link arrives and the guardian cannot be told"
+  sh_ cmd connectivity airplane-mode enable >/dev/null; sleep 5
+  post Bank listed1 "Your account is locked. Verify at https://$LISTED/login"
+  wait_for "Ruth is warned" "have \"com.aegida.app 1000 Link:ScamLink:$LISTED\"" 15
+  wait_for "the undelivered message is kept in the outbox" '[ "$(db_query "select count(*) from outbox where outboxProblem = '"'"'ScamLink'"'"'")" = 1 ] 2>/dev/null' 15
+  Q_HIST="select count(*) from history where historyProblem = 'ScamLink'"
+  wait_for "history says she was warned and the guardian was not reached" '[ "$(db_query "$Q_HIST")" = 2 ]' 15
+
+  echo "-- a day later, still offline"
+  sh_ settings put global auto_time 0; sh_ cmd alarm set-time $(( ($(date +%s) + 25 * 3600) * 1000 )) >/dev/null
+  sh_ cmd jobscheduler run -f $PKG "$(job_id)" >/dev/null
+  Q_TRIES="select max(attempts) from outbox"
+  wait_for "the oldest message was retried and failed again (the rest wait their turn)" '[ "$(db_query "$Q_TRIES")" = 2 ]' 60
+  wait_for "'couldn't reach your guardian' becomes a problem" '[ "$(db_query "select count(*) from finding where problem = '"'"'GuardianUnreachable'"'"' and state = '"'"'Open'"'"'")" = 1 ] 2>/dev/null' 30
+  have "com.aegida.app 1000 Delivery:GuardianUnreachable" && ok "she is told to call her guardian" || no "she is told to call her guardian"
 
   echo "$FAILS failed"; [ "$FAILS" = 0 ]
   ;;
