@@ -53,11 +53,14 @@ class Http(var result: HttpResult = HttpResult.Ok(200, "{}")) : HttpClient {
     val bodies = mutableListOf<String>()
     val posts = mutableListOf<Triple<Endpoint, String, Map<String, String>>>()
     val deleted = mutableListOf<Endpoint>()
+    /** Runs inside every post, so a test can make a send take long enough for another run to start. */
+    var onPost: suspend () -> Unit = {}
     var feedResult: (Endpoint) -> BytesResult = { BytesResult.Failed(null, com.aegida.core.net.FailureReason.Offline) }
     override suspend fun get(endpoint: Endpoint, maxBytes: Int): BytesResult = feedResult(endpoint)
     override suspend fun post(endpoint: Endpoint, body: String, headers: Map<String, String>): HttpResult {
         // Like OkHttp: a header value with a control or non-ASCII character is refused, with an exception, not an HTTP error.
         headers.forEach { (name, value) -> require(value.all { it == '\t' || it.code in 0x20..0x7e }) { "Unexpected char in header $name" } }
+        onPost()
         bodies += body
         posts += Triple(endpoint, body, headers)
         return result

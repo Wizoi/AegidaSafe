@@ -16,8 +16,9 @@ class GuardianChange @Inject constructor(
     private val settings: GuardianSettings,
     private val alerts: GuardianAlerts,
     private val switch: DeadMansSwitch,
+    private val gate: AlertGate,
 ) {
-    suspend fun change(name: String, email: String, phone: String): GuardianChanged {
+    suspend fun change(name: String, email: String, phone: String): GuardianChanged = gate.run {
         val before = settings.current()
         val cancelled = switch.disarm()
         settings.save(
@@ -29,6 +30,6 @@ class GuardianChange @Inject constructor(
             ),
         )
         if (before.alertsOn) alerts.startTelling()
-        return GuardianChanged(before.firstGuardianName, cancelled)
+        GuardianChanged(before.firstGuardianName, cancelled)
     }
 }

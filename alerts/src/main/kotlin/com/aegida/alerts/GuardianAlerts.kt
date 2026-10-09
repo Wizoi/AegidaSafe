@@ -16,8 +16,11 @@ class GuardianAlerts @Inject constructor(
     private val settings: GuardianSettings,
     private val ntfy: NtfySender,
     private val switch: DeadMansSwitch,
+    private val gate: AlertGate,
 ) {
-    suspend fun setAlertsOn(on: Boolean): AlertsSwitched {
+    suspend fun setAlertsOn(on: Boolean): AlertsSwitched = gate.run { switchAlerts(on) }
+
+    private suspend fun switchAlerts(on: Boolean): AlertsSwitched {
         val current = settings.current()
         if (current.alertsOn == on) return AlertsSwitched(null, null)
         settings.save(current.copy(alertsOn = on))
@@ -25,7 +28,7 @@ class GuardianAlerts @Inject constructor(
         return startTelling()
     }
 
-    /** Tells the current guardian Aegida is set up and starts the "hasn't checked in" message. Used when alerts go on and when the guardian changes. */
+    /** Tells the current guardian Aegida is set up and starts the "hasn't checked in" message. Used when alerts go on and when the guardian changes; the caller holds the [AlertGate]. */
     suspend fun startTelling(): AlertsSwitched {
         val current = settings.current()
         val owner = current.ownerName.ifBlank { Texts.APP_NAME }

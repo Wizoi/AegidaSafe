@@ -24,13 +24,14 @@ class CheckRunner @Inject constructor(
     private val pipeline: AlertPipeline,
     private val baseline: BaselineKeeper,
     private val outbox: OutboxFlusher,
+    private val gate: AlertGate,
 ) {
-    suspend fun run(trigger: Trigger, event: NotificationEvent? = null): CheckOutcome {
+    suspend fun run(trigger: Trigger, event: NotificationEvent? = null): CheckOutcome = gate.run {
         val snapshot = snapshotter.take()
         baseline.keep(snapshot)
         val findings = evaluator.run(trigger, snapshot, event)
         val result = pipeline.handle(findings, evaluator.detectorIds)
         outbox.flush()
-        return CheckOutcome(findings, result)
+        CheckOutcome(findings, result)
     }
 }

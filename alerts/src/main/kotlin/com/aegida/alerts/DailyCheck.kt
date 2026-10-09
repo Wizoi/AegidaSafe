@@ -21,6 +21,7 @@ class DailyCheck @Inject constructor(
     private val history: HistoryLog,
     private val checkLog: CheckLog,
     private val switch: DeadMansSwitch,
+    private val gate: AlertGate,
     private val clock: Clock,
 ) {
     suspend fun run(): DailyResult {
@@ -28,7 +29,7 @@ class DailyCheck @Inject constructor(
         val check = runner.run(Trigger.Daily)
         val pruned = history.prune(clock.now().minus(HISTORY_KEPT))
         // Checked in: push the "hasn't checked in" message two days further out (best effort; offline just leaves the old one).
-        val heartbeat = switch.arm()
+        val heartbeat = gate.run { switch.arm() }
         return DailyResult(feed, check, pruned, heartbeat)
     }
 

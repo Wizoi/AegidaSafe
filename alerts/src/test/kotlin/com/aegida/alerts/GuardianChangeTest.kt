@@ -17,7 +17,7 @@ class GuardianChangeTest {
     )
     private val sender = NtfySender(http)
     private val switch = DeadMansSwitch(guardians, sender)
-    private val change = GuardianChange(guardians, GuardianAlerts(guardians, sender, switch), switch)
+    private val change = GuardianChange(guardians, GuardianAlerts(guardians, sender, switch, AlertGate()), switch, AlertGate())
 
     @Test fun theNewGuardianGetsTheirOwnPrivateTopicAndTheOldGuardiansWaitingMessageIsCancelled() = runTest {
         val result = change.change("Ann", "ann@example.com", "777")

@@ -35,7 +35,7 @@ class FindingActionsTest {
     private val pipeline = AlertPipeline(findings, owner, history, guardians, NtfySender(http), outbox) { now }
     private val baselines = FakeBaselines()
     private var phone = Snapshot(now, PrivateDns.Automatic, "com.android.chrome", true, true, Reading.NotPresent, Reading.NotPresent)
-    private val actions = FindingActions(findings, history, owner, baselines, { phone }, pipeline) { now }
+    private val actions = FindingActions(findings, history, owner, baselines, { phone }, pipeline, AlertGate()) { now }
 
     private val scam = Finding(FindingKey(DetectorId.Link, Problem.ScamLink, "evil.example"), emptyMap(), now.minus(Duration.ofMinutes(1)), now)
 
