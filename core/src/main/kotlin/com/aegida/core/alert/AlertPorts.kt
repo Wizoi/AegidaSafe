@@ -36,6 +36,7 @@ enum class Outcome(val forMom: String) {
     OwnerWarned("You were warned."),
     GuardianTold("Your guardian was told."),
     GuardianNotReached("Aegida could not reach your guardian."),
+    GuardianReminded("Your guardian was reminded."),
     Fixed("Fixed."),
     Acknowledged("You saw it."),
 }

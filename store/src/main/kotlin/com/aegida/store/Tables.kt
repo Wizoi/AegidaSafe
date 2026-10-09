@@ -26,7 +26,7 @@ interface FindingDao {
     @Query("SELECT * FROM finding WHERE detectorId = :detectorId AND problem = :problem AND subject = :subject")
     suspend fun get(detectorId: String, problem: String, subject: String): FindingEntity?
 
-    @Query("SELECT * FROM finding WHERE state = 'Open' ORDER BY firstSeenMillis")
+    @Query("SELECT * FROM finding WHERE state IN ('Open', 'Escalated') ORDER BY firstSeenMillis")
     suspend fun open(): List<FindingEntity>
 }
 

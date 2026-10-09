@@ -6,7 +6,7 @@ import java.time.Instant
 data class HistoryRow(val at: Instant, val title: String, val detail: String, val handled: Boolean)
 
 object HistoryRows {
-    private val OUTCOME_ORDER = listOf(Outcome.OwnerWarned, Outcome.GuardianTold, Outcome.GuardianNotReached, Outcome.Acknowledged, Outcome.Fixed)
+    private val OUTCOME_ORDER = listOf(Outcome.OwnerWarned, Outcome.GuardianTold, Outcome.GuardianNotReached, Outcome.GuardianReminded, Outcome.Acknowledged, Outcome.Fixed)
 
     /**
      * Newest first. Entries the pipeline wrote for the same problem at the same moment (the warning to the owner

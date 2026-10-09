@@ -17,6 +17,7 @@ object Texts {
     /** What a guardian reads on their phone. Written in the owner's name; no links, no message text, no "safe". */
     object Guardian {
         const val SET_UP = "Aegida is set up on %s's phone. You will get a message here if it needs help."
+        const val STILL_OPEN = "%s hasn't dealt with a warning from Aegida yet. It has been a day. Please call her."
         const val NOT_CHECKED_IN = "Aegida hasn't checked in on %s's phone for 2 days. The phone may be off or asleep. Please call her."
     }
 

@@ -11,7 +11,16 @@ enum class Severity { Info, NeedsTap, Urgent }
 /** What a check concluded. There is deliberately no "safe". */
 enum class Verdict { NoKnownProblems, Warning, Unknown }
 
-enum class FindingState { Open, Acknowledged, Resolved, Escalated }
+enum class FindingState {
+    Open, Acknowledged, Resolved,
+
+    /** Still not dealt with after a day, so the guardian was reminded. Counts as open: it is still on Home. */
+    Escalated,
+    ;
+
+    /** The owner has not dealt with it yet. */
+    val needsHer: Boolean get() = this == Open || this == Escalated
+}
 
 /** A repeated check updates the finding with the same key instead of making a new one. */
 data class FindingKey(val detectorId: DetectorId, val problem: Problem, val subject: String)

@@ -30,7 +30,7 @@ Gate (design section 11): guard tests green; emulator scenarios for link check, 
 
 Open items inside phase 1:
 - **Her picture on banners:** decided (Kevin) and built: the shield over her picture as a faint watermark, drawn by `PictureBanner` and set as the banner's large icon (JVM/Robolectric-tested). Not yet looked at on the emulator or a phone.
-- **Event warnings that repeat:** a scam message acknowledged and then repeated warns Mom and the guardian again (tested, `FindingActionsTest`); decided (Kevin): needs a back-off so guardians are not told constantly; build with escalation in phase 2.
+- **Event warnings that repeat:** back-off built (phase 2, `AlertBackoffTest`, decisions Oct 8).
 - **Home wording:** approved by Kevin. The storyboard says "Everything is as it should be."; Home says "No known problems found." instead, as CLAUDE.md requires.
 - Dead man's switch: built and its replace/cancel behaviour confirmed live (findings #44); the app-side arming still needs a live run with a subscribed phone.
 - About screen shows each feed source's licence from the feed itself. Phishing.Database is MIT (verified); URLhaus is excluded until abuse.ch answers (findings #27).
@@ -40,7 +40,7 @@ Open items inside phase 1:
 - [x] Snapshotter reads default browser/text/phone apps and who has notification access, screen control or device-admin rights (installed apps with installer and signing cert: still to do, needs `QUERY_ALL_PACKAGES`, which Kevin has not approved yet)
 - [x] `DriftDetector` with a baseline taken after setup and "Was that you?" (JVM-tested, emulator `drift` scenario, findings #45)
 - [ ] `NewAppDetector`, `RemoteControlDetector`, with fixture APKs signed by our own test key (a second browser, an AnyDesk-like app)
-- [ ] Escalation: guardian 1 at 24 h, guardian 2 24 h after the first alert (WorkManager, fake-clock tests)
+- [x] Escalation (decided Oct 8): the same guardian is reminded once at 24 h if the warning is still open; repeat back-off 1/2/4/7 days. Fake-clock tests (`AlertBackoffTest`); a second guardian is a later feature
 - [ ] Emulator scenarios for drift, new app, remote control, device-admin and overlay grants (findings #19, #20)
 
 ## Phase 3. Stalkerware list

@@ -59,6 +59,14 @@ class RoomStoresTest {
         assertNull(store.get(finding.key.copy(subject = "http://other.example")))
     }
 
+    @Test fun aWarningTheGuardianWasRemindedAboutIsStillOpenButASeenOneIsNot() = runTest {
+        val store = RoomFindingStore(db.findings())
+        store.put(finding.copy(state = FindingState.Escalated))
+        assertEquals(listOf(FindingState.Escalated), store.open().map { it.state })
+        store.put(finding.copy(state = FindingState.Acknowledged))
+        assertEquals(emptyList<Finding>(), store.open())
+    }
+
     @Test fun historyIsNewestFirstAndPrunesByAge() = runTest {
         val log = RoomHistoryLog(db.history())
         val old = HistoryEntry(now.minus(Duration.ofDays(91)), Problem.ScamLink, Outcome.OwnerWarned)

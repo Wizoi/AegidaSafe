@@ -13,7 +13,10 @@ import com.aegida.core.model.Finding
 import com.aegida.core.model.FindingState
 import com.aegida.core.model.Severity
 import com.aegida.core.net.NtfyTopic
+import com.aegida.core.text.Texts
 import com.aegida.core.time.Clock
+import java.time.Duration
+import java.time.Instant
 import javax.inject.Inject
 
 /**
@@ -36,7 +39,7 @@ class AlertPipeline @Inject constructor(
         var notReached = 0
         current.forEach { finding ->
             val stored = findings.get(finding.key)
-            if (stored != null && stored.state == FindingState.Open) {
+            if (stored != null && stored.state.needsHer) {
                 findings.put(stored.copy(lastSeen = finding.lastSeen))
                 return@forEach
             }
@@ -45,7 +48,8 @@ class AlertPipeline @Inject constructor(
                 owner.show(finding)
                 history.add(HistoryEntry(now, finding.key.problem, Outcome.OwnerWarned))
             }
-            when (tellFirstGuardian(finding)) {
+            val result = if (backedOff(finding, now)) null else tellFirstGuardian(finding)
+            when (result) {
                 SendResult.Delivered -> history.add(HistoryEntry(now, finding.key.problem, Outcome.GuardianTold))
                 is SendResult.NotDelivered -> {
                     notReached++
@@ -65,7 +69,45 @@ class AlertPipeline @Inject constructor(
             owner.clear(finding.key)
             history.add(HistoryEntry(now, finding.key.problem, Outcome.Fixed))
         }
+        notReached += remindAboutOldWarnings(now)
         return PipelineResult(alerted = alerted, resolved = resolved.size, guardiansNotReached = notReached)
+    }
+
+    /**
+     * Repeats of the same kind of warning must not message the guardian every time. The guardian was told about
+     * this problem n times in the last week: wait a day after the last one, then two, then four, then a week.
+     * The owner is still warned, and an urgent problem is never held back.
+     */
+    private suspend fun backedOff(finding: Finding, now: Instant): Boolean {
+        if (finding.severity == Severity.Urgent) return false
+        val told = history.since(now.minus(BACKOFF_LOOKBACK))
+            .filter { it.problem == finding.key.problem && (it.outcome == Outcome.GuardianTold || it.outcome == Outcome.GuardianNotReached) }
+        if (told.isEmpty()) return false
+        val wait = minOf(BACKOFF_FIRST.multipliedBy(1L shl (told.size - 1).coerceAtMost(3)), BACKOFF_LOOKBACK)
+        return Duration.between(told.maxOf { it.at }, now) < wait
+    }
+
+    /** A warning still waiting for her after a day is raised once more with the guardian, then kept on Home. */
+    private suspend fun remindAboutOldWarnings(now: Instant): Int {
+        val settings = guardians.current()
+        val topic = settings.firstTopic?.takeIf { settings.alertsOn } ?: return 0
+        var notReached = 0
+        findings.open().filter { it.state == FindingState.Open && it.severity >= Severity.NeedsTap }.forEach { finding ->
+            if (finding.key.problem.forGuardian(settings.ownerName) == null) return@forEach
+            if (Duration.between(finding.firstSeen, now) < REMIND_AFTER) return@forEach
+            val owner = settings.ownerName
+            val message = GuardianMessage(title = owner, body = Texts.Guardian.STILL_OPEN.format(owner), urgent = false)
+            findings.put(finding.copy(state = FindingState.Escalated))
+            when (ntfy.send(topic, message)) {
+                SendResult.Delivered -> history.add(HistoryEntry(now, finding.key.problem, Outcome.GuardianReminded))
+                is SendResult.NotDelivered -> {
+                    notReached++
+                    outbox.add(QueuedMessage(0, topic.value, message.title, message.body, message.urgent, finding.key.problem, now, 1, now))
+                    history.add(HistoryEntry(now, finding.key.problem, Outcome.GuardianNotReached))
+                }
+            }
+        }
+        return notReached
     }
 
     /** Null when guardians are not to be told about this finding. */
@@ -93,6 +135,10 @@ class AlertPipeline @Inject constructor(
          * Detectors that look at the phone's settings on every run, so a missing finding means "fixed".
          * Event detectors (links, site notifications) only speak when a notification arrives.
          */
+        private val BACKOFF_FIRST: Duration = Duration.ofHours(24)
+        private val BACKOFF_LOOKBACK: Duration = Duration.ofDays(7)
+        private val REMIND_AFTER: Duration = Duration.ofHours(24)
+
         val SETTING_BASED = setOf(DetectorId.Dns, DetectorId.Health, DetectorId.Delivery, DetectorId.Drift)
     }
 }

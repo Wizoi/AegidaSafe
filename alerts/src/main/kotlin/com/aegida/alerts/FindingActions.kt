@@ -27,7 +27,7 @@ class FindingActions @Inject constructor(
 ) {
     /** Marks an open finding as seen: off Home, banner cleared, one History line. False if there is nothing open to mark. */
     suspend fun acknowledge(key: FindingKey): Boolean {
-        val finding = findings.get(key)?.takeIf { it.state == FindingState.Open } ?: return false
+        val finding = findings.get(key)?.takeIf { it.state.needsHer } ?: return false
         val now = clock.now()
         findings.put(finding.copy(state = FindingState.Acknowledged, lastSeen = now))
         owner.clear(key)
@@ -41,7 +41,7 @@ class FindingActions @Inject constructor(
      */
     suspend fun acceptChange(key: FindingKey): Boolean {
         if (key.problem.fix != Fix.ConfirmChange) return false
-        if (findings.get(key)?.state != FindingState.Open) return false
+        if (findings.get(key)?.state?.needsHer != true) return false
         val baseline = baselines.baseline() ?: return false
         baselines.save(baseline.accepting(key.problem, snapshotter.take()))
         return acknowledge(key)

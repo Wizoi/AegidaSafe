@@ -26,7 +26,7 @@ import java.time.Instant
 
 class Findings : FindingStore {
     val rows = linkedMapOf<FindingKey, Finding>()
-    override suspend fun open() = rows.values.filter { it.state == FindingState.Open }
+    override suspend fun open() = rows.values.filter { it.state.needsHer }
     override suspend fun get(key: FindingKey) = rows[key]
     override suspend fun put(finding: Finding) { rows[finding.key] = finding }
 }
