@@ -93,7 +93,7 @@ class AlertPipeline @Inject constructor(
         if (!told || outbox.all().any { it.problem == problem }) return
         val now = clock.now()
         val text = if (problem.severity == Severity.Urgent) Texts.Guardian.CONFIRMED_URGENT else Texts.Guardian.CONFIRMED
-        val message = GuardianMessage(title = settings.ownerName, body = text.format(settings.ownerName), urgent = false)
+        val message = GuardianMessage(title = guardianName(settings), body = text.format(guardianName(settings)), urgent = false)
         when (ntfy.send(topic, message)) {
             SendResult.Delivered -> history.add(HistoryEntry(now, problem, Outcome.GuardianTold))
             is SendResult.NotDelivered -> {
@@ -112,33 +112,55 @@ class AlertPipeline @Inject constructor(
         if (finding.severity == Severity.Urgent) return false
         val told = history.since(now.minus(BACKOFF_LOOKBACK))
             .filter { it.problem == finding.key.problem && (it.outcome == Outcome.GuardianTold || it.outcome == Outcome.GuardianNotReached) }
+            // Stamped well ahead of now (the clock was set ahead, then corrected): not trusted, or it would hold the guardian back for days.
+            .filter { !it.at.isAfter(now.plus(CLOCK_SKEW)) }
         if (told.isEmpty()) return false
         val wait = minOf(BACKOFF_FIRST.multipliedBy(1L shl (told.size - 1).coerceAtMost(3)), BACKOFF_LOOKBACK)
-        return Duration.between(told.maxOf { it.at }, now) < wait
+        // A stamp a little ahead of now (ordinary skew) counts as "told now".
+        val last = minOf(told.maxOf { it.at }, now)
+        return Duration.between(last, now) < wait
     }
 
-    /** A warning still waiting for her after a day is raised once more with the guardian, then kept on Home. */
+    /**
+     * Warnings still waiting for her after a day are raised once more with the guardian, then kept on Home. One
+     * message per run covers every warning that is due, and a guardian reminded in the last day is not reminded
+     * again (findings #R8). The message goes (or is queued) first and Escalated is stored last, so a run killed
+     * in between sends it again: a duplicate is better than a lost reminder (findings #42, R20). A clock that went
+     * backwards never holds a reminder back: a first-seen time in the future is taken as now.
+     */
     private suspend fun remindAboutOldWarnings(now: Instant): Int {
         val settings = guardians.current()
         val topic = settings.firstTopic?.takeIf { settings.alertsOn } ?: return 0
+        val candidates = findings.open().filter { it.state == FindingState.Open && it.severity >= Severity.NeedsTap }
+            .filter { it.key.problem.forGuardian(guardianName(settings)) != null }
+        val due = candidates.filter { finding ->
+            if (finding.firstSeen.isAfter(now.plus(CLOCK_SKEW))) {
+                findings.put(finding.copy(firstSeen = now))
+                return@filter false
+            }
+            Duration.between(minOf(finding.firstSeen, now), now) >= REMIND_AFTER
+        }
+        if (due.isEmpty()) return 0
+        // A reminder stamped in the future (clock set ahead) is ignored, so it cannot hold reminders back for days.
+        val recently = history.since(now.minus(REMIND_AFTER)).any { it.outcome == Outcome.GuardianReminded && it.at.isAfter(now.minus(REMIND_AFTER)) && !it.at.isAfter(now) }
+        if (recently) return 0
+        val owner = guardianName(settings)
+        val message = GuardianMessage(title = owner, body = Texts.Guardian.STILL_OPEN.format(owner), urgent = false)
         var notReached = 0
-        findings.open().filter { it.state == FindingState.Open && it.severity >= Severity.NeedsTap }.forEach { finding ->
-            if (finding.key.problem.forGuardian(settings.ownerName) == null) return@forEach
-            if (Duration.between(finding.firstSeen, now) < REMIND_AFTER) return@forEach
-            val owner = settings.ownerName
-            val message = GuardianMessage(title = owner, body = Texts.Guardian.STILL_OPEN.format(owner), urgent = false)
-            findings.put(finding.copy(state = FindingState.Escalated))
-            when (ntfy.send(topic, message)) {
-                SendResult.Delivered -> history.add(HistoryEntry(now, finding.key.problem, Outcome.GuardianReminded))
-                is SendResult.NotDelivered -> {
-                    notReached++
-                    outbox.add(QueuedMessage(0, topic.value, message.title, message.body, message.urgent, finding.key.problem, now, 1, now))
-                    history.add(HistoryEntry(now, finding.key.problem, Outcome.GuardianNotReached))
-                }
+        when (ntfy.send(topic, message)) {
+            SendResult.Delivered -> due.forEach { history.add(HistoryEntry(now, it.key.problem, Outcome.GuardianReminded)) }
+            is SendResult.NotDelivered -> {
+                notReached++
+                outbox.add(QueuedMessage(0, topic.value, message.title, message.body, message.urgent, due.first().key.problem, now, 1, now))
+                due.forEach { history.add(HistoryEntry(now, it.key.problem, Outcome.GuardianNotReached)) }
             }
         }
+        due.forEach { findings.put(it.copy(state = FindingState.Escalated)) }
         return notReached
     }
+
+    /** The name the guardian sees; blank falls back to the app name, as [DeadMansSwitch] does. */
+    private fun guardianName(settings: com.aegida.core.alert.Guardians) = settings.ownerName.ifBlank { Texts.APP_NAME }
 
     /** Null when guardians are not to be told about this finding. */
     private suspend fun tellFirstGuardian(finding: Finding): SendResult? {
@@ -150,8 +172,8 @@ class AlertPipeline @Inject constructor(
         val settings = guardians.current()
         val topic = settings.firstTopic ?: return null
         if (!settings.alertsOn) return null
-        val text = finding.key.problem.forGuardian(settings.ownerName) ?: return null
-        return topic to GuardianMessage(title = settings.ownerName, body = text, urgent = finding.severity == Severity.Urgent)
+        val text = finding.key.problem.forGuardian(guardianName(settings)) ?: return null
+        return topic to GuardianMessage(title = guardianName(settings), body = text, urgent = finding.severity == Severity.Urgent)
     }
 
     /** A message that did not go is kept and retried by [OutboxFlusher]; the owner is not asked to do anything. */
@@ -161,14 +183,15 @@ class AlertPipeline @Inject constructor(
     }
 
     companion object {
+        private val BACKOFF_FIRST: Duration = Duration.ofHours(24)
+        private val BACKOFF_LOOKBACK: Duration = Duration.ofDays(7)
+        private val REMIND_AFTER: Duration = Duration.ofHours(24)
+        private val CLOCK_SKEW: Duration = Duration.ofMinutes(5)
+
         /**
          * Detectors that look at the phone's settings on every run, so a missing finding means "fixed".
          * Event detectors (links, site notifications) only speak when a notification arrives.
          */
-        private val BACKOFF_FIRST: Duration = Duration.ofHours(24)
-        private val BACKOFF_LOOKBACK: Duration = Duration.ofDays(7)
-        private val REMIND_AFTER: Duration = Duration.ofHours(24)
-
         val SETTING_BASED = setOf(DetectorId.Dns, DetectorId.Health, DetectorId.Delivery, DetectorId.Drift, DetectorId.NewApp, DetectorId.RemoteControl, DetectorId.Stalkerware)
     }
 }
