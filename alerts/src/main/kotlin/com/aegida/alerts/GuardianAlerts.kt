@@ -1,6 +1,7 @@
 package com.aegida.alerts
 
 import com.aegida.core.alert.GuardianSettings
+import com.aegida.core.alert.Guardians
 import com.aegida.core.net.NtfyTopic
 import com.aegida.core.text.Texts
 import javax.inject.Inject
@@ -55,6 +56,17 @@ class GuardianAlerts @Inject constructor(
         val current = settings.current()
         if (!current.alertsOn || current.firstTopic != pending) { welcomePendingFor = null; return null }
         return sendWelcome(pending, current.ownerName.ifBlank { Texts.APP_NAME })
+    }
+
+    /**
+     * One short message to the guardian she is replacing, sent before their link stops working: if a scammer coached
+     * her into the change, the family hears about it (findings #56). Only when alerts are on and there was a guardian
+     * to tell. A failure is not retried: the old topic is no longer the guardian's, so the outbox would drop it. The caller holds the [AlertGate].
+     */
+    suspend fun tellReplaced(previous: Guardians): SendResult? {
+        val topic = previous.firstTopic?.takeIf { previous.alertsOn && previous.firstGuardianName.isNotBlank() } ?: return null
+        val owner = previous.ownerName.ifBlank { Texts.APP_NAME }
+        return ntfy.send(topic, GuardianMessage(title = owner, body = Texts.Guardian.CHANGED.format(owner), urgent = false))
     }
 
     private suspend fun sendWelcome(topic: NtfyTopic, owner: String): SendResult {

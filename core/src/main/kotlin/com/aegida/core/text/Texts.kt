@@ -21,6 +21,7 @@ object Texts {
         const val CONFIRMED = "%s said the change Aegida asked about was hers. Nothing more to do."
         /** For urgent kinds: it could be a scammer coaching her, so it never says everything is fine. */
         const val CONFIRMED_URGENT = "%s said the change Aegida asked about was hers. If you were not expecting it, please call her."
+        const val CHANGED = "%s changed her guardian in Aegida. You will not get messages about her phone from now on. If you did not expect this, please call her."
         const val NOT_CHECKED_IN = "Aegida hasn't checked in on %s's phone for 2 days. The phone may be off or asleep. Please call her."
     }
 
@@ -169,7 +170,7 @@ object Texts {
         const val CHANGE_GUARDIAN = "Pick a different guardian"
         const val CHANGE_GUARDIAN_TITLE = "Pick a new guardian"
         const val CHANGE_GUARDIAN_POPUP_TITLE = "Please tell %s"
-        const val CHANGE_GUARDIAN_POPUP_BODY = "Aegida won't tell %s that you changed your guardian. Please let them know yourself, so they aren't left wondering."
+        const val CHANGE_GUARDIAN_POPUP_BODY = "Aegida will send %s a short message that you changed your guardian. Please tell them yourself too, so they aren't left wondering."
         const val CHANGE_GUARDIAN_POPUP_OK = "I will"
         const val CHANGE_GUARDIAN_POPUP_BACK = "Go back"
     }

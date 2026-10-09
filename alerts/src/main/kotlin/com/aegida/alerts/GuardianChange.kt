@@ -4,13 +4,14 @@ import com.aegida.core.alert.GuardianSettings
 import com.aegida.core.net.NtfyTopic
 import javax.inject.Inject
 
-/** [previousName] is who the owner should let know; Aegida sends them nothing. */
-data class GuardianChanged(val previousName: String, val cancelled: SendResult?)
+/** [previousName] is who the owner should also tell herself; [oldGuardianTold] is Aegida's own short message to them (null when none was due). */
+data class GuardianChanged(val previousName: String, val cancelled: SendResult?, val oldGuardianTold: SendResult? = null)
 
 /**
  * The one place the guardian is changed. The person holding the phone decides (Kevin's decision), so this does
- * not ask anyone. The new guardian gets a new private topic: the topic is the password, so the old guardian's
- * link stops working, and their waiting "hasn't checked in" message is cancelled so they are not alarmed later.
+ * not ask anyone. The guardian being replaced is sent one short message first (Kevin, Oct 8: a coached change must not
+ * be silent). The new guardian gets a new private topic: the topic is the password, so the old guardian's link stops
+ * working, and their waiting "hasn't checked in" message is cancelled so they are not alarmed later.
  */
 class GuardianChange @Inject constructor(
     private val settings: GuardianSettings,
@@ -20,6 +21,7 @@ class GuardianChange @Inject constructor(
 ) {
     suspend fun change(name: String, email: String, phone: String): GuardianChanged = gate.run {
         val before = settings.current()
+        val told = alerts.tellReplaced(before)
         val cancelled = switch.disarm()
         settings.save(
             before.copy(
@@ -30,6 +32,6 @@ class GuardianChange @Inject constructor(
             ),
         )
         if (before.alertsOn) alerts.startTelling()
-        GuardianChanged(before.firstGuardianName, cancelled)
+        GuardianChanged(before.firstGuardianName, cancelled, told)
     }
 }
