@@ -33,3 +33,5 @@ build-shots/
 release-mappings/
 .claude/worktrees/
 __pycache__/
+# Generated from release-notes/<versionCode>.txt by :app:syncReleaseNotes
+app/src/release/

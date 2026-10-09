@@ -150,3 +150,16 @@ class KeyboardRoomTest {
         assertTrue("MainActivity must set windowSoftInputMode=adjustResize", manifest.text.contains("adjustResize"))
     }
 }
+
+/**
+ * Findings #83: Gradle Play Publisher reads release notes only from <track>.txt or default.txt, so the per-version notes are
+ * copied to default.txt before it builds its upload. Without this Play showed version 1's "Initial Release" for every update.
+ */
+class ReleaseNotesReachPlayTest {
+    @Test fun theCurrentVersionsNotesAreCopiedToDefaultTxtBeforeThePluginRuns() {
+        val build = ShippedSources.buildFiles.first { it.path == "app/build.gradle.kts" }.code
+        assertTrue("the sync task must exist", build.contains("syncReleaseNotes"))
+        assertTrue("it must name the file default.txt", build.contains("rename { \"default.txt\" }"))
+        assertTrue("the plugin's generate task must depend on it", build.contains("dependsOn(syncReleaseNotes)"))
+    }
+}

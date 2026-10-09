@@ -112,6 +112,17 @@ tasks.matching { it.name == "minifyReleaseWithR8" }.configureEach {
     finalizedBy(archiveReleaseMapping)
 }
 
+// Gradle Play Publisher takes release notes only from release-notes/<locale>/<track>.txt or default.txt, never from
+// <versionCode>.txt (findings #83: Play kept showing version 1's "Initial Release"). The notes stay per version as the
+// history (release-notes/en-US/<versionCode>.txt, checked by PlayListingTest); this copies the current version's file to
+// src/release/play/release-notes/en-US/default.txt (git-ignored) before the plugin builds its upload resources.
+val syncReleaseNotes by tasks.registering(Copy::class) {
+    from(layout.projectDirectory.file("src/main/play/release-notes/en-US/${android.defaultConfig.versionCode}.txt"))
+    into(layout.projectDirectory.dir("src/release/play/release-notes/en-US"))
+    rename { "default.txt" }
+}
+tasks.matching { it.name.startsWith("generate") && it.name.endsWith("PlayResources") }.configureEach { dependsOn(syncReleaseNotes) }
+
 // Gradle Play Publisher. Every task that talks to Play (publishListing, publishReleaseBundle, promoteArtifact)
 // needs Kevin's explicit yes first (CLAUDE.md); docs/PUBLISH.md has the commands. The service account key stays
 // outside the repo: AEGIDA_PLAY_SERVICE_ACCOUNT in ~/.gradle/gradle.properties names the file (NoSecretsTest scans the
