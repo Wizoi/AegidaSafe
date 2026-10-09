@@ -69,13 +69,19 @@ abstract class AppModule {
         @Provides fun baselines(store: AegidaStore): com.aegida.core.store.BaselineStore = store.baselines
         @Provides fun feed(store: AegidaStore): FeedStore = store.feed
 
+        /** One banner picture for the whole app: the ViewModel updates it, the poster reads it (R5). */
         @Provides @Singleton
-        fun notifications(@ApplicationContext context: Context, store: AegidaStore): NotificationPoster =
-            NotificationPoster(context, com.aegida.app.ui.PictureBanner(context, store.setup))
+        fun pictureBanner(@ApplicationContext context: Context, store: AegidaStore): com.aegida.app.ui.PictureBanner =
+            com.aegida.app.ui.PictureBanner(context, store.setup)
+
+        @Provides @Singleton
+        fun notifications(@ApplicationContext context: Context, banner: com.aegida.app.ui.PictureBanner): NotificationPoster =
+            NotificationPoster(context, banner)
 
         @Provides fun ownerNotifier(poster: NotificationPoster): OwnerNotifier = poster
 
-        @Provides
+        /** One snapshotter, so there is one 5-minute app-list cache, not one per injection (R5). */
+        @Provides @Singleton
         fun snapshotter(@ApplicationContext context: Context, clock: Clock, oem: OemSource): Snapshotter =
             AndroidSnapshotter(context, clock, oem, ComponentName(context, AegidaListenerService::class.java))
 

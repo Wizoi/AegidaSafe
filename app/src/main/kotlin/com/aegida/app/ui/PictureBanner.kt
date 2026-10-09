@@ -5,29 +5,74 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
+import android.os.Looper
 import androidx.core.content.ContextCompat
 import com.aegida.core.model.SafetyPicture
 import com.aegida.core.store.SetupStore
 import com.aegida.platform.notify.BannerArt
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
 /**
  * The Aegida shield with her safety picture faintly behind it, for the large icon on every warning banner.
- * A banner that does not carry her picture did not come from her Aegida. Drawn once per picture and kept.
+ * A banner that does not carry her picture did not come from her Aegida.
+ *
+ * Posting a banner must never wait for the database or the canvas, and may happen on the main thread. So the
+ * picture id is kept in memory: read once when this is made (on [scope], off the main thread), changed by
+ * [set] when she picks another, and the bitmap is drawn there, never in [bitmap] (R5).
  */
-class PictureBanner(private val context: Context, private val setup: SetupStore) : BannerArt {
-    private var cachedId: String? = null
-    private var cached: Bitmap? = null
+class PictureBanner(
+    private val context: Context,
+    private val setup: SetupStore,
+    scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
+) : BannerArt {
+    @Volatile private var cachedId: String? = null
+    @Volatile private var cached: Bitmap? = null
+    private var chosen = false
+    private val loaded = CountDownLatch(1)
 
+    init {
+        scope.launch {
+            try {
+                val stored = setup.setup().pictureId
+                synchronized(this@PictureBanner) { if (!chosen) apply(stored) } // a pick made meanwhile wins
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // No picture is better than no banner.
+            } finally {
+                loaded.countDown()
+            }
+        }
+    }
+
+    /** Remembers her picture and draws it. Called when she chooses one; call it off the main thread. */
     @Synchronized
-    override fun bitmap(): Bitmap? {
-        // A small read from the database, taken on the thread that is already posting the banner.
-        val id = runBlocking { setup.setup().pictureId }
-        val picture = SafetyPicture.fromId(id) ?: return null
-        if (id != cachedId) {
+    fun set(id: String?) {
+        chosen = true
+        apply(id)
+    }
+
+    private fun apply(id: String?) {
+        val picture = SafetyPicture.fromId(id)
+        if (picture == null) {
+            cachedId = null
+            cached = null
+        } else if (id != cachedId) {
             cached = draw(picture)
             cachedId = id
         }
+        loaded.countDown()
+    }
+
+    /** Never reads the database. Off the main thread, the first few milliseconds after the app starts wait for the first load. */
+    override fun bitmap(): Bitmap? {
+        if (loaded.count > 0 && Looper.myLooper() != Looper.getMainLooper()) loaded.await(1, TimeUnit.SECONDS)
         return cached
     }
 
