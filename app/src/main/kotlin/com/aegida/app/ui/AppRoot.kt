@@ -258,7 +258,7 @@ private fun MainContent(state: MainState, vm: MainViewModel) {
                 }
                 is Page.Confirm -> AegidaScreen(pictureId) {
                     Headline(current.finding.key.problem.forMom)
-                    current.finding.evidence[com.aegida.core.model.Evidence.APP_LABEL]?.let { Body(Texts.Home.CONFIRM_APP.format(it)) }
+                    Texts.Home.confirmApp(current.finding.key.problem, current.finding.evidence[com.aegida.core.model.Evidence.APP_LABEL])?.let { Body(it) }
                     BigButton(Texts.Home.CONFIRM_YES, { vm.acceptChange(current.finding); page = Page.None })
                     QuietButton(Texts.Home.CONFIRM_NO, {
                         context.startSafely(FixActions.settingsIntentFor(current.finding, context.packageName))

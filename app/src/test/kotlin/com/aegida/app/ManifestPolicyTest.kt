@@ -38,6 +38,31 @@ class ManifestPolicyTest {
         assertEquals(emptySet<String>(), bound intersect BANNED_SERVICE_BINDINGS)
     }
 
+    /** R19: allowBackup=false does not stop phone-to-phone transfer on Android 12+; the rules file must. */
+    @Test fun nothingIsCopiedByCloudBackupOrPhoneToPhoneTransfer() {
+        val manifest = java.io.File("src/main/AndroidManifest.xml").readText()
+        org.junit.Assert.assertTrue("manifest names no dataExtractionRules", manifest.contains("android:dataExtractionRules=\"@xml/data_extraction_rules\""))
+        org.junit.Assert.assertTrue("manifest names no fullBackupContent", manifest.contains("android:fullBackupContent=\"@xml/backup_rules\""))
+        val id = context.resources.getIdentifier("data_extraction_rules", "xml", context.packageName)
+        org.junit.Assert.assertNotEquals("no rules file", 0, id)
+        val excluded = mutableMapOf<String, MutableSet<String>>()
+        val parser = context.resources.getXml(id)
+        var section = ""
+        while (parser.eventType != org.xmlpull.v1.XmlPullParser.END_DOCUMENT) {
+            if (parser.eventType == org.xmlpull.v1.XmlPullParser.START_TAG) {
+                when (parser.name) {
+                    "cloud-backup", "device-transfer" -> section = parser.name
+                    "exclude" -> excluded.getOrPut(section) { mutableSetOf() }.add(parser.getAttributeValue(null, "domain"))
+                    "include" -> org.junit.Assert.fail("the rules must not include anything")
+                }
+            }
+            parser.next()
+        }
+        for (name in listOf("cloud-backup", "device-transfer")) {
+            assertEquals(name, setOf("database", "file", "sharedpref"), excluded.getValue(name) intersect setOf("database", "file", "sharedpref"))
+        }
+    }
+
     companion object {
         /** Approved in decisions.md. WorkManager adds the first three; the last two arrive with the foreground service. */
         val APPROVED_PERMISSIONS = setOf(

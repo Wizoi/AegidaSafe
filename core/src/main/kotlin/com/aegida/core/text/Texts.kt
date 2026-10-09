@@ -51,6 +51,35 @@ object Texts {
         const val CONFIRM_APP = "The app is called: %s"
         const val CONFIRM_NO = "No, show me"
         const val CONFIRM_NO_HELP = "If you did not do this, change it back, or call your guardian."
+
+        const val CONFIRM_LABEL_MAX = 40
+
+        /**
+         * The "The app is called" line on the "Was that you?" page, or null for no line. An app chooses its own
+         * label, so an attacker can make it read like an instruction. For an urgent problem the label is never
+         * shown; otherwise it is cut short, stripped of control characters and quoted (R17).
+         */
+        fun confirmApp(problem: Problem, label: String?): String? {
+            if (problem.severity == com.aegida.core.model.Severity.Urgent) return null
+            val clean = cleanLabel(label.orEmpty())
+            return if (clean.isEmpty()) null else CONFIRM_APP.format("“$clean”")
+        }
+
+        internal fun cleanLabel(raw: String): String {
+            val spaced = StringBuilder()
+            var i = 0
+            while (i < raw.length) {
+                val cp = raw.codePointAt(i)
+                i += Character.charCount(cp)
+                val type = Character.getType(cp)
+                val blocked = type == Character.CONTROL.toInt() || type == Character.FORMAT.toInt() ||
+                    type == Character.LINE_SEPARATOR.toInt() || type == Character.PARAGRAPH_SEPARATOR.toInt()
+                spaced.append(if (blocked) " " else String(Character.toChars(cp)))
+            }
+            val text = spaced.toString().trim().replace(Regex(" {2,}"), " ")
+            if (text.codePointCount(0, text.length) <= CONFIRM_LABEL_MAX) return text
+            return text.substring(0, text.offsetByCodePoints(0, CONFIRM_LABEL_MAX)).trimEnd() + "…"
+        }
     }
 
     object History {

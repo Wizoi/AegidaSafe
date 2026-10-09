@@ -3,6 +3,7 @@ package com.aegida.app
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aegida.alerts.CheckRunner
+import com.aegida.app.ui.PictureBanner
 import com.aegida.alerts.DailyCheck
 import com.aegida.alerts.FindingActions
 import com.aegida.alerts.GuardianAlerts
@@ -32,11 +33,14 @@ import com.aegida.core.store.SetupStore
 import com.aegida.core.time.Clock
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.Duration
 import java.time.Instant
 import javax.inject.Inject
@@ -75,14 +79,21 @@ class MainViewModel @Inject constructor(
     private val actions: FindingActions,
     private val oem: OemSource,
     private val clock: Clock,
+    private val banner: PictureBanner,
 ) : ViewModel() {
+
+    /**
+     * Where the work runs. Reading every installed app and the database is slow on an old phone, so none of it
+     * may run on the main thread (viewModelScope is Main) (R5). Tests may replace it.
+     */
+    internal var work: CoroutineDispatcher = Dispatchers.Default
 
     private val mutableState = MutableStateFlow(MainState())
     val state: StateFlow<MainState> = mutableState.asStateFlow()
 
     /** Runs a check (so Home is current when she opens the app or comes back from Settings), then reloads. */
     fun refresh(runCheck: Boolean = true) {
-        viewModelScope.launch {
+        viewModelScope.launch(work) {
             if (runCheck) quietly { runner.run(Trigger.AppStart) }
             load()
             // First launch: do the first full check now (feed download included) and show its result.
@@ -122,7 +133,7 @@ class MainViewModel @Inject constructor(
 
     /** "Yes, that was me" to a was-that-you question: the baseline takes the change, and Home stops asking. */
     fun acceptChange(finding: Finding) {
-        viewModelScope.launch {
+        viewModelScope.launch(work) {
             quietly { actions.acceptChange(finding.key) }
             load()
         }
@@ -130,7 +141,7 @@ class MainViewModel @Inject constructor(
 
     /** Marks a finding seen ("Got it", or after she has been to the screen that fixes it). */
     fun acknowledge(finding: Finding) {
-        viewModelScope.launch {
+        viewModelScope.launch(work) {
             actions.acknowledge(finding.key)
             load()
         }
@@ -145,23 +156,26 @@ class MainViewModel @Inject constructor(
         )
     }
 
-    fun savePicture(picture: SafetyPicture) = change { setupStore.save(setupStore.setup().copy(pictureId = picture.id)) }
+    fun savePicture(picture: SafetyPicture) = change {
+        setupStore.save(setupStore.setup().copy(pictureId = picture.id))
+        banner.set(picture.id) // banners posted from now on carry the new picture, without reading the database
+    }
 
     /** Makes her private alert topic the first time it is needed and returns the guardian settings to build the email from. */
-    suspend fun prepareInvite(): Guardians {
+    suspend fun prepareInvite(): Guardians = withContext(work) {
         val current = guardianSettings.current()
-        if (current.firstTopic != null) return current
+        if (current.firstTopic != null) return@withContext current
         val made = current.copy(firstTopic = NtfyTopic.generate())
         guardianSettings.save(made)
         load()
-        return made
+        made
     }
 
     /** Changes the guardian (the owner decides; nothing is sent to the old one). Returns the new settings to build the invite from. */
-    suspend fun changeGuardian(name: String, email: String, phone: String): Guardians {
+    suspend fun changeGuardian(name: String, email: String, phone: String): Guardians = withContext(work) {
         quietly { guardianChange.change(name, email, phone) }
         load()
-        return guardianSettings.current()
+        guardianSettings.current()
     }
 
     fun setAlerts(on: Boolean) = change { quietly { guardianAlerts.setAlertsOn(on) } }
@@ -182,7 +196,7 @@ class MainViewModel @Inject constructor(
     }
 
     private fun change(block: suspend () -> Unit) {
-        viewModelScope.launch {
+        viewModelScope.launch(work) {
             block()
             load()
         }
