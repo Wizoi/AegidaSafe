@@ -50,7 +50,7 @@ class BaselineKeeperTest {
         assertEquals(setOf("org.one"), baselines.value!!.apps)
     }
 
-    @Test fun aDefaultTheBaselineCouldNotReadAtSetupIsAdoptedOnceWhenItBecomesReadable() = runTest { // findings #68
+    @Test fun aDefaultTheBaselineCouldNotReadAtSetupIsAdoptedOnceWhenItBecomesReadable() = runTest { // findings #70
         setup.value = Setup.NotDone.copy(stepsDone = SetupStep.entries.size)
         val old = Baseline.of(phone).copy(smsApp = null, assistant = null)
         baselines.value = old

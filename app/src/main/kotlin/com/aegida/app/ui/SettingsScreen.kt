@@ -29,6 +29,7 @@ fun SettingsScreen(
     filterOn: Boolean,
     onChangePicture: () -> Unit,
     onChangeGuardian: () -> Unit,
+    onResendInvite: () -> Unit,
     onAlerts: (Boolean) -> Unit,
     onFilterHelp: () -> Unit,
 ) {
@@ -38,6 +39,7 @@ fun SettingsScreen(
         SettingCard {
             ValueRow(Texts.Settings.NAME, guardians.ownerName.ifBlank { Texts.Settings.NOT_SET })
             ValueRow(Texts.Settings.GUARDIAN, guardians.firstGuardianName.ifBlank { Texts.Settings.NOT_SET })
+            QuietButton(Texts.Settings.RESEND_INVITE, onResendInvite)
             QuietButton(Texts.Settings.CHANGE_GUARDIAN, onChangeGuardian)
         }
         SettingCard {

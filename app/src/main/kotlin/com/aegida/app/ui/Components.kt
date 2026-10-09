@@ -144,6 +144,22 @@ fun AegidaShield(size: Dp, modifier: Modifier = Modifier) {
     }
 }
 
+/** A finished step: a green tick and the words, so "done" is never only a colour. */
+@Composable
+fun DoneRow(text: String, modifier: Modifier = Modifier) {
+    Surface(
+        modifier.fillMaxWidth().semantics(mergeDescendants = true) { contentDescription = text },
+        shape = RoundedCornerShape(16.dp),
+        color = goodColor().copy(alpha = 0.18f),
+        border = BorderStroke(2.dp, goodColor()),
+    ) {
+        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            StatusMark(Mark.Good, 40.dp)
+            Text(text, style = MaterialTheme.typography.titleMedium)
+        }
+    }
+}
+
 enum class Mark { Good, NeedsTap, Unknown }
 
 /** The big round mark on Home: a check, an exclamation mark, or a dash. Colour is never the only signal. */

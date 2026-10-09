@@ -20,6 +20,12 @@ enum class SetupStep {
         return if (following == Blocker && !blockerRelevant) Finish else following
     }
 
+    /** The step before this one for the Back button, skipping the Samsung step when the phone cannot have it. Null on the first step. */
+    fun previous(blockerRelevant: Boolean): SetupStep? {
+        val before = entries.getOrNull(ordinal - 1) ?: return null
+        return if (before == Blocker && !blockerRelevant) entries.getOrNull(ordinal - 2) else before
+    }
+
     companion object {
         /** Where to resume: the first step she has not finished, or null when setup is complete. */
         fun resumeAt(setup: Setup): SetupStep? = entries.getOrNull(setup.stepsDone)

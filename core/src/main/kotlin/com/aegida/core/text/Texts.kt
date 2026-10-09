@@ -134,6 +134,9 @@ object Texts {
 
         const val ACCESS_TITLE = "Let Aegida see your notifications"
         const val ACCESS_BODY = "This is how Aegida spots fake warnings and scam links. It does not keep your messages."
+        const val ACCESS_PART_1 = "1. Let Aegida see your notifications"
+        const val ACCESS_PART_2 = "2. Let Aegida warn you"
+        const val ACCESS_FIRST = "Do step 1 first."
         const val ACCESS_OPEN = "Open the notification screen"
         const val ACCESS_ALLOW_BANNERS = "Allow Aegida to warn me"
         const val ACCESS_STEP = "Find Aegida in the list and turn it on."
@@ -171,6 +174,7 @@ object Texts {
         const val CHANGE = "Change"
         const val CREDITS_TITLE = "Where the lists come from"
         const val CREDITS = "Scam websites: Phishing.Database (MIT licence). Spying apps: Stalkerware Indicators by Echap (CC BY 4.0). Both are stored in a shortened, scrambled form."
+        const val RESEND_INVITE = "Send the invitation again"
         const val CHANGE_GUARDIAN = "Pick a different guardian"
         const val CHANGE_GUARDIAN_TITLE = "Pick a new guardian"
         const val CHANGE_GUARDIAN_POPUP_TITLE = "Please tell %s"

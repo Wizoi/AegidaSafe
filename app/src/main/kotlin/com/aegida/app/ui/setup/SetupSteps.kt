@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import com.aegida.app.ui.AegidaScreen
 import com.aegida.app.ui.AegidaShield
 import com.aegida.app.ui.BigButton
+import com.aegida.app.ui.DoneRow
 import com.aegida.app.ui.Body
 import com.aegida.app.ui.PictureTile
 import com.aegida.app.ui.QuietButton
@@ -51,6 +52,9 @@ fun WelcomeScreen(onStart: () -> Unit) {
     }
 }
 
+/** What the Back button on a first-run step does, or null when there is nothing before it. Set once by the setup flow. */
+val LocalSetupBack = androidx.compose.runtime.staticCompositionLocalOf<(() -> Unit)?> { null }
+
 /** One first-run step: a title, a few plain sentences, then the one thing to do. */
 @Composable
 private fun StepScreen(
@@ -60,10 +64,12 @@ private fun StepScreen(
     title: String,
     content: @Composable () -> Unit,
 ) {
+    val back = LocalSetupBack.current
     AegidaScreen(pictureId) {
         Text(Texts.Setup.STEP.format(number, total), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(title, style = MaterialTheme.typography.headlineMedium, modifier = Modifier.semantics { heading() })
         content()
+        if (back != null) QuietButton(Texts.Common.BACK, back)
     }
 }
 
@@ -180,11 +186,16 @@ fun AccessStep(
 ) {
     StepScreen(pictureId, number, total, Texts.Setup.ACCESS_TITLE) {
         Body(Texts.Setup.ACCESS_BODY, centered = false)
-        if (listenerOn) Body(Texts.Setup.ACCESS_DONE, centered = false) else {
+        Text(Texts.Setup.ACCESS_PART_1, style = MaterialTheme.typography.titleLarge)
+        if (listenerOn) DoneRow(Texts.Setup.ACCESS_DONE) else {
             Body(Texts.Setup.ACCESS_STEP, centered = false)
             BigButton(Texts.Setup.ACCESS_OPEN, onOpenAccess)
         }
-        if (bannersOn) Body(Texts.Setup.BANNERS_DONE, centered = false) else BigButton(Texts.Setup.ACCESS_ALLOW_BANNERS, onAllowBanners)
+        Text(Texts.Setup.ACCESS_PART_2, style = MaterialTheme.typography.titleLarge)
+        if (bannersOn) DoneRow(Texts.Setup.BANNERS_DONE) else {
+            if (!listenerOn) Body(Texts.Setup.ACCESS_FIRST, centered = false)
+            BigButton(Texts.Setup.ACCESS_ALLOW_BANNERS, onAllowBanners, enabled = listenerOn)
+        }
         if (listenerOn && bannersOn) BigButton(Texts.Common.CONTINUE, onContinue) else QuietButton(Texts.Common.NOT_NOW, onContinue)
     }
 }
@@ -198,14 +209,18 @@ fun FilterStep(pictureId: String?, number: Int, total: Int, filterOn: Boolean, o
 @Composable
 fun FilterGuideBody(filterOn: Boolean, onOpenSettings: () -> Unit, onCheck: () -> Unit, onContinue: () -> Unit, continueText: String = Texts.Common.CONTINUE) {
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        Body(Texts.Setup.FILTER_BODY, centered = false)
-        Body(Texts.Setup.FILTER_STEPS.format(WebsiteFilter.HOST), centered = false)
-        Body(if (filterOn) Texts.Setup.FILTER_ON else Texts.Setup.FILTER_NOT_YET, centered = false)
-        if (!filterOn) {
+        if (filterOn) {
+            // Already on: nothing to explain, just say so and move on.
+            DoneRow(Texts.Setup.FILTER_ON)
+            BigButton(continueText, onContinue)
+        } else {
+            Body(Texts.Setup.FILTER_BODY, centered = false)
+            Body(Texts.Setup.FILTER_STEPS.format(WebsiteFilter.HOST), centered = false)
+            Body(Texts.Setup.FILTER_NOT_YET, centered = false)
             BigButton(Texts.Setup.FILTER_COPY_AND_OPEN, onOpenSettings)
             QuietButton(Texts.Setup.FILTER_CHECK, onCheck)
+            QuietButton(Texts.Common.NOT_NOW, onContinue)
         }
-        if (filterOn) BigButton(continueText, onContinue) else QuietButton(Texts.Common.NOT_NOW, onContinue)
     }
 }
 

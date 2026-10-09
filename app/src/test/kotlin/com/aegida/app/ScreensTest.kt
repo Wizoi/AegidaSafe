@@ -5,6 +5,7 @@ import android.content.ComponentName
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertIsDisplayed
@@ -29,6 +30,7 @@ import com.aegida.app.ui.setup.AlertsStep
 import com.aegida.app.ui.setup.ChangeGuardianScreen
 import com.aegida.app.ui.setup.FilterStep
 import com.aegida.app.ui.setup.InviteStep
+import com.aegida.app.ui.setup.LocalSetupBack
 import com.aegida.app.ui.setup.PictureStep
 import com.aegida.app.ui.setup.WelcomeScreen
 import com.aegida.app.ui.theme.AegidaTheme
@@ -176,12 +178,13 @@ class ScreensTest(private val dark: Boolean, private val fontScale: Float) {
             SettingsScreen(
                 Setup(null, emptySet(), pictureId = picture),
                 Guardians(alertsOn = false, ownerName = "Ruth", firstTopic = null, firstGuardianName = "Kevin"),
-                filterOn = false, onChangePicture = {}, onChangeGuardian = {}, onAlerts = { alerts = it }, onFilterHelp = {},
+                filterOn = false, onChangePicture = {}, onChangeGuardian = {}, onResendInvite = {}, onAlerts = { alerts = it }, onFilterHelp = {},
             )
         }
         reachable("Ruth")
         reachable("Kevin")
         reachable(Texts.Settings.CHANGE_GUARDIAN)
+        reachable(Texts.Settings.RESEND_INVITE)
         reachable(Texts.Settings.CREDITS) // CC BY 4.0 asks for credit
         compose.onNode(androidx.compose.ui.test.hasClickAction() and androidx.compose.ui.test.isToggleable()).performScrollTo().performClick()
         assertEquals(true, alerts)
@@ -280,6 +283,25 @@ class ScreensTest(private val dark: Boolean, private val fontScale: Float) {
         reachable(Texts.Common.NOT_NOW)
     }
 
+    @Test fun accessStepIsTwoNumberedPartsAndTheSecondWaitsForTheFirst() { // findings #74: two blue buttons, which first?
+        var banners = 0
+        var access = 0
+        show { AccessStep(picture, 5, 6, listenerOn = false, bannersOn = false, onOpenAccess = { access++ }, onAllowBanners = { banners++ }, onContinue = {}) }
+        reachable(Texts.Setup.ACCESS_PART_1)
+        reachable(Texts.Setup.ACCESS_PART_2)
+        reachable(Texts.Setup.ACCESS_FIRST)
+        compose.onNodeWithText(Texts.Setup.ACCESS_ALLOW_BANNERS).performScrollTo().assertIsNotEnabled()
+        compose.onNodeWithText(Texts.Setup.ACCESS_OPEN).performScrollTo().assertIsEnabled().performClick()
+        assertEquals(1, access)
+    }
+
+    @Test fun eachFinishedPartShowsAGreenTickRowSoSheKnowsItWorked() {
+        show { AccessStep(picture, 5, 6, listenerOn = true, bannersOn = true, onOpenAccess = {}, onAllowBanners = {}, onContinue = {}) }
+        compose.onNode(androidx.compose.ui.test.hasContentDescription(Texts.Setup.ACCESS_DONE)).performScrollTo().assertIsDisplayed()
+        compose.onNode(androidx.compose.ui.test.hasContentDescription(Texts.Setup.BANNERS_DONE)).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText(Texts.Common.CONTINUE).performScrollTo().assertIsEnabled()
+    }
+
     @Test fun filterStepReadsAsNotOnYetAndThenOnOnlyWhenAegidaHasReadItBack() {
         show { FilterStep(picture, 6, 6, filterOn = false, onOpenSettings = {}, onCheck = {}, onContinue = {}) }
         reachable(Texts.Setup.FILTER_NOT_YET)
@@ -292,6 +314,32 @@ class ScreensTest(private val dark: Boolean, private val fontScale: Float) {
         show { FilterStep(picture, 6, 6, filterOn = false, onOpenSettings = { opened++ }, onCheck = {}, onContinue = {}) }
         compose.onNodeWithText(Texts.Setup.FILTER_COPY_AND_OPEN).performScrollTo().performClick()
         assertEquals(1, opened)
+    }
+
+    @Test fun whenWebsiteProtectionIsAlreadyOnTheStepIsJustAGreenTickAndContinue() { // findings #74: a wall of text for something already done
+        var continued = 0
+        show { FilterStep(picture, 6, 6, filterOn = true, onOpenSettings = {}, onCheck = {}, onContinue = { continued++ }) }
+        compose.onNode(androidx.compose.ui.test.hasContentDescription(Texts.Setup.FILTER_ON)).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText(Texts.Setup.FILTER_BODY).assertDoesNotExistOrFail()
+        compose.onNodeWithText(Texts.Setup.FILTER_COPY_AND_OPEN).assertDoesNotExistOrFail()
+        compose.onNodeWithText(Texts.Common.CONTINUE).performScrollTo().performClick()
+        assertEquals(1, continued)
+    }
+
+    @Test fun everyFirstRunStepAfterTheFirstHasABackButtonThatGoesBack() {
+        var backs = 0
+        show {
+            CompositionLocalProvider(LocalSetupBack provides { backs++ }) {
+                InviteStep(picture, 3, 6, "Sam", noEmailApp = false, onWrite = {}, onSent = {})
+            }
+        }
+        compose.onNodeWithText(Texts.Common.BACK).performScrollTo().performClick()
+        assertEquals(1, backs)
+    }
+
+    @Test fun aStepWithNowhereToGoBackToHasNoBackButton() {
+        show { InviteStep(picture, 3, 6, "Sam", noEmailApp = false, onWrite = {}, onSent = {}) }
+        compose.onNodeWithText(Texts.Common.BACK).assertDoesNotExistOrFail()
     }
 
     @Test fun filterStepOnShowsItAndContinues() {

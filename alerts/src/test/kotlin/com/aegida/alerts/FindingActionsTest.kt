@@ -124,7 +124,7 @@ class FindingActionsTest {
         assertEquals(0, http.bodies.size)
     }
 
-    @Test fun aChangedDefaultAppIsToldToTheGuardianAndHerAnswerIsFollowedUp() = runTest { // findings #70
+    @Test fun aChangedDefaultAppIsToldToTheGuardianAndHerAnswerIsFollowedUp() = runTest { // findings #72
         baselines.value = Baseline.of(phone)
         phone = phone.copy(browser = "org.other.browser")
         val f = Finding(FindingKey(DetectorId.Drift, Problem.BrowserChanged, "org.other.browser"), emptyMap(), now, now)

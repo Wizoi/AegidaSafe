@@ -114,7 +114,7 @@ class InviteAndFixTest {
         assertEquals(listOf("com.mail.app"), InviteEmail.emailApps(androidx.test.core.app.ApplicationProvider.getApplicationContext()))
     }
 
-    @Test fun theWebsiteFilterAddressIsPutOnTheClipboardSoSheCanPasteItInsteadOfTypingIt() { // findings #67
+    @Test fun theWebsiteFilterAddressIsPutOnTheClipboardSoSheCanPasteItInsteadOfTypingIt() { // findings #69
         val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
         FixActions.copyToClipboard(context, "security.cloudflare-dns.com")
         val clip = context.getSystemService(android.content.ClipboardManager::class.java).primaryClip!!

@@ -1,5 +1,5 @@
 """
-Live end-to-end run on the emulator against the real ntfy.sh (findings #69).
+Live end-to-end run on the emulator against the real ntfy.sh (findings #71).
 
 The emulator is the owner's phone; this script is the guardian: it reads the throwaway topics from the computer, the
 same server and the same messages a guardian's ntfy app would get. Real messages are sent to two random topics that
@@ -169,11 +169,23 @@ def tap_text(text, timeout=15):
     return False
 
 
+def tap_text_once(text):
+    n = find_text(text)
+    if n is None:
+        return False
+    x, y = center(n)
+    sh("input tap %d %d" % (x, y))
+    return True
+
+
 def post(tag, text, title="Bank"):
     sh("cmd notification post -S bigtext -t '%s' '%s' '%s'" % (title, tag, text))
 
 
-def seed(topic, owner, guardian, alerts_on=True):
+def seed(topic, owner, guardian, alerts_on=True, extra=None):
+    # Stop the app first, then switch the listener off, so the app never sees itself without access and raises no
+    # warning to whichever guardian was configured before (the back-off counts per kind of problem, not per guardian).
+    sh("am force-stop " + PKG)
     sh("cmd notification disallow_listener %s/%s.AegidaListenerService" % (PKG, PKG))
     sh("am force-stop " + PKG)
     time.sleep(2)
@@ -184,7 +196,7 @@ def seed(topic, owner, guardian, alerts_on=True):
             fh.write(adb("exec-out", "run-as", PKG, "cat", "databases/" + f, binary=True))
     c = sqlite3.connect(os.path.join(d, "aegida.db"))
     for k, v in [("setup.stepsDone", "8"), ("guardians.alertsOn", "true" if alerts_on else "false"), ("guardians.ownerName", owner),
-                 ("guardians.firstTopic", topic), ("guardians.firstName", guardian), ("guardians.firstEmail", "guardian@example.org")]:
+                 ("guardians.firstTopic", topic), ("guardians.firstName", guardian), ("guardians.firstEmail", "guardian@example.org")] + list((extra or {}).items()):
         c.execute("insert or replace into setting(name, value) values (?, ?)", (k, v))
     c.commit(); c.execute("pragma wal_checkpoint(truncate)"); c.execute("pragma journal_mode=delete"); c.close()
     adb("push", os.path.join(d, "aegida.db"), "/data/local/tmp/seed.db")
@@ -334,10 +346,111 @@ try:
                     check(len(delivered(new_topic)) == k, "with alerts off nothing new reaches the guardian")
                 else:
                     no("could not find the alerts switch")
+
+    # ================= phase 2: a second guardian topic, alerts on again =================
+    print("-- phase 2: fresh guardian topic %s, setup finished, website filter chosen" % TOPIC2, flush=True)
+    seed(TOPIC2, "Jos\u00e9", "Sam", extra={"setup.websiteFilterHost": "security.cloudflare-dns.com"})
+    sh("settings put global private_dns_mode hostname")
+    sh("settings put global private_dns_specifier security.cloudflare-dns.com")
+    restart_app()
+
+    def told(topic, needle):
+        return [t for t in texts(delivered(topic)) if needle in t]
+
+    def has(finding):
+        return finding in open_findings()
+
+    print("-- 9. fake virus pop-ups from a website in Chrome: hidden, warned, guardian told", flush=True)
+    sh("am set-debug-app --persistent com.android.chrome")
+    sh("echo '_ --disable-fre --no-default-browser-check --no-first-run' > /data/local/tmp/chrome-command-line")
+    server = subprocess.Popen([sys.executable, "-m", "http.server", "8791"], cwd=os.path.join(ROOT, "fixtures", "web", "popup-spam"), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    try:
+        adb("reverse", "tcp:8791", "tcp:8791")
+        sh("am force-stop com.android.chrome")
+        sh("am start -a android.intent.action.VIEW -d http://localhost:8791/index.html com.android.chrome")
+        time.sleep(8)
+        # By what is on screen, not by position: Chrome's first-run promo ("No thanks"), the page's Allow button and
+        # Chrome's permission prompt (also "Allow") come one after the other (findings #73).
+        for _ in range(6):
+            for text in ("No thanks", "Allow"):
+                if tap_text_once(text):
+                    break
+            time.sleep(3)
+            if any("PopupSpam" in b for b in banners()):
+                break
+        wait_for("her banner for the website warning is up", lambda: any("PopupSpam:SiteNotifications:http://localhost:8791" in b for b in banners()), 20)
+        check("p#http://localhost:8791" not in sh("dumpsys notification --noredact | grep 'pkg=com.android.chrome'"), "Chrome's own fake warning was hidden")
+        wait_for("the guardian is told", lambda: told(TOPIC2, "fake warnings"), 40)
+    finally:
+        server.terminate()
+        adb("reverse", "--remove", "tcp:8791")
+
+    print("-- 10. links in messages: look-alike and listed are flagged; shared hosts and plain links are not", flush=True)
+    post("neg1", "Church sale https://sites.google.com/view/church-sale and bit.ly/3abc", title="Friend")
+    post("neg2", "Lunch menu https://www.example.org/menu", title="Mum")
+    time.sleep(6)
+    check(not any("Link:" in b and ("sites.google.com" in b or "bit.ly" in b or "example.org" in b) for b in banners()), "links on shared hosts and ordinary links are not flagged")
+    post("look1", "Your parcel is held. Pay the fee at paypa1-help.example/claim", title="Delivery")
+    wait_for("a look-alike link gets a banner", lambda: any("Link:LookalikeLink:paypa1-help.example" in b for b in banners()), 20)
+    wait_for("the guardian is told about the look-alike", lambda: told(TOPIC2, "pretending to be a well-known company"), 40)
+    check("look1" in sh("dumpsys notification --noredact | grep 'pkg=com.android.shell'"), "the look-alike message itself was left in place")
+
+    print("-- 11. website protection turned off, then back on", flush=True)
+    check(not has("WebsiteFilterOff:security.cloudflare-dns.com"), "with the filter on there is no warning")
+    sh("settings put global private_dns_mode off")
+    restart_app()
+    wait_for("website protection off is noticed", lambda: has("WebsiteFilterOff:security.cloudflare-dns.com"), 40)
+    wait_for("the guardian is told", lambda: told(TOPIC2, "Website protection was turned off"), 40)
+    sh("settings put global private_dns_mode hostname")
+    restart_app()
+    wait_for("it clears when the filter is back on", lambda: not has("WebsiteFilterOff:security.cloudflare-dns.com"), 40)
+
+    print("-- 12. notification access taken away, then given back", flush=True)
+    sh("cmd notification disallow_listener %s/%s.AegidaListenerService" % (PKG, PKG))
+    restart_app()
+    wait_for("losing notification access is noticed", lambda: has("ListenerOff:aegida"), 40)
+    wait_for("the guardian is told", lambda: told(TOPIC2, "can no longer check notifications"), 40)
+    sh("cmd notification allow_listener %s/%s.AegidaListenerService" % (PKG, PKG))
+    restart_app()
+    wait_for("it clears when access is back", lambda: not has("ListenerOff:aegida"), 40)
+
+    print("-- 13. warnings blocked (banner permission taken away), then given back", flush=True)
+    sh("pm revoke %s android.permission.POST_NOTIFICATIONS" % PKG)
+    time.sleep(2)
+    restart_app()
+    wait_for("not being able to show warnings is noticed", lambda: has("NotificationsBlocked:aegida"), 40)
+    wait_for("the guardian is told", lambda: told(TOPIC2, "can't show warnings"), 40)
+    sh("pm grant %s android.permission.POST_NOTIFICATIONS" % PKG)
+    restart_app()
+    wait_for("it clears when banners are allowed again", lambda: not has("NotificationsBlocked:aegida"), 40)
+
+    print("-- 14. another web browser becomes the default, then Chrome again", flush=True)
+    subprocess.run(["bash", os.path.join(ROOT, "scripts", "make-fixture-apk.sh"), "org.fixture.browser", "browser"], cwd=ROOT, capture_output=True)
+    adb("install", os.path.join(ROOT, "build", "fixture-apps", "org.fixture.browser.apk"))
+    sh("cmd role add-role-holder android.app.role.BROWSER org.fixture.browser")
+    restart_app()
+    wait_for("the changed browser is a question", lambda: has("BrowserChanged:org.fixture.browser"), 40)
+    wait_for("the guardian is told", lambda: told(TOPIC2, "The app that opens websites"), 40)
+    sh("cmd role add-role-holder android.app.role.BROWSER com.android.chrome")
+    sh("pm uninstall org.fixture.browser")
+    restart_app()
+    wait_for("it clears when the browser is changed back", lambda: not has("BrowserChanged:org.fixture.browser"), 40)
+
+    print("-- 15. a warning still not dealt with a day later: the guardian is reminded once", flush=True)
+    check(has("LookalikeLink:paypa1-help.example"), "the look-alike warning is still open (she did not tap Got it)")
+    run_daily()
+    wait_for("the guardian gets one 'still not dealt with' reminder", lambda: told(TOPIC2, "hasn't dealt with a warning"), 60)
+    n = len(told(TOPIC2, "hasn't dealt with a warning"))
+    run_daily()
+    time.sleep(10)
+    check(len(told(TOPIC2, "hasn't dealt with a warning")) == n, "and not a second one the next day")
 finally:
     print("-- cleanup", flush=True)
-    for p in ("org.fixture.sideloaded", "com.anydesk.anydeskandroid", "com.spyzee"):
+    for p in ("org.fixture.sideloaded", "com.anydesk.anydeskandroid", "com.spyzee", "org.fixture.browser"):
         sh("pm uninstall " + p)
+    sh("cmd role add-role-holder android.app.role.BROWSER com.android.chrome")
+    sh("settings delete global private_dns_mode")
+    sh("settings delete global private_dns_specifier")
     sh("cmd connectivity airplane-mode disable")
     sh("cmd alarm set-time %d" % int(time.time() * 1000))
     sh("settings put global auto_time 1")

@@ -74,14 +74,14 @@ spike)
   echo "$FAILS failed"; [ "$FAILS" = 0 ]
   ;;
 popup-page)
-  # Serve fixtures/web/popup-spam to the emulator as http://localhost:8765 (a secure origin, so the page
+  # Serve fixtures/web/popup-spam to the emulator as http://localhost:8791 (a secure origin, so the page
   # may ask for notification permission) and open it in Chrome. Tap Allow, then Allow on Chrome's prompt.
   adb shell am set-debug-app --persistent com.android.chrome
   adb shell 'echo "_ --disable-fre --no-default-browser-check --no-first-run" > /data/local/tmp/chrome-command-line'
-  (cd fixtures/web/popup-spam && python -m http.server 8765 >/dev/null 2>&1 &)
-  adb reverse tcp:8765 tcp:8765
-  adb shell am start -a android.intent.action.VIEW -d http://localhost:8765/index.html com.android.chrome
-  echo "serving on 8765; stop the python http.server and run 'adb reverse --remove tcp:8765' when done"
+  (cd fixtures/web/popup-spam && python -m http.server 8791 >/dev/null 2>&1 &)
+  adb reverse tcp:8791 tcp:8791
+  adb shell am start -a android.intent.action.VIEW -d http://localhost:8791/index.html com.android.chrome
+  echo "serving on 8791; stop the python http.server and run 'adb reverse --remove tcp:8791' when done"
   ;;
 scenarios)
   # Feature scenarios on the emulator (findings #32, #33). Starts from a cleared app so it is repeatable.
@@ -100,18 +100,19 @@ scenarios)
   echo "-- a website sends a fake virus warning (Chrome, host-served fixture page)"
   adb shell am set-debug-app --persistent com.android.chrome >/dev/null
   adb shell 'echo "_ --disable-fre --no-default-browser-check --no-first-run" > /data/local/tmp/chrome-command-line'
-  (cd fixtures/web/popup-spam && python -m http.server 8765 >/dev/null 2>&1 &)
-  adb reverse tcp:8765 tcp:8765 >/dev/null
+  (cd fixtures/web/popup-spam && python -m http.server 8791 >/dev/null 2>&1 &)
+  adb reverse tcp:8791 tcp:8791 >/dev/null
   sh_ am force-stop com.android.chrome >/dev/null
-  sh_ am start -a android.intent.action.VIEW -d http://localhost:8765/index.html com.android.chrome >/dev/null
+  sh_ am start -a android.intent.action.VIEW -d http://localhost:8791/index.html com.android.chrome >/dev/null
   sleep 8
-  for _ in 1 2 3; do  # the first tap after launch can be lost; Chrome may ask for permission first
-    adb shell input tap 216 644; sleep 3
-    sh_ uiautomator dump /sdcard/ui.xml >/dev/null; adb shell input tap 540 1395 >/dev/null 2>&1 && true
-    have "com.aegida.app 1000 PopupSpam:SiteNotifications:http://localhost:8765" && break
+  # Tap by what is on screen, not by position: Chrome's first-run promo ("No thanks"), the page's own Allow button and
+  # Chrome's permission prompt (also "Allow") come one after the other, and their places change with the screen (findings #73).
+  for _ in 1 2 3 4 5 6; do
+    python scripts/ui_tap.py "$SERIAL" "No thanks" "Allow" >/dev/null; sleep 3
+    have "com.aegida.app 1000 PopupSpam:SiteNotifications:http://localhost:8791" && break
   done
-  wait_for "Aegida's banner for the website warning is shown" 'have "com.aegida.app 1000 PopupSpam:SiteNotifications:http://localhost:8765"' 10
-  have "com.android.chrome -1 p#http://localhost:8765/#1aegida-fixture" && no "Chrome's fake virus warning was hidden" || ok "Chrome's fake virus warning was hidden"
+  wait_for "Aegida's banner for the website warning is shown" 'have "com.aegida.app 1000 PopupSpam:SiteNotifications:http://localhost:8791"' 10
+  have "com.android.chrome -1 p#http://localhost:8791/#1aegida-fixture" && no "Chrome's fake virus warning was hidden" || ok "Chrome's fake virus warning was hidden"
 
   echo "-- messages"
   post Delivery lookalike1 "Your parcel is held. Pay the fee at paypa1-help.example/claim"
@@ -133,8 +134,8 @@ scenarios)
   wait_for "a link from the real scam list gets a warning" "have \"com.aegida.app 1000 Link:ScamLink:$LISTED\"" 10
   have "com.android.shell 2020 listed1" && ok "the scam message itself was left in place" || no "the scam message itself was left in place"
 
-  adb reverse --remove tcp:8765 >/dev/null 2>&1
-  powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \"Name='python.exe'\" | Where-Object { \$_.CommandLine -match 'http.server 8765' } | ForEach-Object { Stop-Process -Id \$_.ProcessId }" >/dev/null 2>&1
+  adb reverse --remove tcp:8791 >/dev/null 2>&1
+  powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \"Name='python.exe'\" | Where-Object { \$_.CommandLine -match 'http.server 8791' } | ForEach-Object { Stop-Process -Id \$_.ProcessId }" >/dev/null 2>&1
   echo "$FAILS failed"; [ "$FAILS" = 0 ]
   ;;
 boot|snapshot)

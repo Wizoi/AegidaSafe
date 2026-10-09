@@ -20,6 +20,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -46,6 +47,7 @@ import com.aegida.app.MainState
 import com.aegida.app.MainViewModel
 import com.aegida.app.ui.setup.AboutStep
 import com.aegida.app.ui.setup.ChangeGuardianScreen
+import com.aegida.app.ui.setup.LocalSetupBack
 import com.aegida.app.ui.setup.WelcomeScreen
 import com.aegida.app.ui.setup.AccessStep
 import com.aegida.app.ui.setup.AlertsStep
@@ -123,6 +125,8 @@ private fun SetupFlow(state: MainState, vm: MainViewModel) {
         vm.refresh(runCheck = false)
     }
 
+    val back: (() -> Unit)? = step.previous(state.blockerRelevant)?.let { before -> { step = before } }
+    CompositionLocalProvider(LocalSetupBack provides back) {
     when (step) {
         SetupStep.About -> AboutStep(pictureId, number, total, state.guardians) { name, guardian, email, phone ->
             vm.saveAbout(name, guardian, email, phone)
@@ -167,6 +171,7 @@ private fun SetupFlow(state: MainState, vm: MainViewModel) {
             onNotNow = { vm.answerBlocker(AutoBlockerAnswer.NotNow); advance() },
         )
         SetupStep.Finish -> FinishStep(pictureId) { advance() }
+    }
     }
 }
 
@@ -241,6 +246,12 @@ private fun MainContent(state: MainState, vm: MainViewModel) {
                         state.setup, state.guardians, state.filterOn,
                         onChangePicture = { page = Page.ChangePicture },
                         onChangeGuardian = { page = Page.ChangeGuardian },
+                        onResendInvite = {
+                            scope.launch {
+                                // The same email as in setup, to the same guardian, for when the first one never arrived.
+                                context.startSafely(InviteEmail.intent(vm.prepareInvite(), InviteEmail.emailApps(context)))
+                            }
+                        },
                         onAlerts = vm::setAlerts,
                         onFilterHelp = { page = Page.FilterGuide },
                     )

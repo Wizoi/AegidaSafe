@@ -131,7 +131,7 @@ class AndroidSnapshotterTest {
     }
 
     // The default text app and the default assistant are read the way the default browser is: by who a
-    // text link / an assist request would open, never launched. Android 17 no longer shows the setting (findings #68).
+    // text link / an assist request would open, never launched. Android 17 no longer shows the setting (findings #70).
     private fun resolves(intent: Intent, packageName: String) {
         val info = ResolveInfo().apply { activityInfo = ActivityInfo().apply { this.packageName = packageName; name = "Main" } }
         shadowOf(context.packageManager).addResolveInfoForIntent(intent, info)
