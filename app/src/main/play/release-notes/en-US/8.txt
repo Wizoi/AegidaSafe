@@ -1,0 +1,4 @@
+What's new:
+• The invitation email now tells your guardian to type the name into the ntfy app, so alerts show up there
+• It asks them to save the email, so they can set up another phone or computer later
+• The How does this work? page explains setting up more devices
