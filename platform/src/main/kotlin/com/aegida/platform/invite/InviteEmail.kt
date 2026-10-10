@@ -30,7 +30,7 @@ object InviteEmail {
             .setType("text/plain")
             .putExtra(Intent.EXTRA_EMAIL, arrayOf(email))
             .putExtra(Intent.EXTRA_SUBJECT, Texts.Invite.SUBJECT.format(owner))
-            .putExtra(Intent.EXTRA_TEXT, Texts.Invite.BODY.format(guardian, topic, topic, owner))
+            .putExtra(Intent.EXTRA_TEXT, Texts.Invite.BODY.format(guardian, topic, topic, topic, owner))
         val intent = when (mailApps.size) {
             0 -> send()
             1 -> send().setPackage(mailApps.single())

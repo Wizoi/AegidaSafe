@@ -243,10 +243,11 @@ object Texts {
             "1. Get the free ntfy app.\n" +
             "   Android: https://play.google.com/store/apps/details?id=io.heckel.ntfy\n" +
             "   iPhone: https://apps.apple.com/app/ntfy/id1625396347\n\n" +
-            "2. Open this link on your phone to get my messages:\n" +
-            "   https://ntfy.sh/%s\n" +
-            "   (Or open ntfy, tap +, and type this name: %s)\n\n" +
-            "Please keep this link private. Anyone who has it can see my messages.\n\n" +
+            "2. Open ntfy, tap +, and type this name:\n" +
+            "   %s\n" +
+            "   (On Android you can instead tap this link once ntfy is installed: ntfy://ntfy.sh/%s)\n\n" +
+            "3. Optional, to read them on a computer too: open https://ntfy.sh/%s in a web browser. It only shows messages while that page is open, so it does not replace step 2.\n\n" +
+            "Please keep this name private. Anyone who has it can see my messages.\n\n" +
             "This was written by my Aegida app.\n%s"
     }
 }

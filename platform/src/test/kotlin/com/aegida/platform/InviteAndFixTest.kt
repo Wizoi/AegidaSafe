@@ -45,8 +45,12 @@ class InviteAndFixTest {
         assertTrue(body.startsWith("Hi Kevin,"))
         assertTrue("android install link", body.contains("https://play.google.com/store/apps/details?id=io.heckel.ntfy"))
         assertTrue("iphone install link", body.contains("https://apps.apple.com/app/ntfy/id1625396347"))
-        assertTrue("her private link", body.contains("https://ntfy.sh/${topic.value}"))
-        assertTrue("the topic name to type by hand", body.contains("type this name: ${topic.value}"))
+        // Kevin, Oct 10: an https://ntfy.sh/<topic> link opens ntfy's web page, not the Android app, so the guardian never subscribed in the app.
+        assertTrue("the topic name to type in the app", body.contains("type this name:\n   ${topic.value}"))
+        assertTrue("the link that opens the Android app already subscribed", body.contains("ntfy://ntfy.sh/${topic.value}"))
+        // The web page is offered only as an extra for a computer, after the app steps, and says what it cannot do.
+        assertTrue("the web page is offered for a computer", body.contains("3. Optional, to read them on a computer too: open https://ntfy.sh/${topic.value} in a web browser"))
+        assertTrue("and comes after the app steps", body.indexOf("https://ntfy.sh/") > body.indexOf("ntfy://ntfy.sh/"))
     }
 
     @Test fun theInviteCannotBeBuiltWithoutAnEmailOrATopic() {
