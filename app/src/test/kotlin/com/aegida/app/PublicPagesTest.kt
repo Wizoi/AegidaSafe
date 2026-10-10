@@ -144,6 +144,15 @@ class PublicPagesTest {
         assertTrue("the privacy page must say what is kept", privacy.contains("first words of what it said"))
     }
 
+    /** Kevin, Oct 10 (findings #88): how a guardian sets up more devices, with the account as an optional step. */
+    @Test fun thePageSaysHowAGuardianSetsUpMoreDevicesAndThatAnAccountIsOptional() {
+        val simple = html.substringAfter("id=\"simple-view\"").substringBefore("id=\"detailed-view\"")
+        val detailed = html.substringAfter("id=\"detailed-view\"")
+        assertTrue("the Simple view says what the guardian does", simple.contains("What does my guardian need to do?") && simple.contains("no account is needed"))
+        assertTrue("the Detailed view has the guardian-devices section", detailed.contains("Setting up the guardian's devices") && detailed.contains("Optional: an ntfy account"))
+        assertTrue("it says Aegida never needs one", detailed.contains("Aegida does not need an account and never asks for one"))
+    }
+
     @Test fun itSaysWhichVersionOfTheAppItDescribesAndLinksToThePrivacyPage() {
         val version = Regex("""versionName\s*=\s*"([^"]+)"""").find(File("build.gradle.kts").readText())!!.groupValues[1]
         assertTrue("the page must say it describes Aegida $version (update it with each release)", plain.contains("Aegida $version"))

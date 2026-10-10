@@ -247,6 +247,7 @@ object Texts {
             "   %s\n" +
             "   (On Android you can instead tap this link once ntfy is installed: ntfy://ntfy.sh/%s)\n\n" +
             "3. Optional, to read them on a computer too: open https://ntfy.sh/%s in a web browser. It only shows messages while that page is open, so it does not replace step 2.\n\n" +
+            "Please save this email. The name above is all you need to get my messages on another phone or computer later.\n\n" +
             "Please keep this name private. Anyone who has it can see my messages.\n\n" +
             "This was written by my Aegida app.\n%s"
     }
