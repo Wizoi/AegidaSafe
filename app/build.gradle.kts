@@ -17,8 +17,8 @@ android {
         applicationId = "com.aegida.app"
         minSdk = 29 // RoleManager (default-app drift) needs Android 10
         targetSdk = 36 // Play: within one year of the latest Android
-        versionCode = 6
-        versionName = "0.3.3"
+        versionCode = 7
+        versionName = "0.3.4"
         // Device-test builds report -local so they cannot be mistaken for a Play build.
         if (project.hasProperty("localBuild")) versionNameSuffix = "-local"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

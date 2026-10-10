@@ -1,0 +1,6 @@
+What's new:
+• A warning about a scam message now says which app it came from, who it was from, what it said and when
+• History shows the same details for each alert, and the website name for website pop-ups
+• Your guardian's note names the app and shows the website with most of its letters hidden
+• A new website's notification is set aside, not deleted, and comes back if you say it was you
+• The big button says "Show me" when there is nothing to fix

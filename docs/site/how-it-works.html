@@ -252,7 +252,7 @@
     <figcaption>If you turn it on, Aegida sends one short note to the person you picked, so they can call you. It looks like this: "A message with a scam link arrived on Ruth's phone. Aegida warned Ruth."</figcaption>
   </figure>
   <ul>
-    <li>The note never has the words of your messages, links, or the names of your apps.</li>
+    <li>The note never has the words of your messages or a whole web address. It can name the app a message came from, and show a website with most of its letters hidden, like pa*****.example.</li>
     <li>The first note they get says: "Aegida is set up on Ruth's phone. You will get a message here if it needs help."</li>
     <li>They need only the free ntfy app. They cannot see your phone, and they cannot change anything on it.</li>
     <li>You can pick a different person, or turn this off, whenever you like.</li>
@@ -279,7 +279,7 @@
   <details><summary>Does it cost anything?</summary><p>No. Aegida is free, with no ads and no account.</p></details>
   <details><summary>Who can see what is on my phone?</summary><p>Nobody at Aegida. What Aegida looks at stays on your phone. The only thing Aegida sends is the short note to your guardian, and only if you turned that on. If you also chose the website-blocking step in setup, your phone asks Cloudflare, a large internet company, which websites to refuse. That is a phone setting, and you can turn it off.</p></details>
   <details><summary>What is the website-blocking step in setup?</summary><p>It is optional. It sets one switch on your phone, called Private DNS, so that your phone refuses to open websites that are known to be scams. The blocking is done by Cloudflare, not by Aegida. Aegida only checks that the switch is still set and tells you, and your guardian if you chose that, if it gets turned off. You can skip it and Aegida still checks your messages and apps.</p></details>
-  <details><summary>What does the person I choose get, exactly?</summary><p>One short note when something serious happens, such as the example above. They also get a note if Aegida has not been able to check in for two days, because the phone may be off. They do not get your messages, links or app names.</p></details>
+  <details><summary>What does the person I choose get, exactly?</summary><p>One short note when something serious happens, such as the example above. They also get a note if Aegida has not been able to check in for two days, because the phone may be off. They do not get your messages or any whole web address. A note about a scam message can say which app it came from and show the website with most of its letters hidden, like pa*****.example, so you can tell sites apart.</p></details>
   <details><summary>Can I turn it off, or change the person?</summary><p>Yes, both, in My settings. If you pick someone else, the first person is told once, and their old link stops working.</p></details>
   <details><summary>What if it says something is wrong and I am not sure?</summary><p>Do not tap the link. Slow down and call someone you trust. The "Call a guardian" button dials the number you gave.</p></details>
   <details><summary>Will it work on my phone, and do I need the internet?</summary><p>Aegida works on Android phones with Android 10 or newer. It is not for iPhones. It checks on your phone, and uses the internet only to update its list of known scams and to send your guardian's note.</p></details>
@@ -292,7 +292,7 @@
 <div id="detailed-view">
 
   <h1>How Aegida works, in detail</h1>
-  <p class="lead">For readers who want to check the mechanism. This page describes Aegida 0.3.3 and was checked against the app's code. Where something has not been tested on a real device, it says so.</p>
+  <p class="lead">For readers who want to check the mechanism. This page describes Aegida 0.3.4 and was checked against the app's code. Where something has not been tested on a real device, it says so.</p>
 
   <h2>In two lines</h2>
   <p>Aegida reads the title and text of notifications through Android's notification-access service, checks them on the phone against fixed rules and a signed list of known bad hosts, and tells the owner in plain words. If the owner turned it on, it sends one fixed sentence to one chosen person through ntfy.sh.</p>
@@ -330,7 +330,7 @@
   <ol>
     <li><b>Read.</b> Android's notification-access service gives Aegida the title and text of every notification another app posts. Each part is cut at 4,096 characters, so a link beyond that is not seen. Aegida's own notifications are skipped.</li>
     <li><b>Check.</b> Nine detectors run on every check, one after another, so two triggers cannot overlap. Checks run when a notification arrives, when the listener reconnects, whenever the app is opened, and from a daily background job (every 24 hours, with up to 6 hours of flexibility).</li>
-    <li><b>Record.</b> A finding keeps the host, package, channel, app label and notification key. The text of the notification is not stored or logged.</li>
+    <li><b>Record.</b> A finding keeps the host, package, channel, app label and notification key. For a scam message or a website pop-up it also keeps who it was from, the first 200 characters of what it said and when, so the warning can say what it was. That is cleared when the owner taps "Got it". History keeps a short line about each alert for 90 days (the app, the sender, a few words with any link taken out, or the website name). None of it is ever sent.</li>
     <li><b>Tell.</b> The owner sees a banner and the Home screen. Only website pop-ups are hidden; a message with a scam link is left in place, because it may come from family.</li>
     <li><b>Optionally tell one person.</b> See "What leaves the phone" below.</li>
   </ol>
@@ -341,7 +341,7 @@
     <tbody>
       <tr><td data-label="Check">Scam link</td><td data-label="What triggers it">A link in a notification whose host (or any parent domain) is in the host list, or whose exact host and path is in the URL list.</td><td data-label="What the owner sees">"A message has a link that looks like a scam. Please don't tap it."</td></tr>
       <tr><td data-label="Check">Look-alike link</td><td data-label="What triggers it">A word in the host that equals one of 21 brand words once look-alike letters and digits are swapped (for example Cyrillic or Greek letters, 0 for o, rn for m), when the host is not that brand's own domain; or one label that mixes alphabets.</td><td data-label="What the owner sees">"A message has a link pretending to be a company you know. Please don't tap it."</td></tr>
-      <tr><td data-label="Check">Website pop-ups</td><td data-label="What triggers it">A notification from a website the owner has not already said is fine. Words like &quot;virus&quot; or &quot;infected&quot; are hidden at once; any other website is asked about the first time it sends one.</td><td data-label="What the owner sees">The notification is hidden and Aegida asks &quot;Was that you?&quot; Yes remembers the site; No opens the site's own switch.</td></tr>
+      <tr><td data-label="Check">Website pop-ups</td><td data-label="What triggers it">A notification from a website the owner has not already said is fine. Words like &quot;virus&quot; or &quot;infected&quot; are hidden at once; any other website is asked about the first time it sends one.</td><td data-label="What the owner sees">The notification is set aside for an hour (not deleted) and Aegida asks &quot;Was that you?&quot; Yes remembers the site and the notification comes back; No opens the site's own switch.</td></tr>
       <tr><td data-label="Check">Default apps changed</td><td data-label="What triggers it">The default browser, text, phone or assistant app differs from what the phone had when setup ended.</td><td data-label="What the owner sees">"Was that you?" with "Yes, that was me" and "No, show me".</td></tr>
       <tr><td data-label="Check">Special access added</td><td data-label="What triggers it">A new app with notification access, screen control (accessibility) or device-administrator rights. Urgent.</td><td data-label="What the owner sees">"Was that you?"</td></tr>
       <tr><td data-label="Check">New app from outside Google Play</td><td data-label="What triggers it">After setup, a non-system app whose installer is not Google Play. Apps already on the phone at setup are not flagged.</td><td data-label="What the owner sees">"Was that you?"</td></tr>
@@ -386,7 +386,7 @@
   <table>
     <thead><tr><th scope="col">What</th><th scope="col">To whom</th><th scope="col">When</th><th scope="col">Contents</th></tr></thead>
     <tbody>
-      <tr><td data-label="What">Note to the guardian</td><td data-label="To whom"><code>ntfy.sh</code></td><td data-label="When">Only if the owner turned it on, and only when a warning needs it</td><td data-label="Contents">One HTTPS POST of a fixed sentence, titled with the owner's first name; "urgent" priority for urgent kinds. Never links, message text or app names. Timeouts of 15 seconds, redirects off.</td></tr>
+      <tr><td data-label="What">Note to the guardian</td><td data-label="To whom"><code>ntfy.sh</code></td><td data-label="When">Only if the owner turned it on, and only when a warning needs it</td><td data-label="Contents">One HTTPS POST of a fixed sentence, titled with the owner's first name; "urgent" priority for urgent kinds. For scam messages and website pop-ups the sentence can also name the app and show the web address as its first two letters, stars and its ending (<code>pa*****.example</code>). Never links, message text or sender names. Timeouts of 15 seconds, redirects off.</td></tr>
       <tr><td data-label="What">Invitation email</td><td data-label="To whom">The owner's own email app</td><td data-label="When">Once in setup, or when the owner taps "Send the invitation again"</td><td data-label="Contents">The ntfy install links and the private topic link. The owner presses Send; Aegida cannot tell whether it was sent.</td></tr>
     </tbody>
   </table>
@@ -408,9 +408,13 @@
     <ul>
       <li>Aegida is set up on Ruth's phone. You will get a message here if it needs help.</li>
       <li>A message with a scam link arrived on Ruth's phone. Aegida warned Ruth.</li>
+      <li>A message with a scam link arrived on Ruth's phone, from the “Messages” app, with a link to pa*****.example. Aegida warned Ruth.</li>
       <li>A message pretending to be a well-known company arrived on Ruth's phone. Aegida warned Ruth.</li>
+      <li>A message pretending to be a well-known company arrived on Ruth's phone, from the “Messages” app, with a link to pa*****.example. Aegida warned Ruth.</li>
       <li>A website was sending fake warnings to Ruth's phone. Aegida hid them.</li>
+      <li>A website (pa*****.example) was sending fake warnings to Ruth's phone. Aegida hid them.</li>
       <li>A website that was not there before started sending notifications on Ruth's phone. Aegida asked Ruth: “Was that you?”</li>
+      <li>A website (pa*****.example) that was not there before started sending notifications on Ruth's phone. Aegida asked Ruth: “Was that you?”</li>
       <li>Website protection was turned off on Ruth's phone.</li>
       <li>Aegida can no longer check notifications on Ruth's phone.</li>
       <li>Aegida can't show warnings on Ruth's phone.</li>
@@ -484,7 +488,7 @@
 </main>
 
 <footer>
-  <p>This page describes Aegida 0.3.3. Updated October 9, 2026.</p>
+  <p>This page describes Aegida 0.3.4. Updated October 9, 2026.</p>
   <p>Questions: <a href="mailto:kidzi+aegida@idzifamily.com">kidzi+aegida@idzifamily.com</a> &middot; <a href="privacy.html">Privacy policy</a></p>
 </footer>
 

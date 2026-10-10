@@ -35,7 +35,7 @@ The consent flow:
 - During setup the owner is asked: "Let Aegida tell your guardian about serious problems? Yes / No". Nothing is sent unless she taps Yes.
 - She can turn it off at any time in My settings.
 - While the feature is on, Aegida shows a persistent notification and the app keeps its normal, visible icon.
-- The message contains only fixed sentences with her first name. It never includes message text, links, app names, contacts or location.
+- The message contains only fixed sentences with her first name. It never includes message text, whole web addresses, contacts or location. It may name the app a scam message came from and a masked web address (first two letters, stars, ending).
 
 Questions:
 1. Does this design comply with the Monitoring / Stalkerware policy, given that the exceptions name parental and enterprise use but this is
