@@ -128,6 +128,13 @@ def notify_again(site):
         time.sleep(2)
 
 
+def jump_minutes(minutes):
+    """Moves the emulator clock forward, which makes the phone bring back snoozed notifications."""
+    sh("settings put global auto_time 0")
+    sh("cmd alarm set-time %d" % int((time.time() + minutes * 60) * 1000))
+    time.sleep(8)
+
+
 def say_yes():
     sh("am force-stop " + PKG)
     ps.start_app(8)
@@ -172,12 +179,15 @@ if __name__ == "__main__":
         check(subscribe(SITE_A), "site A is subscribed")
         wait_for("Aegida's question about site A is shown", lambda: have(PKG, "NewWebsiteNotifications", "localhost:8791"), 30)
         check(not have("com.android.chrome", "localhost:8791"), "site A's own notification was hidden")
+        check("snooz" in sh("dumpsys notification").lower(), "it was put aside (snoozed), not deleted")
 
         print("-- 3. she says yes: site A is remembered and left alone", flush=True)
         say_yes()
         wait_for("site A is in the baseline", lambda: SITE_A in (baseline_sites() or set()), 30)
         rows = db("select state from finding where problem = 'NewWebsiteNotifications' and subject = '%s'" % SITE_A)
         check(bool(rows) and rows[0][0] != "Open", "the question is no longer open (%s)" % (rows[0][0] if rows else "missing"))
+        jump_minutes(61)
+        check(have("com.android.chrome", "localhost:8791"), "the snoozed notification came back and was left in place after Yes")
         notify_again(SITE_A)
         check(have("com.android.chrome", "localhost:8791"), "site A's next notification was left in place")
 
@@ -186,11 +196,15 @@ if __name__ == "__main__":
         wait_for("Aegida's question about site B is shown", lambda: have(PKG, "NewWebsiteNotifications", "localhost:8792"), 30)
         check(not have("com.android.chrome", "localhost:8792"), "site B's own notification was hidden")
         check(SITE_B not in (baseline_sites() or set()), "site B is not in the baseline")
+        jump_minutes(61)
+        check(not have("com.android.chrome", "localhost:8792"), "site B's notification came back and was put aside again, not shown")
+        check(len(db("select 1 from finding where problem = 'NewWebsiteNotifications' and subject = '%s'" % SITE_B)) == 1, "still one question about site B")
     finally:
         for server in servers:
             server.terminate()
         for port in (8791, 8792):
             adb("reverse", "--remove", "tcp:%d" % port)
+        sh("settings put global auto_time 1")
         sh("am force-stop com.android.chrome")
         sh("pm clear " + PKG)
     print("%d failed" % FAILS)

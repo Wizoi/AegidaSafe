@@ -33,7 +33,7 @@ interface HistoryLog {
     suspend fun prune(before: Instant): Int
 }
 
-data class HistoryEntry(val at: Instant, val problem: Problem, val outcome: Outcome)
+data class HistoryEntry(val at: Instant, val problem: Problem, val outcome: Outcome, val detail: String? = null)
 
 enum class Outcome(val forMom: String) {
     OwnerWarned("You were warned."),

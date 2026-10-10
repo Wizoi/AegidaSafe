@@ -27,6 +27,13 @@ object TimeText {
         is DayLabel.On -> Texts.Home.CHECKED_ON.format(date(day.date, locale))
     }
 
+    /** "It came in today at 11:00 AM." for the advice page. */
+    fun cameInLine(at: Instant, now: Instant, zone: ZoneId, locale: Locale): String = when (val day = DayLabel.of(at, now, zone)) {
+        DayLabel.Today -> Texts.Home.CAME_IN_TODAY.format(time(at, zone, locale))
+        DayLabel.Yesterday -> Texts.Home.CAME_IN_YESTERDAY.format(time(at, zone, locale))
+        is DayLabel.On -> Texts.Home.CAME_IN_ON.format(date(day.date, locale))
+    }
+
     /** "Last checked yesterday at 9:02 AM." for the "I couldn't check today" state. */
     fun lastCheckedLine(at: Instant, now: Instant, zone: ZoneId, locale: Locale): String =
         Texts.Home.LAST_CHECKED.format(checkedLine(at, now, zone, locale).removePrefix("Checked ").removeSuffix("."))

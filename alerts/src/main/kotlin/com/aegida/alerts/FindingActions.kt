@@ -32,7 +32,7 @@ class FindingActions @Inject constructor(
 
     private suspend fun markSeen(key: FindingKey, now: java.time.Instant): Boolean {
         val finding = findings.get(key)?.takeIf { it.state.needsHer } ?: return false
-        findings.put(finding.copy(state = FindingState.Acknowledged, lastSeen = now))
+        findings.put(finding.withoutMessage().copy(state = FindingState.Acknowledged, lastSeen = now))
         owner.clear(key)
         history.add(HistoryEntry(now, key.problem, Outcome.Acknowledged))
         return true

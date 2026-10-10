@@ -54,10 +54,10 @@ internal class RoomFindingStore(private val dao: FindingDao) : FindingStore {
 
 internal class RoomHistoryLog(private val dao: HistoryDao) : HistoryLog {
     override suspend fun add(entry: HistoryEntry) =
-        dao.add(HistoryEntity(atMillis = entry.at.toEpochMilli(), historyProblem = entry.problem.name, outcome = entry.outcome.name))
+        dao.add(HistoryEntity(atMillis = entry.at.toEpochMilli(), historyProblem = entry.problem.name, outcome = entry.outcome.name, detail = entry.detail))
 
     override suspend fun since(from: Instant): List<HistoryEntry> = dao.since(from.toEpochMilli()).map { row ->
-        HistoryEntry(Instant.ofEpochMilli(row.atMillis), Problem.valueOf(row.historyProblem), Outcome.valueOf(row.outcome))
+        HistoryEntry(Instant.ofEpochMilli(row.atMillis), Problem.valueOf(row.historyProblem), Outcome.valueOf(row.outcome), row.detail)
     }
 
     override suspend fun prune(before: Instant): Int = dao.prune(before.toEpochMilli())

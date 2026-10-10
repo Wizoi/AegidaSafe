@@ -1,6 +1,7 @@
 package com.aegida.detectors
 
 import com.aegida.core.model.DetectorId
+import com.aegida.core.model.Evidence
 import com.aegida.core.model.Finding
 import com.aegida.core.model.FindingKey
 import com.aegida.core.text.Problem
@@ -20,8 +21,12 @@ class DriftDetector @Inject constructor() : Detector {
     override fun evaluate(input: Inputs): List<Finding> {
         val baseline = input.baseline ?: return emptyList()
         val phone = input.snapshot
-        fun finding(problem: Problem, subject: String) =
-            Finding(FindingKey(id, problem, subject), emptyMap(), input.now, input.now)
+        // The app by the name the owner sees, so History and the "Was that you?" page can say which one.
+        fun finding(problem: Problem, subject: String) = Finding(
+            FindingKey(id, problem, subject),
+            phone.apps.firstOrNull { it.packageName == subject }?.label?.takeIf { it.isNotBlank() }?.let { mapOf(Evidence.APP_LABEL to it) }.orEmpty(),
+            input.now, input.now,
+        )
 
         val role = buildList {
             if (phone.browser != null && phone.browser != baseline.browser) add(finding(Problem.BrowserChanged, phone.browser!!))

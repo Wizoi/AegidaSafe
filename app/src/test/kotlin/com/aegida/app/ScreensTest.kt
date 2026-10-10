@@ -167,12 +167,13 @@ class ScreensTest(private val dark: Boolean, private val fontScale: Float) {
 
     @Test fun historyListsEventsUnderADayHeadingAndSaysHowLongItIsKept() {
         val rows = listOf(
-            HistoryRow(now.minus(Duration.ofMinutes(10)), "A website sent fake warnings", "You were warned.", handled = true),
+            HistoryRow(now.minus(Duration.ofMinutes(10)), "A website sent fake warnings", "You were warned.", handled = true, facts = "The website was news.example."),
             HistoryRow(now.minus(Duration.ofDays(1)), "Website protection was off", "You were warned. Fixed.", handled = true),
         )
         show { HistoryScreen(rows, picture, now, zone, locale) }
         reachable(Texts.History.TODAY)
         reachable("A website sent fake warnings")
+        reachable("The website was news.example.") // what it was (Kevin, Oct 10)
         reachable(Texts.History.YESTERDAY)
         reachable(Texts.History.KEPT)
     }

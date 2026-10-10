@@ -51,6 +51,20 @@ class AlertPipelineTest {
         assertEquals(listOf(Outcome.OwnerWarned, Outcome.GuardianTold), history.entries.map { it.outcome })
     }
 
+    @Test fun theGuardianIsToldWhichAppAScamMessageCameFromWhenItIsKnown() = runTest { // Kevin, Oct 10
+        val named = scamLink.copy(evidence = mapOf(com.aegida.core.model.Evidence.APP_LABEL to "Messages", com.aegida.core.model.Evidence.HOST to "evil.example"))
+        pipeline.handle(listOf(named), setOf(DetectorId.Link))
+        assertEquals(listOf("A message with a scam link arrived on Ruth's phone, from the “Messages” app, with a link to ev*****.example. Aegida warned Ruth."), http.bodies)
+    }
+
+    @Test fun historyKeepsWhatItWasForTheWarningAndTheGuardianNote() = runTest { // Kevin, Oct 10
+        val e = com.aegida.core.model.Evidence
+        val named = scamLink.copy(evidence = mapOf(e.APP_LABEL to "Messages", e.HOST to "evil.example", e.MESSAGE_TITLE to "Bank"))
+        pipeline.handle(listOf(named), setOf(DetectorId.Link))
+        val expected = "It came from the “Messages” app. From: “Bank”. The link went to ev*****.example."
+        assertEquals(listOf(expected, expected), history.entries.map { it.detail })
+    }
+
     @Test fun aCheckKilledAfterWarningButBeforeFinishingStillTellsTheGuardianOnTheNextRun() = runTest {
         val dying = object : HttpClient by http {
             var die = true

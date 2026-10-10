@@ -81,6 +81,14 @@ class RoomStoresTest {
         listOf(recentResolved, oldOpen, oldSeen).forEach { assertEquals(it, store.get(it.key)) }
     }
 
+    @Test fun aHistoryRowKeepsItsDetailAndALegacyRowHasNone() = runTest { // Kevin, Oct 10
+        val log = RoomHistoryLog(db.history())
+        val with = HistoryEntry(now, Problem.ScamLink, Outcome.OwnerWarned, "It came from the “Messages” app.")
+        val without = HistoryEntry(now.minus(Duration.ofDays(1)), Problem.ListenerOff, Outcome.OwnerWarned)
+        log.add(with); log.add(without)
+        assertEquals(listOf(with, without), log.since(now.minus(Duration.ofDays(2))))
+    }
+
     @Test fun historyIsNewestFirstAndPrunesByAge() = runTest {
         val log = RoomHistoryLog(db.history())
         val old = HistoryEntry(now.minus(Duration.ofDays(91)), Problem.ScamLink, Outcome.OwnerWarned)

@@ -39,6 +39,15 @@ class FindingActionsTest {
 
     private val scam = Finding(FindingKey(DetectorId.Link, Problem.ScamLink, "evil.example"), emptyMap(), now.minus(Duration.ofMinutes(1)), now)
 
+    /** Kevin, Oct 10: the sender, words and time of a scam message are kept on the phone only until the owner has seen the warning. */
+    @Test fun gotItClearsTheMessageDetailsButKeepsTheRest() = runTest {
+        val e = com.aegida.core.model.Evidence
+        val withMessage = scam.copy(evidence = mapOf(e.HOST to "evil.example", e.APP_LABEL to "Messages", e.MESSAGE_TITLE to "Bank", e.MESSAGE_TEXT to "Verify now", e.MESSAGE_AT to "123"))
+        pipeline.handle(listOf(withMessage), setOf(DetectorId.Link))
+        assertTrue(actions.acknowledge(withMessage.key))
+        assertEquals(mapOf(e.HOST to "evil.example", e.APP_LABEL to "Messages"), findings.get(withMessage.key)!!.evidence)
+    }
+
     @Test fun aSeenWarningLeavesHomeClearsItsBannerAndIsWrittenToHistory() = runTest {
         pipeline.handle(listOf(scam), setOf(DetectorId.Link))
         assertTrue(HomeState.of(findings.open(), null) is HomeState.NeedsTaps)

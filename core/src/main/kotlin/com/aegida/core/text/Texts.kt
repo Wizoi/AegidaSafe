@@ -43,6 +43,14 @@ object Texts {
         const val FIX_MY_PHONE = "Fix my phone"
         const val SHOW_ME = "Show me"
         const val ADVICE_FROM = "It came from the %s app."
+        const val CAME_IN_TODAY = "It came in today at %s."
+        const val CAME_IN_YESTERDAY = "It came in yesterday at %s."
+        const val CAME_IN_ON = "It came in on %s."
+        const val SENDER_LINE = "From: %s"
+        const val SAYS_LINE = "It says: %s"
+        const val LINK_REMOVED = "(link)"
+        const val SAYS_MAX = 100
+        const val SAID_LINE = "It said: %s"
         const val CALL_A_GUARDIAN = "Call a guardian"
         const val COULDNT_CHECK = "I couldn't check today."
         const val COULDNT_CHECK_WHY = "Aegida will try again soon. If this keeps happening, call a guardian."
@@ -72,13 +80,37 @@ object Texts {
             return if (clean.isEmpty()) null else ADVICE_FROM.format("“$clean”")
         }
 
+        /** "From: “Chase Bank”" (the notification's title), or null when there is none. Cleaned and cut short like an app label. */
+        fun senderLine(title: String?): String? {
+            val clean = cleanLabel(title.orEmpty())
+            return if (clean.isEmpty()) null else SENDER_LINE.format("“$clean”")
+        }
+
+        /**
+         * "It says: “...”" with the first words of the message. A link in it is replaced by "(link)", so a scam address never
+         * shows as text the owner might copy or type; the rest is cleaned and cut short.
+         */
+        fun saysLine(text: String?, host: String?): String? {
+            val unlinked = text.orEmpty().split(Regex("\\s+")).joinToString(" ") { word ->
+                if (word.contains("://") || (!host.isNullOrEmpty() && word.contains(host, ignoreCase = true))) LINK_REMOVED else word
+            }
+            val clean = cleanLabel(unlinked, SAYS_MAX)
+            return if (clean.isEmpty()) null else SAYS_LINE.format("“$clean”")
+        }
+
+        /** "It said: “…”" for what a website's notification said (its title), cleaned and cut short. */
+        fun saidLine(title: String?): String? {
+            val clean = cleanLabel(title.orEmpty(), SAYS_MAX)
+            return if (clean.isEmpty()) null else SAID_LINE.format("“$clean”")
+        }
+
         fun confirmApp(problem: Problem, label: String?): String? {
             if (problem.severity == com.aegida.core.model.Severity.Urgent) return null
             val clean = cleanLabel(label.orEmpty())
             return if (clean.isEmpty()) null else CONFIRM_APP.format("“$clean”")
         }
 
-        internal fun cleanLabel(raw: String): String {
+        internal fun cleanLabel(raw: String, max: Int = CONFIRM_LABEL_MAX): String {
             val spaced = StringBuilder()
             var i = 0
             while (i < raw.length) {
@@ -90,12 +122,14 @@ object Texts {
                 spaced.append(if (blocked) " " else String(Character.toChars(cp)))
             }
             val text = spaced.toString().trim().replace(Regex(" {2,}"), " ")
-            if (text.codePointCount(0, text.length) <= CONFIRM_LABEL_MAX) return text
-            return text.substring(0, text.offsetByCodePoints(0, CONFIRM_LABEL_MAX)).trimEnd() + "…"
+            if (text.codePointCount(0, text.length) <= max) return text
+            return text.substring(0, text.offsetByCodePoints(0, max)).trimEnd() + "…"
         }
     }
 
     object History {
+        const val WEBSITE_WAS = "The website was %s."
+        const val LINK_WENT = "The link went to %s."
         const val TITLE = "History"
         const val EMPTY = "Nothing has happened yet. When Aegida does something for you, it will show here."
         const val KEPT = "Kept on this phone for 90 days."

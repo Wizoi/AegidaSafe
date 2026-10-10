@@ -291,8 +291,7 @@ private fun MainContent(state: MainState, vm: MainViewModel) {
                 }
                 is Page.Advice -> AegidaScreen(pictureId) {
                     Headline(current.finding.key.problem.forMom)
-                    Texts.Home.adviceFrom(current.finding.evidence[com.aegida.core.model.Evidence.APP_LABEL])?.let { Body(it) }
-                    Body(Texts.Home.SCAM_ADVICE)
+                    AdviceLines.of(current.finding, state.now, zone, locale).forEach { Body(it) }
                     BigButton(Texts.Home.GOT_IT, { vm.acknowledge(current.finding); page = Page.None })
                 }
             }

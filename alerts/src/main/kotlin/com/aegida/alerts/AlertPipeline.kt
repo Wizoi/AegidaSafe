@@ -2,6 +2,7 @@ package com.aegida.alerts
 
 import com.aegida.core.alert.FindingStore
 import com.aegida.core.alert.GuardianSettings
+import com.aegida.core.alert.HistoryDetail
 import com.aegida.core.alert.HistoryEntry
 import com.aegida.core.alert.HistoryLog
 import com.aegida.core.alert.OwnerNotifier
@@ -9,6 +10,7 @@ import com.aegida.core.alert.Outbox
 import com.aegida.core.alert.QueuedMessage
 import com.aegida.core.alert.Outcome
 import com.aegida.core.model.DetectorId
+import com.aegida.core.model.Evidence
 import com.aegida.core.model.Finding
 import com.aegida.core.model.FindingKey
 import com.aegida.core.model.FindingState
@@ -46,17 +48,18 @@ class AlertPipeline @Inject constructor(
                 return@forEach
             }
             alerted++
+            val detail = HistoryDetail.of(finding.key.problem, finding.evidence) // what it was, kept in History
             if (finding.severity >= Severity.NeedsTap) {
                 owner.show(finding)
-                history.add(HistoryEntry(now, finding.key.problem, Outcome.OwnerWarned))
+                history.add(HistoryEntry(now, finding.key.problem, Outcome.OwnerWarned, detail))
             }
             val result = if (backedOff(finding, now)) null else tellFirstGuardian(finding)
             when (result) {
-                SendResult.Delivered -> history.add(HistoryEntry(now, finding.key.problem, Outcome.GuardianTold))
+                SendResult.Delivered -> history.add(HistoryEntry(now, finding.key.problem, Outcome.GuardianTold, detail))
                 is SendResult.NotDelivered -> {
                     notReached++
                     holdForRetry(finding, now)
-                    history.add(HistoryEntry(now, finding.key.problem, Outcome.GuardianNotReached))
+                    history.add(HistoryEntry(now, finding.key.problem, Outcome.GuardianNotReached, detail))
                 }
                 null -> Unit
             }
@@ -177,7 +180,7 @@ class AlertPipeline @Inject constructor(
         val settings = guardians.current()
         val topic = settings.firstTopic ?: return null
         if (!settings.alertsOn) return null
-        val text = finding.key.problem.forGuardian(guardianName(settings)) ?: return null
+        val text = finding.key.problem.forGuardian(guardianName(settings), finding.evidence[Evidence.APP_LABEL], finding.evidence[Evidence.HOST] ?: finding.evidence[Evidence.SITE]) ?: return null
         return topic to GuardianMessage(title = guardianName(settings), body = text, urgent = finding.severity == Severity.Urgent)
     }
 

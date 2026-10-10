@@ -36,6 +36,10 @@ class LinkDetector @Inject constructor() : Detector {
                     put(Evidence.NOTIFICATION_KEY, event.key)
                     put(Evidence.PACKAGE, event.packageName)
                     put(Evidence.HOST, link.host)
+                    // What it was, for the owner's advice page: who, what it said (cut short) and when. Kept until she has seen the warning.
+                    put(Evidence.MESSAGE_TITLE, cap(event.title))
+                    put(Evidence.MESSAGE_TEXT, cap(event.text))
+                    put(Evidence.MESSAGE_AT, event.postedAt.toEpochMilli().toString())
                     // The owner is told which app it came from (Kevin, Oct 10); the phone's own app list names it.
                     input.snapshot.apps.firstOrNull { it.packageName == event.packageName }?.label?.takeIf { it.isNotBlank() }?.let { put(Evidence.APP_LABEL, it) }
                 },
@@ -43,5 +47,12 @@ class LinkDetector @Inject constructor() : Detector {
                 input.now,
             )
         }
+    }
+
+    private fun cap(raw: String): String =
+        if (raw.codePointCount(0, raw.length) <= KEPT_CHARS) raw else raw.substring(0, raw.offsetByCodePoints(0, KEPT_CHARS))
+
+    private companion object {
+        const val KEPT_CHARS = 200
     }
 }

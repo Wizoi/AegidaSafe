@@ -33,6 +33,12 @@ object Evidence {
     const val SITE = "site"
     const val HOST = "host"
     const val APP_LABEL = "appLabel"
+
+    /** Who sent a scam message, what it said (both cut short) and when it came in (epoch millis); kept on the phone only until the owner has seen the warning. */
+    const val MESSAGE_TITLE = "messageTitle"
+    const val MESSAGE_TEXT = "messageText"
+    const val MESSAGE_AT = "messageAt"
+    val MESSAGE_KEYS = setOf(MESSAGE_TITLE, MESSAGE_TEXT, MESSAGE_AT)
 }
 
 /** Only detectors create these (design section 5). Evidence stays on the phone; guardians get Problem text only. */
@@ -44,4 +50,7 @@ data class Finding(
     val state: FindingState = FindingState.Open,
 ) {
     val severity: Severity get() = key.problem.severity
+
+    /** The same finding without the words of the message it was raised for (the owner has seen it). */
+    fun withoutMessage(): Finding = copy(evidence = evidence - Evidence.MESSAGE_KEYS)
 }

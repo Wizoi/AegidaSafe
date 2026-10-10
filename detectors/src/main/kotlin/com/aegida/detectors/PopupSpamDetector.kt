@@ -43,6 +43,9 @@ class PopupSpamDetector @Inject constructor() : Detector {
                     Evidence.PACKAGE to event.packageName,
                     Evidence.CHANNEL_ID to channel,
                     Evidence.SITE to site,
+                    // What the website said, for History (Kevin, Oct 10); kept only until the owner has seen the warning.
+                    Evidence.MESSAGE_TITLE to event.title.take(200),
+                    Evidence.MESSAGE_AT to event.postedAt.toEpochMilli().toString(),
                 ),
                 input.now,
                 input.now,

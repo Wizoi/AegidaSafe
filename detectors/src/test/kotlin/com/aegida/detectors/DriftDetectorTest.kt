@@ -26,6 +26,13 @@ class DriftDetectorTest {
         assertEquals(listOf(Problem.AssistantChanged to "org.evil.assistant"), found(snapshot(assistant = "org.evil.assistant")))
     }
 
+    /** Kevin, Oct 10: the finding says which app, by the name the owner sees, so History and the "Was that you?" page can. */
+    @Test fun aChangeNamesTheAppByItsLabelWhenThePhoneListsIt() {
+        val apps = listOf(com.aegida.core.model.InstalledApp("org.evil.browser", "Other Browser", "com.android.vending", false))
+        val finding = DriftDetector().evaluate(inputs(snapshot = snapshot(browser = "org.evil.browser").copy(apps = apps)).copy(baseline = baseline)).single()
+        assertEquals("Other Browser", finding.evidence[com.aegida.core.model.Evidence.APP_LABEL])
+    }
+
     @Test fun aDefaultThatIsNowUnsetIsNotAChange() =
         assertEquals(emptyList<Pair<Problem, String>>(), found(snapshot(browser = null, smsApp = null, dialerApp = null)))
 

@@ -76,7 +76,10 @@ class PublicPagesTest {
         val notes = Problem.entries.mapNotNull { it.forGuardian("Ruth") } + listOf(
             Texts.Guardian.SET_UP, Texts.Guardian.STILL_OPEN, Texts.Guardian.STILL_OPEN_URGENT, Texts.Guardian.CONFIRMED,
             Texts.Guardian.CONFIRMED_URGENT, Texts.Guardian.CHANGED, Texts.Guardian.NOT_CHECKED_IN,
-        ).map { it.format("Ruth") }
+        ).map { it.format("Ruth") } +
+            // Kevin, Oct 10: the notes that name the app and a masked address.
+            listOf(Problem.ScamLink, Problem.LookalikeLink).map { it.forGuardian("Ruth", "Messages", "paypa1-help.example")!! } +
+            listOf(Problem.SiteNotifications, Problem.NewWebsiteNotifications).map { it.forGuardian("Ruth", null, "paypa1-help.example")!! }
         val missing = notes.filterNot { page.contains(it) }
         assertEquals("these notes are not on the page", emptyList<String>(), missing)
     }
@@ -127,6 +130,18 @@ class PublicPagesTest {
         val privacy = File("../docs/site/privacy.html").readText()
         assertTrue("the privacy page must name Cloudflare and the host", privacy.contains("Cloudflare") && privacy.contains(com.aegida.core.model.WebsiteFilter.HOST))
         assertTrue("it must no longer claim nothing else is sent", !privacy.contains("Aegida sends nothing else. "))
+    }
+
+    /** Kevin, Oct 10: the note can now name the app and a masked address, and the app keeps what a scam message said; no public page may still say otherwise. */
+    @Test fun noPublicPageStillClaimsTheNoteNeverNamesAnAppOrThatNothingAboutAMessageIsKept() {
+        val privacy = File("../docs/site/privacy.html").readText()
+        for (text in listOf(plain, privacy)) {
+            assertTrue(!text.contains("the names of your apps"))
+            assertTrue(!text.contains("Never links, message text or app names"))
+            assertTrue(!text.contains("The text of the notification is not stored or logged"))
+            assertTrue(!text.contains("save, log or send what they say"))
+        }
+        assertTrue("the privacy page must say what is kept", privacy.contains("first words of what it said"))
     }
 
     @Test fun itSaysWhichVersionOfTheAppItDescribesAndLinksToThePrivacyPage() {

@@ -1,6 +1,7 @@
 package com.aegida.core.text
 
 import com.aegida.core.model.Severity
+import com.aegida.core.url.HostMask
 
 /**
  * Every kind of finding, with the one sentence the owner sees and the one a guardian gets (written in her name,
@@ -158,7 +159,28 @@ enum class Problem(
     ),
     ;
 
-    fun forGuardian(ownerName: String): String? = guardianTemplate?.format(ownerName)
+    /**
+     * The note for the guardian. For a scam link or a look-alike it also names the app the message came from and a masked
+     * web address; for a website that was sending notifications, a masked address of the site. Only those, nothing of the
+     * message. [appLabel] is cleaned and cut short because an app picks its own label.
+     */
+    fun forGuardian(ownerName: String, appLabel: String? = null, host: String? = null): String? {
+        val base = guardianTemplate?.format(ownerName) ?: return null
+        val app = Texts.Home.cleanLabel(appLabel.orEmpty()).takeIf { it.isNotEmpty() }?.let { "“$it”" }
+        val where = host?.takeIf { it.isNotBlank() }?.let { HostMask.of(it) }
+        return when (this) {
+            ScamLink, LookalikeLink -> {
+                val extra = listOfNotNull(app?.let { ", from the $it app" }, where?.let { ", with a link to $it" }).joinToString("")
+                base.replace("'s phone.", "'s phone$extra.")
+            }
+            SiteNotifications, NewWebsiteNotifications -> if (where == null) base else base.replaceFirst("A website ", "A website ($where) ")
+            else -> base
+        }
+    }
+
+    private companion object {
+        val NAMES_THE_APP = setOf(ScamLink, LookalikeLink)
+    }
 }
 
 /** How a problem is put right, so the screens do the same thing for it every time. */

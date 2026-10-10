@@ -57,7 +57,7 @@ class PlayListingTest {
         val page = File("../docs/site/privacy.html")
         assertTrue("no privacy policy at ${page.path}", page.isFile)
         val text = page.readText()
-        for (needed in listOf("ntfy.sh", "GitHub Pages", "does <strong>not</strong> save, log or send", "child&rsquo;s phone", "Last updated")) {
+        for (needed in listOf("ntfy.sh", "GitHub Pages", "does <strong>not</strong> send what they say", "child&rsquo;s phone", "Last updated")) {
             assertTrue("the privacy policy no longer mentions: $needed", text.contains(needed))
         }
         val words = Regex("""\b(safe|safely|safety|secure|secured|100%|guarantee[ds]?|protected)\b""", RegexOption.IGNORE_CASE)

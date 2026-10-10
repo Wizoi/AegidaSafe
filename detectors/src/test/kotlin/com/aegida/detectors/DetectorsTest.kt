@@ -44,9 +44,19 @@ class LinkDetectorTest {
         assertEquals(null, detector.evaluate(inputs(event = message("Refund: paypa1-help.example/claim"))).single().evidence[Evidence.APP_LABEL])
     }
 
-    @Test fun evidenceNamesTheNotificationButNotTheMessage() {
-        val finding = detector.evaluate(inputs(event = message("https://evil.example/pay"))).single()
-        assertEquals(setOf(Evidence.NOTIFICATION_KEY, Evidence.PACKAGE, Evidence.HOST), finding.evidence.keys)
+    /** Kevin, Oct 10: the owner needs to know what it was, so the sender, the words and the time stay on the phone with the finding. */
+    @Test fun evidenceKeepsWhoSentItWhatItSaidAndWhenForTheOwnerToSee() {
+        val event = message("https://evil.example/pay", title = "Chase Bank")
+        val finding = detector.evaluate(inputs(event = event)).single()
+        assertEquals(setOf(Evidence.NOTIFICATION_KEY, Evidence.PACKAGE, Evidence.HOST, Evidence.MESSAGE_TITLE, Evidence.MESSAGE_TEXT, Evidence.MESSAGE_AT), finding.evidence.keys)
+        assertEquals("Chase Bank", finding.evidence[Evidence.MESSAGE_TITLE])
+        assertEquals("https://evil.example/pay", finding.evidence[Evidence.MESSAGE_TEXT])
+        assertEquals(event.postedAt.toEpochMilli().toString(), finding.evidence[Evidence.MESSAGE_AT])
+    }
+
+    @Test fun aVeryLongMessageIsCutShortBeforeItIsKept() {
+        val finding = detector.evaluate(inputs(event = message("https://evil.example/pay " + "word ".repeat(500)))).single()
+        assertEquals(true, finding.evidence.getValue(Evidence.MESSAGE_TEXT).length <= 200)
     }
 }
 
@@ -59,6 +69,12 @@ class PopupSpamDetectorTest {
         assertEquals("http://localhost:8765", finding.key.subject)
         assertEquals("web:http://localhost:8765;13435952006713133", finding.evidence[Evidence.CHANNEL_ID])
         assertEquals("com.android.chrome", finding.evidence[Evidence.PACKAGE])
+    }
+
+    @Test fun theFindingKeepsWhatTheWebsiteSaidAndWhenForHistory() { // Kevin, Oct 10
+        val finding = detector.evaluate(inputs(event = chromeSiteNotification)).single()
+        assertEquals(chromeSiteNotification.title, finding.evidence[Evidence.MESSAGE_TITLE])
+        assertEquals(chromeSiteNotification.postedAt.toEpochMilli().toString(), finding.evidence[Evidence.MESSAGE_AT])
     }
 
     @Test fun aSiteFromTheBaselineIsLeftAloneUnlessItTurnsScary() {

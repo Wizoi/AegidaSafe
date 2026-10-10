@@ -70,7 +70,7 @@ class CheckRunnerTest {
         assertEquals(listOf(Problem.SiteNotifications), outcome.findings.map { it.key.problem })
         assertEquals(listOf(siteNotification(1).key), outcome.notificationsToHide)
         assertEquals(1, owner.shown.size)
-        assertEquals(listOf("A website was sending fake warnings to Ruth's phone. Aegida hid them."), http.bodies)
+        assertEquals(listOf("A website (lo*****) was sending fake warnings to Ruth's phone. Aegida hid them."), http.bodies)
     }
 
     @Test fun aTextMessageWithAScamLinkIsWarnedAboutButLeftInPlace() = runTest {

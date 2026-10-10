@@ -46,7 +46,9 @@ class AegidaListenerService : NotificationListenerService() {
         if (sbn.packageName == packageName) return
         val event = NotificationMapper.toEvent(sbn.key, sbn.packageName, sbn.notification, sbn.postTime)
         scope.launch {
-            checks.run(Trigger.NotificationPosted, event).notificationsToHide.forEach(::cancelNotification)
+            val outcome = checks.run(Trigger.NotificationPosted, event)
+            outcome.notificationsToHide.forEach(::cancelNotification)
+            outcome.notificationsToSnooze.forEach { snoozeNotification(it, SNOOZE_MILLIS) }
         }
     }
 
@@ -57,5 +59,8 @@ class AegidaListenerService : NotificationListenerService() {
 
     private companion object {
         const val TAG = "Aegida"
+
+        /** How long a notification from a website that was asked about is put aside; the phone then brings it back for the next check. */
+        const val SNOOZE_MILLIS = 60L * 60 * 1000
     }
 }

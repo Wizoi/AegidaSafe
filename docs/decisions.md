@@ -114,6 +114,8 @@
 
 - **Website notifications (Kevin, Oct 9):** a website that sends a notification for the first time is hidden and the owner is asked "Was that you?"; Yes remembers it, and the guardian is told that it was asked. Android does not let Aegida list the sites that already have notifications (findings #84), so a site the owner already had is asked about once too. Words like "virus" are still hidden at once.
 
+- **What an alert says (Kevin, Oct 10):** the owner's warning and History say what it was: the app, who a message was from, a few words of it with the link taken out, when, or the website. The guardian gets the app name and a masked web address (first two letters, five stars, the ending), never message words or a whole address. History gains a detail column (Room migration 1 to 2). A new website's notification is snoozed for an hour, not deleted.
+
 ## Open / next session
 - Create the Gradle project and run the **emulator spike**: confirm each `adb`/`cmd` scenario works on the API 36 Play image.
 - Kevin: look for an old Samsung phone on One UI 6+; look into Samsung Remote Test Lab.

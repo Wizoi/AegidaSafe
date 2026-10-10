@@ -50,7 +50,7 @@ private fun dayHeading(day: DayLabel, locale: Locale): String = when (day) {
 private fun HistoryLine(row: HistoryRow, zone: ZoneId, locale: Locale) {
     val state = if (row.handled) Texts.History.HANDLED else Texts.History.NEEDS_YOU
     Surface(
-        modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) { contentDescription = "${row.title}. ${row.detail} $state." },
+        modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) { contentDescription = "${row.title}. ${row.facts.orEmpty()} ${row.detail} $state." },
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 1.dp,
@@ -59,6 +59,7 @@ private fun HistoryLine(row: HistoryRow, zone: ZoneId, locale: Locale) {
             HandledDot(row.handled, Modifier.padding(top = 6.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(row.title, style = MaterialTheme.typography.titleMedium)
+                row.facts?.let { Text(it, style = MaterialTheme.typography.bodyLarge) } // what it was (Kevin, Oct 10)
                 Text(row.detail, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Text(TimeText.time(row.at, zone, locale), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)

@@ -39,6 +39,8 @@ data class HistoryEntity(
     val atMillis: Long,
     val historyProblem: String,
     val outcome: String,
+    /** What it was (app, sender, masked address ...), added in schema 2; null for older rows. */
+    val detail: String? = null,
 )
 
 @Dao
