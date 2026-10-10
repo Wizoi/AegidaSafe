@@ -127,6 +127,15 @@ class ScreensTest(private val dark: Boolean, private val fontScale: Float) {
         reachable(Texts.Home.CALL_A_GUARDIAN)
     }
 
+    @Test fun homeOffersShowMeNotFixMyPhoneForAWarningThatFixesNothing() { // Kevin, Oct 10
+        val link = finding(Problem.LookalikeLink)
+        var shown: Finding? = null
+        show { HomeScreen(HomeState.NeedsTaps(listOf(link)), picture, now, zone, locale, { shown = it }, {}) }
+        compose.onNodeWithText(Texts.Home.FIX_MY_PHONE).assertDoesNotExistOrFail()
+        compose.onNodeWithText(Texts.Home.SHOW_ME).performScrollTo().performClick()
+        assertEquals(link, shown)
+    }
+
     @Test fun homeWithSeveralProblemsCountsThemAndStartsWithTheFirst() {
         val first = finding(Problem.ListenerOff, minutesOld = 60)
         var fixed: Finding? = null

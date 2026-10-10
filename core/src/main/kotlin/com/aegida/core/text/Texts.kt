@@ -41,6 +41,8 @@ object Texts {
         const val NEEDS_ONE = "1 thing needs a tap"
         const val NEEDS_MANY = "%s things need a tap"
         const val FIX_MY_PHONE = "Fix my phone"
+        const val SHOW_ME = "Show me"
+        const val ADVICE_FROM = "It came from the %s app."
         const val CALL_A_GUARDIAN = "Call a guardian"
         const val COULDNT_CHECK = "I couldn't check today."
         const val COULDNT_CHECK_WHY = "Aegida will try again soon. If this keeps happening, call a guardian."
@@ -61,6 +63,15 @@ object Texts {
          * label, so an attacker can make it read like an instruction. For an urgent problem the label is never
          * shown; otherwise it is cut short, stripped of control characters and quoted (R17).
          */
+        /** The one big button on Home: "Fix my phone" only where something really gets fixed; a scam warning just shows what to do. */
+        fun fixButton(fix: Fix): String = if (fix == Fix.Acknowledge) SHOW_ME else FIX_MY_PHONE
+
+        /** "It came from the “Messages” app." for the scam-link advice page, or null when the app is not known. Cleaned like [confirmApp]. */
+        fun adviceFrom(label: String?): String? {
+            val clean = cleanLabel(label.orEmpty())
+            return if (clean.isEmpty()) null else ADVICE_FROM.format("“$clean”")
+        }
+
         fun confirmApp(problem: Problem, label: String?): String? {
             if (problem.severity == com.aegida.core.model.Severity.Urgent) return null
             val clean = cleanLabel(label.orEmpty())

@@ -32,7 +32,13 @@ class LinkDetector @Inject constructor() : Detector {
             }
             Finding(
                 FindingKey(id, problem, link.host),
-                mapOf(Evidence.NOTIFICATION_KEY to event.key, Evidence.PACKAGE to event.packageName, Evidence.HOST to link.host),
+                buildMap {
+                    put(Evidence.NOTIFICATION_KEY, event.key)
+                    put(Evidence.PACKAGE, event.packageName)
+                    put(Evidence.HOST, link.host)
+                    // The owner is told which app it came from (Kevin, Oct 10); the phone's own app list names it.
+                    input.snapshot.apps.firstOrNull { it.packageName == event.packageName }?.label?.takeIf { it.isNotBlank() }?.let { put(Evidence.APP_LABEL, it) }
+                },
                 input.now,
                 input.now,
             )

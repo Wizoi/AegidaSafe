@@ -37,6 +37,13 @@ class LinkDetectorTest {
         assertEquals(emptyList<Any>(), detector.evaluate(inputs(event = chromeSiteNotification.copy(text = "evil.example"))))
     }
 
+    @Test fun theFindingNamesTheAppTheMessageCameFromWhenThePhoneListsIt() { // Kevin, Oct 10: "no idea what it is talking about"
+        val apps = listOf(com.aegida.core.model.InstalledApp("com.android.shell", "Messages", "com.android.vending", true))
+        val finding = detector.evaluate(inputs(snapshot = snapshot().copy(apps = apps), event = message("Refund: paypa1-help.example/claim"))).single()
+        assertEquals("Messages", finding.evidence[Evidence.APP_LABEL])
+        assertEquals(null, detector.evaluate(inputs(event = message("Refund: paypa1-help.example/claim"))).single().evidence[Evidence.APP_LABEL])
+    }
+
     @Test fun evidenceNamesTheNotificationButNotTheMessage() {
         val finding = detector.evaluate(inputs(event = message("https://evil.example/pay"))).single()
         assertEquals(setOf(Evidence.NOTIFICATION_KEY, Evidence.PACKAGE, Evidence.HOST), finding.evidence.keys)
