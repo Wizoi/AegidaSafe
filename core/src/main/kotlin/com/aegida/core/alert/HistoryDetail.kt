@@ -26,7 +26,7 @@ object HistoryDetail {
             )
             Problem.NoisyApp -> listOf(
                 Texts.Home.cleanLabel(evidence[Evidence.APP_LABEL].orEmpty()).takeIf { it.isNotEmpty() }?.let { label ->
-                    Texts.History.NOISY.format("“$label”", evidence[Evidence.NOTICES] ?: "several")
+                    evidence[Evidence.NOTICES]?.let { Texts.History.NOISY.format("“$label”", it) } ?: Texts.History.NOISY_NO_COUNT.format("“$label”")
                 },
             )
             else -> listOf(Texts.Home.confirmApp(problem, evidence[Evidence.APP_LABEL]))

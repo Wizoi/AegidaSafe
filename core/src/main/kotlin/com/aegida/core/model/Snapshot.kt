@@ -94,4 +94,8 @@ data class NotificationEvent(
     val conversation: Boolean = false,
     /** The phone's own learning says the owner tends to dismiss this app's notices. */
     val sentimentNegative: Boolean = false,
+    /** A summary of a group of notices (the app's own or the phone's), not a notice of its own. */
+    val groupSummary: Boolean = false,
+    /** The notice's own time (`Notification.when`); with [key] it tells a new notice from the same one coming back. 0 when not read. */
+    val whenMillis: Long = 0,
 )

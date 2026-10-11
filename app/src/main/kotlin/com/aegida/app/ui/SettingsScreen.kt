@@ -73,7 +73,7 @@ fun SettingsScreen(
             SettingCard {
                 Text(Texts.Settings.ALLOWED_TITLE, style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
                 allowed.forEach { item ->
-                    Text(item.label.ifBlank { item.subject }, style = MaterialTheme.typography.bodyLarge)
+                    Text(Texts.Home.cleanLabel(item.label).ifEmpty { item.subject }, style = MaterialTheme.typography.bodyLarge) // an app picks its own label (R17)
                     QuietButton(Texts.Settings.ALLOWED_REMOVE, { onStopAllowing(item) })
                 }
             }

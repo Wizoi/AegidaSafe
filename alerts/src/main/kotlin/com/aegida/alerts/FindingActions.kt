@@ -13,6 +13,7 @@ import com.aegida.core.notice.AllowList
 import com.aegida.core.notice.AllowedItem
 import com.aegida.core.store.BaselineStore
 import com.aegida.core.text.Problem
+import com.aegida.core.text.Texts
 import com.aegida.core.text.Fix
 import com.aegida.core.time.Clock
 import javax.inject.Inject
@@ -51,15 +52,23 @@ class FindingActions @Inject constructor(
         if (key.problem !in ALLOWABLE) return@run false
         val finding = findings.get(key)?.takeIf { it.state.needsHer } ?: return@run false
         val now = clock.now()
-        val label = finding.evidence[Evidence.APP_LABEL].orEmpty().ifBlank { key.subject }
+        val label = Texts.Home.cleanLabel(finding.evidence[Evidence.APP_LABEL].orEmpty()).ifEmpty { key.subject }
+        // The guardian first (sent or queued), so a check killed half way never leaves a silent allow (finding #93).
+        pipeline.tellAllowed(label, now)
+        history.add(HistoryEntry(now, Problem.AppAllowed, Outcome.Acknowledged, Texts.History.APP_IS.format("“$label”")))
         allowList.add(AllowedItem(key.problem, key.subject, label, now))
         markSeen(key, now)
-        pipeline.tellAllowed(label)
         true
     }
 
-    /** Takes an item off the list in My settings, so Aegida warns about it again. */
-    suspend fun stopAllowing(problem: Problem, subject: String) = gate.run { allowList.remove(problem, subject) }
+    /** Takes an item off the list in My settings, so Aegida warns about it again, at once: the quiet week is over (finding #93). */
+    suspend fun stopAllowing(problem: Problem, subject: String) = gate.run {
+        allowList.remove(problem, subject)
+        val detector = ALLOWABLE[problem] ?: return@run
+        val quiet = problem.quietAfterSeen ?: return@run
+        val stored = findings.get(FindingKey(detector, problem, subject)) ?: return@run
+        if (!stored.state.needsHer) findings.put(stored.copy(lastSeen = stored.lastSeen.minus(quiet)))
+    }
 
     /**
      * "Yes, that was me": the part of the baseline this finding is about moves to what the phone has now, then the
@@ -81,6 +90,6 @@ class FindingActions @Inject constructor(
 
     private companion object {
         /** What an owner may tell Aegida to leave alone. Not urgent kinds: a coached "it is fine" must not silence a spying app. */
-        val ALLOWABLE = setOf(Problem.NoisyApp)
+        val ALLOWABLE = mapOf(Problem.NoisyApp to com.aegida.core.model.DetectorId.NoisyApp)
     }
 }

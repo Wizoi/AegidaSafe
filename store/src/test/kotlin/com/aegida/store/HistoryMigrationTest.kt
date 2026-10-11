@@ -36,7 +36,7 @@ class HistoryMigrationTest {
             close()
         }
         val db = migrations.runMigrationsAndValidate("notice-migration", 3, true, AegidaDatabase.MIGRATION_2_3)
-        db.execSQL("INSERT INTO notice (packageName, notifKey, atMillis, signals) VALUES ('a', 'k', 5, 2)")
+        db.execSQL("INSERT INTO notice (packageName, keyHash, noticeHash, atMillis, signals) VALUES ('a', 'k', 'n', 5, 2)")
         db.execSQL("INSERT INTO allowed (problem, subject, label, atMillis) VALUES ('NoisyApp', 'a', 'A', 5)")
         db.query("SELECT detail FROM history").use { c ->
             assertEquals(true, c.moveToFirst())

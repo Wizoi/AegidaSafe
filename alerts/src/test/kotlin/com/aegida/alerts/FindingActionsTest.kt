@@ -75,6 +75,27 @@ class FindingActionsTest {
         assertEquals(emptyList<Any>(), allowList.items)
     }
 
+    @Test fun warnMeAgainEndsTheQuietWeekSoTheNextAdsWarnAtOnce() = runTest { // finding #93
+        val withAllow = FindingActions(findings, history, owner, baselines, { phone }, pipeline, AlertGate(), allowList = allowList) { now }
+        pipeline.handle(listOf(noisy), setOf(DetectorId.NoisyApp))
+        withAllow.allow(noisy.key)
+        withAllow.stopAllowing(Problem.NoisyApp, "com.example.pdf")
+        val shownBefore = owner.shown.size
+        pipeline.handle(listOf(noisy), setOf(DetectorId.NoisyApp))
+        assertEquals(shownBefore + 1, owner.shown.size)
+    }
+
+    @Test fun theAllowNoteIsQueuedWhenOfflineAsItsOwnKindAndHistorySaysWhatSheDid() = runTest { // finding #93
+        val withAllow = FindingActions(findings, history, owner, baselines, { phone }, pipeline, AlertGate(), allowList = allowList) { now }
+        pipeline.handle(listOf(noisy), setOf(DetectorId.NoisyApp))
+        http.result = com.aegida.core.net.HttpResult.Failed(null, com.aegida.core.net.FailureReason.Offline)
+        assertTrue(withAllow.allow(noisy.key))
+        assertEquals(listOf(Problem.AppAllowed), outbox.all().map { it.problem })
+        val lines = history.entries.filter { it.problem == Problem.AppAllowed }
+        assertEquals(setOf(Outcome.Acknowledged, Outcome.GuardianNotReached), lines.map { it.outcome }.toSet())
+        assertEquals("The “Image to PDF” app.", lines.first().detail)
+    }
+
     @Test fun takingAnAppOffTheListLetsItBeWarnedAboutAgain() = runTest {
         val withAllow = FindingActions(findings, history, owner, baselines, { phone }, pipeline, AlertGate(), allowList = allowList) { now }
         pipeline.handle(listOf(noisy), setOf(DetectorId.NoisyApp))

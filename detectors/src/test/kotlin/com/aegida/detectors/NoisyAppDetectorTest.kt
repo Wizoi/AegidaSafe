@@ -24,7 +24,7 @@ class NoisyAppDetectorTest {
         assertEquals(Problem.NoisyApp, finding.key.problem)
         assertEquals("com.android.shell", finding.key.subject)
         assertEquals("Image to PDF", finding.evidence[Evidence.APP_LABEL])
-        assertEquals("3", finding.evidence[Evidence.NOTICES])
+        assertEquals("only the ad-like ones are counted for her (finding #93)", "2", finding.evidence[Evidence.NOTICES])
         assertEquals("Image to PDF", finding.evidence[Evidence.MESSAGE_TITLE]) // one example, cleared when seen
     }
 

@@ -3,6 +3,7 @@ package com.aegida.core.notice
 import com.aegida.core.model.Aegida
 import com.aegida.core.model.InstalledApp
 import com.aegida.core.model.NotificationEvent
+import com.aegida.core.model.ScareWords
 import java.time.Duration
 import java.time.Instant
 
@@ -10,18 +11,24 @@ import java.time.Instant
 data class NoticeRow(val at: Instant, val signals: Int)
 
 /**
- * Tells an app that sends ads as notifications from a real one (design: docs/notification-ad-spam-design.md, finding #92).
- * Pure rules; the numbers are the first guesses and stay here, in one place, so they can be changed from real data.
+ * Tells an app that sends ads as notifications from a real one (design: docs/notification-ad-spam-design.md, findings #92, #93).
+ * Pure rules; every number is here, in one place, so it can be changed from real data.
+ *
+ * Signs come in two kinds. **Content** signs are in the notice itself: the app calls it a promotion, its channel has an ad word in
+ * its name, or its words push or scare. **Context** signs are the same on every notice an app sends: it pops up, the app is a game
+ * or a tool, the phone has learned the owner dismisses it. Context alone is never an ad (a bank's pop-up channel is not), so a
+ * notice scores only when it has a content sign, and then the context adds to it.
  */
 object NoticeRules {
     /** What the sending app says the notice is, when it is something real. Never counted. */
     private val REAL_KINDS = setOf("msg", "call", "email", "alarm", "navigation", "progress", "service", "status", "transport", "reminder", "event", "social")
 
-    private val AD_CHANNEL_WORDS = Regex("""\b(promo\w*|offers?|deals?|ads?|advert\w*|sale|marketing|news|recommend\w*|discover\w*)\b""", RegexOption.IGNORE_CASE)
+    /** Ad words in a channel's name or description. Not "news" or "discover": breaking news and a bank called Discover are real. */
+    private val AD_CHANNEL_WORDS = Regex("""\b(promo\w*|offers?|deals?|ads?|advert\w*|sales?|marketing|recommend\w*)\b""", RegexOption.IGNORE_CASE)
 
-    /** Words that push an action or scare, the way the fake-ad notices do. */
+    /** Words that push an action, the way the fake-ad notices do. Not "free", "win" or "install": banks, scores and updates say those. */
     private val PUSH_WORDS = Regex(
-        """(\bready!|\bconvert\b|\bclean( now)?\b|\bboost\b|\bscan( now)?\b|\bfree\b|\binstall\b|\bwin\b|\blimited\b|\bvirus\b|\binfected\b|\bspeed up\b|\boptimi[sz]e\b|\bstorage (is )?full\b)""",
+        """(\bready!|\bconvert\b|\bclean now\b|\bboost\b|\bscan now\b|\blimited time\b|\bspeed up\b|\boptimi[sz]e\b|\bstorage (is )?full\b)""",
         RegexOption.IGNORE_CASE,
     )
 
@@ -30,41 +37,56 @@ object NoticeRules {
 
     const val HEADS_UP = 4
 
-    val DAY: Duration = Duration.ofHours(24)
+    /** The short window: pop-ups that keep coming arrive several an hour (Kevin, Oct 11). */
+    val BURST: Duration = Duration.ofHours(1)
     val WEEK: Duration = Duration.ofDays(7)
-    const val DAY_COUNT = 3
-    const val DAY_WITH_SIGNS = 2
+    const val BURST_COUNT = 3
+    const val BURST_WITH_SIGNS = 2
     const val WEEK_COUNT = 6
+
+    /** The same notice updated within this time (a download bar, an edited text) is one notice. */
+    val SAME_NOTICE: Duration = Duration.ofMinutes(10)
+
+    /** A row stamped later than now by more than this came from a clock that was ahead; it is ignored and pruned. */
+    val CLOCK_SKEW: Duration = Duration.ofMinutes(5)
 
     /** Whether this notice is one Aegida counts at all. [roleApps] are the default messages, phone and browser apps. */
     fun counted(event: NotificationEvent, apps: List<InstalledApp>, roleApps: Set<String>): Boolean {
         if (event.packageName == Aegida.PACKAGE || event.packageName in roleApps) return false
         if (event.channelId?.startsWith("web:") == true) return false
-        if (event.category in REAL_KINDS || event.ongoing || event.conversation) return false
+        if (event.category in REAL_KINDS || event.ongoing || event.conversation || event.groupSummary) return false
         if (apps.firstOrNull { it.packageName == event.packageName }?.isSystem == true) return false
         return true
     }
 
-    /** How many of the six ad signals this notice shows (0 to 6). [appCategory] is the app's own category, or null. */
+    /** The notice's score: 0 without a content sign; otherwise its content signs plus its context signs (1 to 6). [appCategory] may be null. */
     fun signals(event: NotificationEvent, appCategory: Int?): Int {
-        var n = 0
-        if (event.category == "promo" || event.category == "recommendation") n++
-        if (AD_CHANNEL_WORDS.containsMatchIn(event.channelName.orEmpty() + " " + event.channelDescription.orEmpty())) n++
-        if (event.importance >= HEADS_UP) n++
-        if (PUSH_WORDS.containsMatchIn(event.title + " " + event.text)) n++
-        if (appCategory in TOOL_CATEGORIES) n++
-        if (event.sentimentNegative) n++
-        return n
+        val words = event.title + " " + event.text
+        var content = 0
+        if (event.category == "promo" || event.category == "recommendation") content++
+        if (AD_CHANNEL_WORDS.containsMatchIn(event.channelName.orEmpty() + " " + event.channelDescription.orEmpty())) content++
+        if (PUSH_WORDS.containsMatchIn(words) || ScareWords.REGEX.containsMatchIn(words)) content++
+        if (content == 0) return 0
+        var context = 0
+        if (event.importance >= HEADS_UP) context++
+        if (appCategory in TOOL_CATEGORIES) context++
+        if (event.sentimentNegative) context++
+        return content + context
     }
 
     /**
-     * Flag the app when, in the last day, it posted 3 or more counted notices and 2 or more of them had at least 2 signals;
-     * or when, in the last week, it posted 6 or more and most had at least 1. A single notice never flags anything.
+     * Flag the app when, in the last hour, it posted 3 or more counted notices and 2 or more of them scored at least 2; or when, in the
+     * last week, it posted 6 or more and most scored at least 1. A single notice never flags anything; rows from the future are ignored.
      */
     fun flagged(rows: List<NoticeRow>, now: Instant): Boolean {
-        val day = rows.filter { !it.at.isBefore(now.minus(DAY)) }
-        if (day.size >= DAY_COUNT && day.count { it.signals >= 2 } >= DAY_WITH_SIGNS) return true
-        val week = rows.filter { !it.at.isBefore(now.minus(WEEK)) }
+        val real = rows.filter { !it.at.isAfter(now.plus(CLOCK_SKEW)) }
+        val burst = real.filter { !it.at.isBefore(now.minus(BURST)) }
+        if (burst.size >= BURST_COUNT && burst.count { it.signals >= 2 } >= BURST_WITH_SIGNS) return true
+        val week = real.filter { !it.at.isBefore(now.minus(WEEK)) }
         return week.size >= WEEK_COUNT && week.count { it.signals >= 1 } * 2 > week.size
     }
+
+    /** How many of [rows] in the last week looked like ads: the number the owner and History are told. */
+    fun adLike(rows: List<NoticeRow>, now: Instant): Int =
+        rows.count { it.signals >= 1 && !it.at.isBefore(now.minus(WEEK)) && !it.at.isAfter(now.plus(CLOCK_SKEW)) }
 }

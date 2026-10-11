@@ -47,7 +47,7 @@ class Evaluator @Inject constructor(
         // A notice that counts is written down before the detectors look (finding #92); only counts and signals, never its words.
         val recent = if (event != null && counted) {
             val category = snapshot.apps.firstOrNull { it.packageName == event.packageName }?.category?.takeIf { it >= 0 }
-            notices.record(event.packageName, event.key, started, NoticeRules.signals(event, category))
+            notices.record(event.packageName, event.key, event.whenMillis, started, NoticeRules.signals(event, category))
             notices.since(event.packageName, started.minus(NoticeRules.WEEK))
         } else {
             emptyList()

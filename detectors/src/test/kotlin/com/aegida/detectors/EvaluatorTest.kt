@@ -24,11 +24,19 @@ class EvaluatorTest {
     @Test fun threeAdLikeNoticesInADayFlagTheApp() = runTest {
         val notices = FakeNoticeLog()
         val e = Evaluator(setOf(NoisyAppDetector()), { now }, FakeSetupStore(), FakeFeedStore(Fixtures.feed()), log, outbox, FakeBaselines(), notices)
-        fun ad(n: Int) = Fixtures.message("File converter is ready! Convert", title = "Image to PDF").copy(key = "0|com.android.shell|$n|null|1", importance = 4)
+        fun ad(n: Int) = Fixtures.message("File converter is ready! Convert", title = "Image to PDF").copy(key = "0|com.android.shell|$n|null|1", importance = 4, whenMillis = n.toLong())
         assertEquals(emptyList<Problem>(), e.run(Trigger.NotificationPosted, snapshot(), ad(1)).map { it.key.problem })
         assertEquals(emptyList<Problem>(), e.run(Trigger.NotificationPosted, snapshot(), ad(2)).map { it.key.problem })
         assertEquals(listOf(Problem.NoisyApp), e.run(Trigger.NotificationPosted, snapshot(), ad(3)).map { it.key.problem })
         assertEquals(3, notices.rows.size)
+    }
+
+    @Test fun theSameNoticeComingBackFromASnoozeIsNotCountedAgain() = runTest { // finding #93
+        val notices = FakeNoticeLog()
+        val e = Evaluator(setOf(NoisyAppDetector()), { now }, FakeSetupStore(), FakeFeedStore(Fixtures.feed()), log, outbox, FakeBaselines(), notices)
+        val ad = Fixtures.message("File converter is ready! Convert").copy(key = "0|x|1|null|1", importance = 4, whenMillis = 42)
+        repeat(3) { e.run(Trigger.NotificationPosted, snapshot(), ad) }
+        assertEquals(1, notices.rows.size)
     }
 
     @Test fun aNoticeThatIsNotCountedIsNotWrittenDown() = runTest {
@@ -43,7 +51,7 @@ class EvaluatorTest {
         val allow = FakeAllowList().apply { items += com.aegida.core.notice.AllowedItem(Problem.NoisyApp, "com.android.shell", "Image to PDF", now) }
         val e = Evaluator(setOf(NoisyAppDetector()), { now }, FakeSetupStore(), FakeFeedStore(Fixtures.feed()), log, outbox, FakeBaselines(), FakeNoticeLog(), allow)
         repeat(5) { n ->
-            val ad = Fixtures.message("File converter is ready! Convert").copy(key = "0|x|$n|null|1", importance = 4)
+            val ad = Fixtures.message("File converter is ready! Convert").copy(key = "0|x|$n|null|1", importance = 4, whenMillis = n.toLong())
             assertEquals(emptyList<Problem>(), e.run(Trigger.NotificationPosted, snapshot(), ad).map { it.key.problem })
         }
     }

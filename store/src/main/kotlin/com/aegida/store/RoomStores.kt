@@ -21,6 +21,7 @@ import com.aegida.core.notice.AllowList
 import com.aegida.core.notice.AllowedItem
 import com.aegida.core.notice.NoticeLog
 import com.aegida.core.notice.NoticeRow
+import com.aegida.core.notice.NoticeRules
 import com.aegida.core.store.SetupStore
 import com.aegida.core.text.Problem
 import kotlinx.serialization.encodeToString
@@ -203,21 +204,23 @@ internal class RoomOutbox(private val dao: OutboxDao) : Outbox {
 }
 
 internal class RoomNoticeLog(private val dao: NoticeDao) : NoticeLog {
-    override suspend fun record(packageName: String, key: String, at: Instant, signals: Int) {
-        val last = dao.lastAt(key)
-        // The same notice updated a moment later (a download bar, an edited text) is one notice, not a new one.
-        if (last != null && at.toEpochMilli() - last < SAME_NOTICE_MILLIS) return
-        dao.add(NoticeEntity(packageName = packageName, notifKey = key, atMillis = at.toEpochMilli(), signals = signals))
+    override suspend fun record(packageName: String, key: String, whenMillis: Long, at: Instant, signals: Int) {
+        val keyHash = hash(key)
+        val noticeHash = hash(key + "|" + whenMillis)
+        if (dao.seen(noticeHash) > 0) return // the same notice coming back (a snooze, a repost): not new
+        val last = dao.lastAt(keyHash)
+        if (last != null && at.toEpochMilli() - last < NoticeRules.SAME_NOTICE.toMillis()) return // an update a moment later
+        dao.add(NoticeEntity(packageName = packageName, keyHash = keyHash, noticeHash = noticeHash, atMillis = at.toEpochMilli(), signals = signals))
     }
 
     override suspend fun since(packageName: String, from: Instant): List<NoticeRow> =
         dao.since(packageName, from.toEpochMilli()).map { NoticeRow(Instant.ofEpochMilli(it.atMillis), it.signals) }
 
-    override suspend fun prune(before: Instant): Int = dao.prune(before.toEpochMilli())
+    override suspend fun prune(before: Instant, notAfter: Instant): Int = dao.prune(before.toEpochMilli(), notAfter.toEpochMilli())
 
-    private companion object {
-        const val SAME_NOTICE_MILLIS = 10 * 60 * 1000L
-    }
+    /** The key is never stored as it is: it can carry an app's own tag (finding #93). */
+    private fun hash(text: String): String =
+        java.security.MessageDigest.getInstance("SHA-256").digest(text.toByteArray()).take(12).joinToString("") { "%02x".format(it) }
 }
 
 internal class RoomAllowList(private val dao: AllowedDao) : AllowList {

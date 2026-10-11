@@ -27,7 +27,7 @@ class NoisyAppDetector @Inject constructor() : Detector {
         val evidence = buildMap {
             put(Evidence.PACKAGE, event.packageName)
             label?.let { put(Evidence.APP_LABEL, it) }
-            put(Evidence.NOTICES, input.notices.count { !it.at.isBefore(input.now.minus(NoticeRules.WEEK)) }.toString())
+            put(Evidence.NOTICES, NoticeRules.adLike(input.notices, input.now).toString()) // only the ones that looked like ads (finding #93)
             // One example for the warning page; cleared when the owner has seen it.
             put(Evidence.MESSAGE_TITLE, event.title.take(EXAMPLE_CHARS))
             put(Evidence.MESSAGE_AT, event.postedAt.toEpochMilli().toString())

@@ -99,12 +99,14 @@ interface OutboxDao {
 }
 
 /** One notice an app posted that Aegida counted (finding #92): when and how many ad signals, never its words. */
-@Entity(tableName = "notice", indices = [Index("packageName", "atMillis"), Index("notifKey")])
+@Entity(tableName = "notice", indices = [Index("packageName", "atMillis"), Index("keyHash"), Index("noticeHash")])
 data class NoticeEntity(
     @androidx.room.PrimaryKey(autoGenerate = true) val rowId: Long = 0,
     val packageName: String,
-    /** The notification's own key, so the same notice updated a moment later is not counted twice. */
-    val notifKey: String,
+    /** A hash of the notification's key (which can carry the app's own tag), so an update a moment later is not counted twice. */
+    val keyHash: String,
+    /** A hash of the key and the notice's own time, so the same notice coming back (after a snooze) is not new (finding #93). */
+    val noticeHash: String,
     val atMillis: Long,
     val signals: Int,
 )
@@ -114,14 +116,17 @@ interface NoticeDao {
     @Insert
     suspend fun add(row: NoticeEntity)
 
-    @Query("SELECT atMillis FROM notice WHERE notifKey = :key ORDER BY atMillis DESC LIMIT 1")
-    suspend fun lastAt(key: String): Long?
+    @Query("SELECT atMillis FROM notice WHERE keyHash = :keyHash ORDER BY atMillis DESC LIMIT 1")
+    suspend fun lastAt(keyHash: String): Long?
+
+    @Query("SELECT COUNT(*) FROM notice WHERE noticeHash = :noticeHash")
+    suspend fun seen(noticeHash: String): Int
 
     @Query("SELECT * FROM notice WHERE packageName = :packageName AND atMillis >= :fromMillis ORDER BY atMillis")
     suspend fun since(packageName: String, fromMillis: Long): List<NoticeEntity>
 
-    @Query("DELETE FROM notice WHERE atMillis < :beforeMillis")
-    suspend fun prune(beforeMillis: Long): Int
+    @Query("DELETE FROM notice WHERE atMillis < :beforeMillis OR atMillis > :notAfterMillis")
+    suspend fun prune(beforeMillis: Long, notAfterMillis: Long): Int
 }
 
 /** Something the owner told Aegida to leave alone, shown in My settings with a way to take it back. */

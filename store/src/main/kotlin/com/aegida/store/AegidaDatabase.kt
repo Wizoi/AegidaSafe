@@ -38,9 +38,10 @@ abstract class AegidaDatabase : RoomDatabase() {
         /** The notice counts and the list of things the owner said are fine (finding #92). Nothing existing is touched. */
         val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL("CREATE TABLE IF NOT EXISTS `notice` (`rowId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `packageName` TEXT NOT NULL, `notifKey` TEXT NOT NULL, `atMillis` INTEGER NOT NULL, `signals` INTEGER NOT NULL)")
+                db.execSQL("CREATE TABLE IF NOT EXISTS `notice` (`rowId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `packageName` TEXT NOT NULL, `keyHash` TEXT NOT NULL, `noticeHash` TEXT NOT NULL, `atMillis` INTEGER NOT NULL, `signals` INTEGER NOT NULL)")
                 db.execSQL("CREATE INDEX IF NOT EXISTS `index_notice_packageName_atMillis` ON `notice` (`packageName`, `atMillis`)")
-                db.execSQL("CREATE INDEX IF NOT EXISTS `index_notice_notifKey` ON `notice` (`notifKey`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_notice_keyHash` ON `notice` (`keyHash`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_notice_noticeHash` ON `notice` (`noticeHash`)")
                 db.execSQL("CREATE TABLE IF NOT EXISTS `allowed` (`problem` TEXT NOT NULL, `subject` TEXT NOT NULL, `label` TEXT NOT NULL, `atMillis` INTEGER NOT NULL, PRIMARY KEY(`problem`, `subject`))")
             }
         }

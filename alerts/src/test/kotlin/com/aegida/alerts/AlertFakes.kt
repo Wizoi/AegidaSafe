@@ -119,13 +119,23 @@ class FakeBaselines(var value: com.aegida.core.model.Baseline? = null) : com.aeg
     override suspend fun save(baseline: com.aegida.core.model.Baseline) { value = baseline }
 }
 
-/** Behaves like the real log: every call is a notice (the ten-minute update rule is the store's, tested there). */
+/** Behaves like the real log (RoomNoticeLog): the same notice coming back is not new, an update within NoticeRules.SAME_NOTICE neither. */
 class FakeNoticeLog : com.aegida.core.notice.NoticeLog {
-    val rows = mutableListOf<Triple<String, java.time.Instant, Int>>()
-    override suspend fun record(packageName: String, key: String, at: java.time.Instant, signals: Int) { rows += Triple(packageName, at, signals) }
+    data class Row(val packageName: String, val key: String, val whenMillis: Long, val at: java.time.Instant, val signals: Int)
+    val rows = mutableListOf<Row>()
+    override suspend fun record(packageName: String, key: String, whenMillis: Long, at: java.time.Instant, signals: Int) {
+        if (rows.any { it.key == key && it.whenMillis == whenMillis }) return
+        val last = rows.filter { it.key == key }.maxOfOrNull { it.at }
+        if (last != null && java.time.Duration.between(last, at) < com.aegida.core.notice.NoticeRules.SAME_NOTICE) return
+        rows += Row(packageName, key, whenMillis, at, signals)
+    }
     override suspend fun since(packageName: String, from: java.time.Instant) =
-        rows.filter { it.first == packageName && !it.second.isBefore(from) }.map { com.aegida.core.notice.NoticeRow(it.second, it.third) }
-    override suspend fun prune(before: java.time.Instant): Int { val n = rows.size; rows.removeAll { it.second.isBefore(before) }; return n - rows.size }
+        rows.filter { it.packageName == packageName && !it.at.isBefore(from) }.sortedBy { it.at }.map { com.aegida.core.notice.NoticeRow(it.at, it.signals) }
+    override suspend fun prune(before: java.time.Instant, notAfter: java.time.Instant): Int {
+        val n = rows.size
+        rows.removeAll { it.at.isBefore(before) || it.at.isAfter(notAfter) }
+        return n - rows.size
+    }
 }
 
 class FakeAllowList : com.aegida.core.notice.AllowList {

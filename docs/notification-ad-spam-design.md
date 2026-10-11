@@ -1,6 +1,6 @@
 # Ads that arrive as notifications: design (draft for Kevin, Oct 11, 2026)
 
-Status: **built (Oct 11) with the first numbers below; not released.** Findings #92. Kevin's answers: keep the numbers, a new table, nothing for ads inside apps, an owner allow list in My settings with the guardian told on each allow.
+Status: **built (Oct 11); not released. Changed after review (findings #93): a notice scores only with a sign in the notice itself (promo category, ad word in the channel, pushy or scary words), the other signs only add; "news" and broad words dropped; the short window is 1 hour, not 24 (Kevin).** Findings #92. Kevin's answers: keep the numbers, a new table, nothing for ads inside apps, an owner allow list in My settings with the guardian told on each allow.
 
 ## What happened
 

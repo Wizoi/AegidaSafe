@@ -43,7 +43,7 @@ class DailyCheck @Inject constructor(
         val pruned = history.prune(now.minus(HISTORY_KEPT))
         val findingsPruned = findings.prune(now.minus(HISTORY_KEPT))
         val runsPruned = checkLog.prune(now.minus(CHECK_LOG_KEPT))
-        notices.prune(now.minus(NoticeRules.WEEK)) // counts of notices older than a week are no longer needed (finding #92)
+        notices.prune(now.minus(NoticeRules.WEEK), now.plus(NoticeRules.CLOCK_SKEW)) // older than a week, or from a clock that was ahead (findings #92, #93)
         // Checked in. Alerts on: push the "hasn't checked in" message two days further out. Alerts off: cancel it again,
         // which retries a cancel that failed offline (always sent while off; one tiny request a day). A welcome that failed is retried here too.
         val heartbeat = gate.run {

@@ -28,6 +28,8 @@ object NotificationMapper {
             ongoing = notification.flags and (Notification.FLAG_ONGOING_EVENT or Notification.FLAG_FOREGROUND_SERVICE) != 0,
             conversation = facts?.conversation ?: false,
             sentimentNegative = facts?.sentimentNegative ?: false,
+            groupSummary = notification.flags and Notification.FLAG_GROUP_SUMMARY != 0,
+            whenMillis = notification.`when`,
         )
     }
 

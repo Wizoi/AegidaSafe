@@ -27,7 +27,7 @@ class PopupSpamDetector @Inject constructor() : Detector {
         val channel = event.channelId ?: return emptyList()
         if (!channel.startsWith(SITE_CHANNEL_PREFIX)) return emptyList()
         val site = WebsiteSites.siteOf(channel) ?: return emptyList()
-        val scary = SCARE_WORDS.containsMatchIn(event.title + " " + event.text)
+        val scary = com.aegida.core.model.ScareWords.REGEX.containsMatchIn(event.title + " " + event.text)
         val recorded = input.baseline?.websites
         val problem = when {
             recorded == null -> if (site in input.setup.allowedSites && !scary) return emptyList() else Problem.SiteNotifications
@@ -56,8 +56,5 @@ class PopupSpamDetector @Inject constructor() : Detector {
     companion object {
         const val SITE_CHANNEL_PREFIX = "web:"
 
-        private val SCARE_WORDS = Regex(
-            """(?i)\b(virus(es)?|infected|malware|hacked|trojan|spyware)\b|battery (is )?damaged|security (alert|warning)|clean (your|now|it)|your (phone|device) (is|has been)""",
-        )
     }
 }

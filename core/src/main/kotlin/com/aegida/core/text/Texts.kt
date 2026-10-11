@@ -137,6 +137,8 @@ object Texts {
     object History {
         const val WEBSITE_WAS = "The website was %s."
         const val NOISY = "The %1\$s app sent %2\$s notices that look like ads."
+        const val NOISY_NO_COUNT = "The %s app sent notices that look like ads."
+        const val APP_IS = "The %s app."
         const val LINK_WENT = "The link went to %s."
         const val TITLE = "History"
         const val EMPTY = "Nothing has happened yet. When Aegida does something for you, it will show here."

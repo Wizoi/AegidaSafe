@@ -49,7 +49,8 @@ class AlertPipeline @Inject constructor(
             }
             // Once the owner has seen it, a warning that keeps happening is quiet for a while (an app flooding her with ads would warn on every notice).
             val quiet = finding.key.problem.quietAfterSeen
-            if (stored != null && quiet != null && now.isBefore(stored.lastSeen.plus(quiet))) return@forEach
+            // A seen time from a clock that was ahead does not count (R14).
+            if (stored != null && quiet != null && now.isBefore(stored.lastSeen.plus(quiet)) && !stored.lastSeen.isAfter(now.plus(CLOCK_SKEW))) return@forEach
             alerted++
             val detail = HistoryDetail.of(finding.key.problem, finding.evidence) // what it was, kept in History
             if (finding.severity >= Severity.NeedsTap) {
@@ -82,25 +83,30 @@ class AlertPipeline @Inject constructor(
     }
 
     /**
+     * Tells the guardian the owner said an app is fine (Kevin, Oct 11), so the list in My settings is never a secret. Sent, or queued
+     * when offline, as its own kind ([Problem.AppAllowed]) with a History line that says the app. Nothing is sent while alerts are off.
+     */
+    suspend fun tellAllowed(label: String, now: java.time.Instant) {
+        val detail = Texts.History.APP_IS.format("“$label”")
+        val settings = guardians.current()
+        val topic = settings.firstTopic?.takeIf { settings.alertsOn } ?: return
+        val message = GuardianMessage(title = guardianName(settings), body = Texts.Guardian.ALLOWED.format(guardianName(settings), label), urgent = false)
+        when (ntfy.send(topic, message)) {
+            SendResult.Delivered -> history.add(HistoryEntry(now, Problem.AppAllowed, Outcome.GuardianTold, detail))
+            is SendResult.NotDelivered -> {
+                outbox.add(QueuedMessage(0, topic.value, message.title, message.body, message.urgent, Problem.AppAllowed, now, 1, now))
+                history.add(HistoryEntry(now, Problem.AppAllowed, Outcome.GuardianNotReached, detail))
+            }
+        }
+    }
+
+    /**
      * She said a change was hers. A guardian who was told about *this* warning hears that, so an alarm about a
      * family-approved install does not need a phone call to settle. Nothing is sent to a guardian who was never told
      * (alerts were off, the repeat back-off held it back, or the kind has no guardian text), nor while the original alarm is still waiting in the
      * outbox (the all-clear must not arrive first). For urgent kinds the words never say everything is fine: it may
      * be a scammer coaching her (findings #50).
      */
-    /** The guardian is always told when the owner says an app is fine (Kevin, Oct 11), so the list in My settings is never a secret. */
-    suspend fun tellAllowed(label: String) {
-        val settings = guardians.current()
-        val topic = settings.firstTopic?.takeIf { settings.alertsOn } ?: return
-        val now = clock.now()
-        val app = Texts.Home.cleanLabel(label).ifEmpty { "unknown" }
-        val message = GuardianMessage(title = guardianName(settings), body = Texts.Guardian.ALLOWED.format(guardianName(settings), app), urgent = false)
-        when (ntfy.send(topic, message)) {
-            SendResult.Delivered -> Unit
-            is SendResult.NotDelivered -> outbox.add(QueuedMessage(0, topic.value, message.title, message.body, message.urgent, Problem.NoisyApp, now, 1, now))
-        }
-    }
-
     suspend fun tellConfirmed(key: FindingKey) {
         val problem = key.problem
         val settings = guardians.current()

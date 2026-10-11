@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 3,
-    "identityHash": "446f19d24bc44bcc07746f8800d50881",
+    "identityHash": "1c70f7ad41b9e25500a305e191a2d952",
     "entities": [
       {
         "tableName": "check_run",
@@ -240,7 +240,7 @@
       },
       {
         "tableName": "notice",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`rowId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `packageName` TEXT NOT NULL, `notifKey` TEXT NOT NULL, `atMillis` INTEGER NOT NULL, `signals` INTEGER NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`rowId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `packageName` TEXT NOT NULL, `keyHash` TEXT NOT NULL, `noticeHash` TEXT NOT NULL, `atMillis` INTEGER NOT NULL, `signals` INTEGER NOT NULL)",
         "fields": [
           {
             "fieldPath": "rowId",
@@ -255,8 +255,14 @@
             "notNull": true
           },
           {
-            "fieldPath": "notifKey",
-            "columnName": "notifKey",
+            "fieldPath": "keyHash",
+            "columnName": "keyHash",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "noticeHash",
+            "columnName": "noticeHash",
             "affinity": "TEXT",
             "notNull": true
           },
@@ -291,13 +297,22 @@
             "createSql": "CREATE INDEX IF NOT EXISTS `index_notice_packageName_atMillis` ON `${TABLE_NAME}` (`packageName`, `atMillis`)"
           },
           {
-            "name": "index_notice_notifKey",
+            "name": "index_notice_keyHash",
             "unique": false,
             "columnNames": [
-              "notifKey"
+              "keyHash"
             ],
             "orders": [],
-            "createSql": "CREATE INDEX IF NOT EXISTS `index_notice_notifKey` ON `${TABLE_NAME}` (`notifKey`)"
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_notice_keyHash` ON `${TABLE_NAME}` (`keyHash`)"
+          },
+          {
+            "name": "index_notice_noticeHash",
+            "unique": false,
+            "columnNames": [
+              "noticeHash"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_notice_noticeHash` ON `${TABLE_NAME}` (`noticeHash`)"
           }
         ],
         "foreignKeys": []
@@ -345,7 +360,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '446f19d24bc44bcc07746f8800d50881')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '1c70f7ad41b9e25500a305e191a2d952')"
     ]
   }
 }

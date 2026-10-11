@@ -86,6 +86,13 @@ class AlertPipelineTest {
         assertEquals(2, owner.shown.size)
     }
 
+    @Test fun aSeenTimeFromAClockThatWasAheadDoesNotKeepItQuiet() = runTest { // finding #93
+        pipeline.handle(listOf(noisy), setOf(DetectorId.NoisyApp))
+        findings.put(findings.get(noisy.key)!!.copy(state = FindingState.Acknowledged, lastSeen = now.plus(Duration.ofDays(30))))
+        pipeline.handle(listOf(noisy), setOf(DetectorId.NoisyApp))
+        assertEquals(2, owner.shown.size)
+    }
+
     @Test fun theGuardianIsToldWhichAppAndTheOwnerIsToldNothingElse() = runTest {
         pipeline.handle(listOf(noisy), setOf(DetectorId.NoisyApp))
         assertEquals(listOf("An app (“Image to PDF”) keeps showing Ruth ads as notices. Aegida told Ruth how to turn them off."), http.bodies)

@@ -173,8 +173,9 @@ class DailyCheckTest {
 
     @Test fun noticeCountsOlderThanAWeekAreDropped() = runTest { // finding #92
         val notices = FakeNoticeLog().apply {
-            record("com.example.pdf", "k1", now.minus(Duration.ofDays(8)), 2)
-            record("com.example.pdf", "k2", now.minus(Duration.ofDays(1)), 2)
+            record("com.example.pdf", "k1", 1, now.minus(Duration.ofDays(8)), 2)
+            record("com.example.pdf", "k2", 2, now.minus(Duration.ofDays(1)), 2)
+            record("com.example.pdf", "k3", 3, now.plus(Duration.ofDays(3)), 2) // a clock that was ahead
         }
         val withNotices = DailyCheck(
             FeedUpdater(http, FeedVerifier(keys.public.encoded), feedStore) { now },

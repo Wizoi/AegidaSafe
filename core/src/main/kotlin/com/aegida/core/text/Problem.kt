@@ -35,6 +35,11 @@ enum class Problem(
         fix = Fix.AppNotices,
         quietAfterSeen = java.time.Duration.ofDays(7),
     ),
+    /**
+     * Not a warning: the owner told Aegida an app is fine (finding #93). Used only for her History line and for the note to the
+     * guardian, so a queued allow note is its own kind and never counts as a NoisyApp note for back-off.
+     */
+    AppAllowed(Severity.Info, "You told Aegida an app is fine.", null, whatHappened = "You said an app is fine"),
     ScamLink(
         Severity.NeedsTap,
         "A message has a link that looks like a scam. Please don't tap it.",

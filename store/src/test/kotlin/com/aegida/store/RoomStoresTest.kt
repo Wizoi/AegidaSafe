@@ -23,6 +23,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
@@ -91,26 +92,36 @@ class RoomStoresTest {
         assertEquals(listOf(with, without), log.since(now.minus(Duration.ofDays(2))))
     }
 
-    /** Finding #92: the notices an app posted, as counts and signals only. */
-    @Test fun noticesAreKeptPerAppByTimeAndTheSameNoticeUpdatedWithinTenMinutesCountsOnce() = runTest {
+    /** Findings #92, #93: the notices an app posted, as counts and signals only; the same notice is counted once. */
+    @Test fun aNoticeIsCountedOnceWhetherUpdatedSoonAfterOrComingBackLater() = runTest {
         val log = RoomNoticeLog(db.notices())
-        log.record("com.example.pdf", "k1", now.minus(Duration.ofHours(2)), 2)
-        log.record("com.example.pdf", "k1", now.minus(Duration.ofHours(2)).plusSeconds(300), 2) // the same notice updated: one notice
-        log.record("com.example.pdf", "k1", now.minus(Duration.ofHours(1)), 3)                 // the same id posted again an hour later: a new notice
-        log.record("com.example.pdf", "k2", now.minus(Duration.ofMinutes(5)), 0)
-        log.record("org.other", "k3", now, 1)
+        val t = now.minus(Duration.ofHours(3))
+        log.record("com.example.pdf", "k1", 100, t, 2)
+        log.record("com.example.pdf", "k1", 101, t.plusSeconds(300), 2)           // updated five minutes later: the same notice
+        log.record("com.example.pdf", "k1", 100, t.plus(Duration.ofHours(2)), 2)   // the same one back from a snooze: not new
+        log.record("com.example.pdf", "k1", 200, t.plus(Duration.ofHours(1)), 3)   // the same id posted again an hour later: new
+        log.record("com.example.pdf", "k2", 5, now.minus(Duration.ofMinutes(5)), 0)
+        log.record("org.other", "k3", 1, now, 1)
         assertEquals(
-            listOf(NoticeRow(now.minus(Duration.ofHours(2)), 2), NoticeRow(now.minus(Duration.ofHours(1)), 3), NoticeRow(now.minus(Duration.ofMinutes(5)), 0)),
+            listOf(NoticeRow(t, 2), NoticeRow(t.plus(Duration.ofHours(1)), 3), NoticeRow(now.minus(Duration.ofMinutes(5)), 0)),
             log.since("com.example.pdf", now.minus(Duration.ofDays(1))),
         )
-        assertEquals(emptyList<NoticeRow>(), log.since("com.example.pdf", now))
     }
 
-    @Test fun oldNoticesArePrunedByAge() = runTest {
+    @Test fun theNotificationKeyIsNeverStoredAsItIs() = runTest { // it can carry an app's own tag (finding #93)
+        RoomNoticeLog(db.notices()).record("com.example.pdf", "0|com.example.pdf|7|user-4471|10123", 1, now, 1)
+        db.query("SELECT * FROM notice", null).use { c ->
+            assertTrue(c.moveToFirst())
+            for (i in 0 until c.columnCount) assertTrue(c.columnNames[i], c.getString(i)?.contains("user-4471") != true)
+        }
+    }
+
+    @Test fun oldNoticesAndOnesFromAClockThatWasAheadArePruned() = runTest {
         val log = RoomNoticeLog(db.notices())
-        log.record("a", "k1", now.minus(Duration.ofDays(8)), 1)
-        log.record("a", "k2", now.minus(Duration.ofDays(1)), 1)
-        assertEquals(1, log.prune(now.minus(Duration.ofDays(7))))
+        log.record("a", "k1", 1, now.minus(Duration.ofDays(8)), 1)
+        log.record("a", "k2", 2, now.minus(Duration.ofDays(1)), 1)
+        log.record("a", "k3", 3, now.plus(Duration.ofDays(2)), 1)
+        assertEquals(2, log.prune(now.minus(Duration.ofDays(7)), now.plus(Duration.ofMinutes(5))))
         assertEquals(1, log.since("a", now.minus(Duration.ofDays(30))).size)
     }
 

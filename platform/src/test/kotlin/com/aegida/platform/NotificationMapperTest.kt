@@ -49,6 +49,13 @@ class NotificationMapperTest {
         assertEquals(null, map(builder().setContentTitle("Hi").build()).category)
     }
 
+    @Test fun aGroupSummaryAndTheNoticesOwnTimeAreRead() { // finding #93
+        val summary = builder().setContentTitle("3 new").setGroup("g").setGroupSummary(true).setWhen(1234L).build()
+        assertEquals(true, map(summary).groupSummary)
+        assertEquals(1234L, map(summary).whenMillis)
+        assertEquals(false, map(builder().setContentTitle("Hi").build()).groupSummary)
+    }
+
     @Test fun whatThePhoneKnowsAboutTheNoticeIsPassedThrough() {
         val facts = com.aegida.platform.notify.RankingFacts(channelName = "Special offers", channelDescription = "Deals", importance = 4, conversation = false, sentimentNegative = true)
         val event = NotificationMapper.toEvent("k", "p", builder().setContentTitle("Hi").build(), postedAt.toEpochMilli(), facts)

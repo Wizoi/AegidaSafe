@@ -201,6 +201,19 @@ class ScreensTest(private val dark: Boolean, private val fontScale: Float) {
         compose.onNodeWithText(Texts.Settings.ALLOWED_TITLE).assertDoesNotExistOrFail()
     }
 
+    @Test fun anAllowedAppsOwnLabelIsCleanedBeforeItIsShown() { // an app picks its label (R17, finding #93)
+        val item = com.aegida.core.notice.AllowedItem(Problem.NoisyApp, "com.example.pdf", "Image\u2028to PDF", now)
+        show {
+            SettingsScreen(
+                Setup(null, emptySet(), pictureId = picture),
+                Guardians(alertsOn = false, ownerName = "Ruth", firstTopic = null, firstGuardianName = "Kevin"),
+                filterOn = true, onChangePicture = {}, onChangeGuardian = {}, onResendInvite = {}, onAlerts = {}, onFilterHelp = {}, onHowItWorks = {},
+                listsUpdatedAt = null, zone = zone, locale = locale, allowed = listOf(item),
+            )
+        }
+        reachable("Image to PDF")
+    }
+
     @Test fun homeWithSeveralProblemsCountsThemAndStartsWithTheFirst() {
         val first = finding(Problem.ListenerOff, minutesOld = 60)
         var fixed: Finding? = null
