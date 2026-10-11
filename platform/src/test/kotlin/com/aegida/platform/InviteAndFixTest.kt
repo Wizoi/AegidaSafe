@@ -48,6 +48,9 @@ class InviteAndFixTest {
         // Kevin, Oct 10: an https://ntfy.sh/<topic> link opens ntfy's web page, not the Android app, so the guardian never subscribed in the app.
         assertTrue("the topic name to type in the app", body.contains("type this name:\n   ${topic.value}"))
         assertTrue("the link that opens the Android app already subscribed", body.contains("ntfy://ntfy.sh/${topic.value}"))
+        // Kevin, Oct 11: Mom said no to alerts in setup and the guardian was never told; the email is written before she answers, so it says what to expect either way.
+        assertTrue("it says a first message arrives when it is on", body.contains("you will get a first message saying it is set up"))
+        assertTrue("and what to do if none comes", body.contains("If you do not get that message, I may have left it off, so please ask me."))
         assertTrue("the guardian is asked to save it for other devices", body.contains("Please save this email"))
         // The web page is offered only as an extra for a computer, after the app steps, and says what it cannot do.
         assertTrue("the web page is offered for a computer", body.contains("3. Optional, to read them on a computer too: open https://ntfy.sh/${topic.value} in a web browser"))

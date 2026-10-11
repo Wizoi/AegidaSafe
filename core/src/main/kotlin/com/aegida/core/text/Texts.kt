@@ -240,7 +240,7 @@ object Texts {
         const val CHOOSE = "Pick your email app"
         const val SUBJECT = "%s has picked you as a guardian"
         const val BODY = "Hi %s,\n\n" +
-            "I've picked you as my guardian. You'll get a message if my phone needs help.\n\n" +
+            "I've picked you as my guardian. If I have turned on messages in my Aegida app, you will get a first message saying it is set up, and then a message if my phone needs help. If you do not get that message, I may have left it off, so please ask me.\n\n" +
             "1. Get the free ntfy app.\n" +
             "   Android: https://play.google.com/store/apps/details?id=io.heckel.ntfy\n" +
             "   iPhone: https://apps.apple.com/app/ntfy/id1625396347\n\n" +
