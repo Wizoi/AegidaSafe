@@ -1,6 +1,6 @@
 # Ads that arrive as notifications: design (draft for Kevin, Oct 11, 2026)
 
-Status: **research and design only, nothing built.** Findings #92.
+Status: **built (Oct 11) with the first numbers below; not released.** Findings #92. Kevin's answers: keep the numbers, a new table, nothing for ads inside apps, an owner allow list in My settings with the guardian told on each allow.
 
 ## What happened
 

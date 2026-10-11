@@ -116,6 +116,9 @@
 
 - **What an alert says (Kevin, Oct 10):** the owner's warning and History say what it was: the app, who a message was from, a few words of it with the link taken out, when, or the website. The guardian gets the app name and a masked web address (first two letters, five stars, the ending), never message words or a whole address. History gains a detail column (Room migration 1 to 2). A new website's notification is snoozed for an hour, not deleted.
 
+- **Ads that arrive as notices (Kevin, Oct 11):** Aegida counts notices per app (time and number of ad signs only, a week) and warns about an app that keeps sending ad-like ones, naming it, with buttons to its notice settings and App info. Nothing is hidden. The owner can say an app is fine: it goes on a list in My settings with Warn me again, and the guardian is told each time. Only this kind can be allowed, never urgent kinds. New tables `notice` and `allowed` (migration 2 to 3).
+- **Designs and final reviews (Kevin, Oct 11):** designs and final code reviews run on Opus 5.5 with effort high; making the changes may run on Sonnet 5.5 at medium.
+
 ## Open / next session
 - Create the Gradle project and run the **emulator spike**: confirm each `adb`/`cmd` scenario works on the API 36 Play image.
 - Kevin: look for an old Samsung phone on One UI 6+; look into Samsung Remote Test Lab.
