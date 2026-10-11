@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Test fixture only (finding #92). appCategory=image so it reads like the "Image to PDF" app in Mom's screenshots. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <application android:label="Image to PDF (fixture)" android:appCategory="image">
+        <activity android:name=".PostActivity" android:exported="true" android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+    </application>
+</manifest>
