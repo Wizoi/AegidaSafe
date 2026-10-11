@@ -1,0 +1,4 @@
+What's new:
+• If website protection is off, My settings now has a big button to turn it on
+• The Samsung Auto Blocker step is clearer: Aegida cannot see whether it is on, and will only note what you tell it
+• The Play Store text and the How does this work? page now show how to say the name: AY-gih-dah
