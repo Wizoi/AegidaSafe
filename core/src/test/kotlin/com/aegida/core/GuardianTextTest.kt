@@ -25,6 +25,7 @@ class GuardianTextTest {
         put("CONFIRMED_URGENT", Texts.Guardian.CONFIRMED_URGENT.format(owner))
         put("CHANGED", Texts.Guardian.CHANGED.format(owner))
         put("NOT_CHECKED_IN", Texts.Guardian.NOT_CHECKED_IN.format(owner))
+        put("ALLOWED", Texts.Guardian.ALLOWED.format(owner, "Image to PDF"))
     }
 
     @Test fun noSentenceAGuardianReadsAssumesHowTheOwnerIsAddressed() {
@@ -48,6 +49,19 @@ class GuardianTextTest {
         assertEquals(false, Problem.SiteNotifications.forGuardian(owner, null, "https://news.example")!!.contains("news"))
     }
 
+    /** Kevin, Oct 11 (finding #92): a note about an app that keeps sending ads as notices, and one when the owner says an app is fine. */
+    @Test fun theNoisyAppNoteNamesTheAppAndSaysWhatAegidaDid() {
+        assertEquals("An app keeps showing Ruth ads as notices. Aegida told Ruth how to turn them off.", Problem.NoisyApp.forGuardian(owner))
+        assertEquals("An app (“Image to PDF”) keeps showing Ruth ads as notices. Aegida told Ruth how to turn them off.", Problem.NoisyApp.forGuardian(owner, "Image to PDF"))
+    }
+
+    @Test fun theAllowedNoteNamesTheAppAndLeavesTheCallToTheGuardian() {
+        assertEquals(
+            "Ruth told Aegida that an app (“Image to PDF”) is fine, so Aegida will stop warning about it. If that surprises you, it may be a good time to ask Ruth.",
+            Texts.Guardian.ALLOWED.format(owner, "Image to PDF"),
+        )
+    }
+
     @Test fun everySentenceNamesTheOwner() {
         val missing = everySentence().filterNot { it.value.contains(owner) }.keys
         assertEquals(emptySet<String>(), missing)
@@ -55,7 +69,7 @@ class GuardianTextTest {
 
     @Test fun onlyTheSeriousMessagesSayPleaseCall() {
         val text = everySentence()
-        for (gentle in listOf("STILL_OPEN", "NOT_CHECKED_IN")) {
+        for (gentle in listOf("STILL_OPEN", "NOT_CHECKED_IN", "ALLOWED")) {
             assertFalse("$gentle should leave the call to the guardian", text.getValue(gentle).contains("lease call", ignoreCase = true))
         }
         for (firm in listOf("STILL_OPEN_URGENT", "CHANGED", "CONFIRMED_URGENT")) {

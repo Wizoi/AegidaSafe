@@ -82,4 +82,16 @@ data class NotificationEvent(
     val title: String,
     val text: String,
     val postedAt: Instant,
+    /** What the sending app called it ("promo", "msg", ...), or null. */
+    val category: String? = null,
+    /** The notification channel's own name and description, as the sending app wrote them, or null. */
+    val channelName: String? = null,
+    val channelDescription: String? = null,
+    /** What the phone does with it: 4 or more is a pop-up on the screen. 0 when not read. */
+    val importance: Int = 0,
+    /** A steady notice (a music player, a download) or a chat. */
+    val ongoing: Boolean = false,
+    val conversation: Boolean = false,
+    /** The phone's own learning says the owner tends to dismiss this app's notices. */
+    val sentimentNegative: Boolean = false,
 )

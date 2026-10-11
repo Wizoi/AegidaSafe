@@ -77,6 +77,7 @@ class PublicPagesTest {
             Texts.Guardian.SET_UP, Texts.Guardian.STILL_OPEN, Texts.Guardian.STILL_OPEN_URGENT, Texts.Guardian.CONFIRMED,
             Texts.Guardian.CONFIRMED_URGENT, Texts.Guardian.CHANGED, Texts.Guardian.NOT_CHECKED_IN,
         ).map { it.format("Ruth") } +
+            listOf(Problem.NoisyApp.forGuardian("Ruth", "Image to PDF")!!, Texts.Guardian.ALLOWED.format("Ruth", "Image to PDF")) +
             // Kevin, Oct 10: the notes that name the app and a masked address.
             listOf(Problem.ScamLink, Problem.LookalikeLink).map { it.forGuardian("Ruth", "Messages", "paypa1-help.example")!! } +
             listOf(Problem.SiteNotifications, Problem.NewWebsiteNotifications).map { it.forGuardian("Ruth", null, "paypa1-help.example")!! }

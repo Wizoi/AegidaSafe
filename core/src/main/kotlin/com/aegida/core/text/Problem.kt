@@ -21,7 +21,20 @@ enum class Problem(
     val hidesNotification: Boolean = false,
     /** What "Fix my phone" does for it. */
     val fix: Fix = Fix.None,
+    /**
+     * After the owner has seen it, the same warning is not raised again for this long, even if it keeps happening (an app that keeps
+     * sending ads as notices would otherwise warn on every notice). Null: it comes back as soon as it is seen again.
+     */
+    val quietAfterSeen: java.time.Duration? = null,
 ) {
+    NoisyApp(
+        Severity.NeedsTap,
+        "An app keeps sending you ads as notices. Tap to see which one.",
+        "An app keeps showing %1\$s ads as notices. Aegida told %1\$s how to turn them off.",
+        whatHappened = "An app sent ads as notices",
+        fix = Fix.AppNotices,
+        quietAfterSeen = java.time.Duration.ofDays(7),
+    ),
     ScamLink(
         Severity.NeedsTap,
         "A message has a link that looks like a scam. Please don't tap it.",
@@ -174,6 +187,7 @@ enum class Problem(
                 base.replace("'s phone.", "'s phone$extra.")
             }
             SiteNotifications, NewWebsiteNotifications -> if (where == null) base else base.replaceFirst("A website ", "A website ($where) ")
+            NoisyApp -> if (app == null) base else base.replaceFirst("An app ", "An app ($app) ")
             else -> base
         }
     }
@@ -208,6 +222,9 @@ enum class Fix {
      * adds it to the baseline; no opens its switch and counts it as seen, because nothing would ever clear it by itself.
      */
     ConfirmEvent,
+
+    /** An app keeps sending ads as notices: its notice settings or its App info page, or leave it alone (finding #92). */
+    AppNotices,
 
     /** Say what it is and let her mark it seen ("Messages like this are scams. You can delete it."). */
     Acknowledge,

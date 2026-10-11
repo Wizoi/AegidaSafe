@@ -12,7 +12,7 @@ import java.time.Instant
  */
 object NotificationMapper {
 
-    fun toEvent(key: String, packageName: String, notification: Notification, postedAtMillis: Long): NotificationEvent {
+    fun toEvent(key: String, packageName: String, notification: Notification, postedAtMillis: Long, facts: RankingFacts? = null): NotificationEvent {
         val extras = notification.extras
         return NotificationEvent(
             key = key,
@@ -21,6 +21,13 @@ object NotificationMapper {
             title = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString().orEmpty(),
             text = textOf(notification),
             postedAt = Instant.ofEpochMilli(postedAtMillis),
+            category = notification.category,
+            channelName = facts?.channelName,
+            channelDescription = facts?.channelDescription,
+            importance = facts?.importance ?: 0,
+            ongoing = notification.flags and (Notification.FLAG_ONGOING_EVENT or Notification.FLAG_FOREGROUND_SERVICE) != 0,
+            conversation = facts?.conversation ?: false,
+            sentimentNegative = facts?.sentimentNegative ?: false,
         )
     }
 
@@ -41,3 +48,12 @@ object NotificationMapper {
     /** The key MessagingStyle.Message writes its text under (stable since API 24). */
     private const val MESSAGE_TEXT_KEY = "text"
 }
+
+/** What the phone's ranking knows about a posted notice (read by the listener from `Ranking`): its channel's name, how it is shown, and the owner's habits with it. */
+data class RankingFacts(
+    val channelName: String?,
+    val channelDescription: String?,
+    val importance: Int,
+    val conversation: Boolean,
+    val sentimentNegative: Boolean,
+)

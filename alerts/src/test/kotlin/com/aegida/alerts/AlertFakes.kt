@@ -118,3 +118,19 @@ class FakeBaselines(var value: com.aegida.core.model.Baseline? = null) : com.aeg
     override suspend fun baseline() = value
     override suspend fun save(baseline: com.aegida.core.model.Baseline) { value = baseline }
 }
+
+/** Behaves like the real log: every call is a notice (the ten-minute update rule is the store's, tested there). */
+class FakeNoticeLog : com.aegida.core.notice.NoticeLog {
+    val rows = mutableListOf<Triple<String, java.time.Instant, Int>>()
+    override suspend fun record(packageName: String, key: String, at: java.time.Instant, signals: Int) { rows += Triple(packageName, at, signals) }
+    override suspend fun since(packageName: String, from: java.time.Instant) =
+        rows.filter { it.first == packageName && !it.second.isBefore(from) }.map { com.aegida.core.notice.NoticeRow(it.second, it.third) }
+    override suspend fun prune(before: java.time.Instant): Int { val n = rows.size; rows.removeAll { it.second.isBefore(before) }; return n - rows.size }
+}
+
+class FakeAllowList : com.aegida.core.notice.AllowList {
+    val items = mutableListOf<com.aegida.core.notice.AllowedItem>()
+    override suspend fun add(item: com.aegida.core.notice.AllowedItem) { items.removeAll { it.problem == item.problem && it.subject == item.subject }; items += item }
+    override suspend fun remove(problem: com.aegida.core.text.Problem, subject: String) { items.removeAll { it.problem == problem && it.subject == subject } }
+    override suspend fun all() = items.toList()
+}

@@ -65,6 +65,32 @@ class AlertPipelineTest {
         assertEquals(listOf(expected, expected), history.entries.map { it.detail })
     }
 
+    private val noisy = Finding(
+        FindingKey(DetectorId.NoisyApp, Problem.NoisyApp, "com.example.pdf"),
+        mapOf(com.aegida.core.model.Evidence.APP_LABEL to "Image to PDF", com.aegida.core.model.Evidence.NOTICES to "5"), now.minus(Duration.ofSeconds(1)), now,
+    )
+
+    /** Finding #92: an app that keeps spamming would warn on every notice, so once the owner has seen it, it is quiet for a week. */
+    @Test fun aNoisyAppTheOwnerHasSeenIsNotRaisedAgainForAWeekButIsAfterwards() = runTest {
+        pipeline.handle(listOf(noisy), setOf(DetectorId.NoisyApp))
+        assertEquals(1, owner.shown.size)
+        findings.put(findings.get(noisy.key)!!.copy(state = FindingState.Acknowledged, lastSeen = now)) // she tapped Got it
+        http.posts.clear(); http.bodies.clear()
+
+        pipeline.handle(listOf(noisy), setOf(DetectorId.NoisyApp)) // the same hour: quiet
+        assertEquals(1, owner.shown.size)
+        assertEquals(emptyList<String>(), http.bodies)
+
+        val later = AlertPipeline(findings, owner, history, settings, NtfySender(http), outbox) { now.plus(Duration.ofDays(8)) }
+        later.handle(listOf(noisy), setOf(DetectorId.NoisyApp)) // eight days on: raised again
+        assertEquals(2, owner.shown.size)
+    }
+
+    @Test fun theGuardianIsToldWhichAppAndTheOwnerIsToldNothingElse() = runTest {
+        pipeline.handle(listOf(noisy), setOf(DetectorId.NoisyApp))
+        assertEquals(listOf("An app (“Image to PDF”) keeps showing Ruth ads as notices. Aegida told Ruth how to turn them off."), http.bodies)
+    }
+
     @Test fun aCheckKilledAfterWarningButBeforeFinishingStillTellsTheGuardianOnTheNextRun() = runTest {
         val dying = object : HttpClient by http {
             var die = true

@@ -186,6 +186,7 @@ private sealed interface Page {
     data object ChangePicture : Page
     data object ChangeGuardian : Page
     data class Advice(val finding: Finding) : Page
+    data class NoisyApp(val finding: Finding) : Page
     data class Confirm(val finding: Finding) : Page
 }
 
@@ -208,6 +209,7 @@ private fun MainContent(state: MainState, vm: MainViewModel) {
             Fix.SettingsThenAcknowledge -> { context.startSafely(screen); vm.acknowledge(finding) }
             Fix.WebsiteFilterGuide -> page = Page.FilterGuide
             Fix.Acknowledge -> page = Page.Advice(finding)
+            Fix.AppNotices -> page = Page.NoisyApp(finding)
             Fix.ConfirmChange, Fix.ConfirmEvent -> page = Page.Confirm(finding)
             Fix.CallGuardian -> context.startSafely(FixActions.callGuardian(state.guardians.firstGuardianPhone))
             Fix.None -> Unit
@@ -244,6 +246,8 @@ private fun MainContent(state: MainState, vm: MainViewModel) {
                     Tab.History -> HistoryScreen(state.history, pictureId, state.now, zone, locale)
                     Tab.Settings -> SettingsScreen(
                         state.setup, state.guardians, state.filterOn,
+                        allowed = state.allowed,
+                        onStopAllowing = vm::stopAllowing,
                         onChangePicture = { page = Page.ChangePicture },
                         onChangeGuardian = { page = Page.ChangeGuardian },
                         onResendInvite = {
@@ -288,6 +292,17 @@ private fun MainContent(state: MainState, vm: MainViewModel) {
                         page = Page.None
                     })
                     Body(Texts.Home.CONFIRM_NO_HELP)
+                }
+                is Page.NoisyApp -> {
+                    val finding = current.finding
+                    val app = finding.key.subject
+                    NoisyAppPage(
+                        pictureId, finding, state.now, zone, locale,
+                        onTurnOff = { context.startSafely(FixActions.appNotificationSettings(app)); vm.acknowledge(finding); page = Page.None },
+                        onRemove = { context.startSafely(FixActions.appDetails(app)); vm.acknowledge(finding); page = Page.None },
+                        onFine = { vm.allowApp(finding); page = Page.None },
+                        onGotIt = { vm.acknowledge(finding); page = Page.None },
+                    )
                 }
                 is Page.Advice -> AegidaScreen(pictureId) {
                     Headline(current.finding.key.problem.forMom)

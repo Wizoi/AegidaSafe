@@ -2,6 +2,7 @@ package com.aegida.store
 
 import androidx.room.Dao
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
@@ -95,4 +96,46 @@ interface OutboxDao {
 
     @Query("UPDATE outbox SET attempts = attempts + 1, lastTriedMillis = :atMillis WHERE rowId = :id")
     suspend fun failedAgain(id: Long, atMillis: Long)
+}
+
+/** One notice an app posted that Aegida counted (finding #92): when and how many ad signals, never its words. */
+@Entity(tableName = "notice", indices = [Index("packageName", "atMillis"), Index("notifKey")])
+data class NoticeEntity(
+    @androidx.room.PrimaryKey(autoGenerate = true) val rowId: Long = 0,
+    val packageName: String,
+    /** The notification's own key, so the same notice updated a moment later is not counted twice. */
+    val notifKey: String,
+    val atMillis: Long,
+    val signals: Int,
+)
+
+@Dao
+interface NoticeDao {
+    @Insert
+    suspend fun add(row: NoticeEntity)
+
+    @Query("SELECT atMillis FROM notice WHERE notifKey = :key ORDER BY atMillis DESC LIMIT 1")
+    suspend fun lastAt(key: String): Long?
+
+    @Query("SELECT * FROM notice WHERE packageName = :packageName AND atMillis >= :fromMillis ORDER BY atMillis")
+    suspend fun since(packageName: String, fromMillis: Long): List<NoticeEntity>
+
+    @Query("DELETE FROM notice WHERE atMillis < :beforeMillis")
+    suspend fun prune(beforeMillis: Long): Int
+}
+
+/** Something the owner told Aegida to leave alone, shown in My settings with a way to take it back. */
+@Entity(tableName = "allowed", primaryKeys = ["problem", "subject"])
+data class AllowedEntity(val problem: String, val subject: String, val label: String, val atMillis: Long)
+
+@Dao
+interface AllowedDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun put(row: AllowedEntity)
+
+    @Query("SELECT * FROM allowed ORDER BY atMillis DESC")
+    suspend fun all(): List<AllowedEntity>
+
+    @Query("DELETE FROM allowed WHERE problem = :problem AND subject = :subject")
+    suspend fun remove(problem: String, subject: String)
 }

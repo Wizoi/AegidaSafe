@@ -36,6 +36,9 @@ fun SettingsScreen(
     listsUpdatedAt: java.time.Instant?,
     zone: java.time.ZoneId,
     locale: java.util.Locale,
+    /** Things the owner told Aegida are fine, each with a way to take it back (Kevin, Oct 11). */
+    allowed: List<com.aegida.core.notice.AllowedItem> = emptyList(),
+    onStopAllowing: (com.aegida.core.notice.AllowedItem) -> Unit = {},
 ) {
     val picture = SafetyPicture.fromId(setup.pictureId)
     AegidaScreen(setup.pictureId) {
@@ -65,6 +68,15 @@ fun SettingsScreen(
         SettingCard {
             ValueRow(Texts.Settings.WEBSITE_PROTECTION, if (filterOn) Texts.Settings.ON else Texts.Settings.OFF)
             if (!filterOn) BigButton(Texts.Settings.TURN_ON_WEBSITE_PROTECTION, onFilterHelp) // skipped in setup: an easy way to try again
+        }
+        if (allowed.isNotEmpty()) {
+            SettingCard {
+                Text(Texts.Settings.ALLOWED_TITLE, style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
+                allowed.forEach { item ->
+                    Text(item.label.ifBlank { item.subject }, style = MaterialTheme.typography.bodyLarge)
+                    QuietButton(Texts.Settings.ALLOWED_REMOVE, { onStopAllowing(item) })
+                }
+            }
         }
         SettingCard {
             ValueRow(Texts.Settings.CREDITS_TITLE, Texts.Settings.CREDITS)

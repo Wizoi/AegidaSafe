@@ -30,6 +30,7 @@ object FixActions {
                 null
             }
         }
+        Problem.NoisyApp -> appNotificationSettings(finding.key.subject)
         Problem.ListenerOff, Problem.ListenerAdded -> notificationAccess()
         Problem.BrowserChanged, Problem.SmsAppChanged, Problem.DialerChanged, Problem.AssistantChanged -> Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS)
         Problem.AccessibilityAdded -> Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
@@ -51,6 +52,14 @@ object FixActions {
 
     /** Opens [com.aegida.core.net.PublicPages.HOW_IT_WORKS] in her own browser. The page is only shown to her; Aegida does not fetch it. */
     fun howItWorks(): Intent = Intent(Intent.ACTION_VIEW, Uri.parse(com.aegida.core.net.PublicPages.HOW_IT_WORKS)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
+    /** An app's own notification switch, so the owner can turn its notices off (finding #92). */
+    fun appNotificationSettings(packageName: String): Intent =
+        Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, packageName).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+
+    /** An app's App info page, where Uninstall is. */
+    fun appDetails(packageName: String): Intent =
+        Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
     /** The network settings page, where Private DNS lives (there is no public action for Private DNS itself). */
     fun networkSettings(): Intent = Intent(Settings.ACTION_WIRELESS_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)

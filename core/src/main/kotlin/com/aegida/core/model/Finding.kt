@@ -3,7 +3,7 @@ package com.aegida.core.model
 import com.aegida.core.text.Problem
 import java.time.Instant
 
-enum class DetectorId { Link, PopupSpam, Dns, Health, Delivery, Drift, NewApp, RemoteControl, Stalkerware }
+enum class DetectorId { Link, PopupSpam, NoisyApp, Dns, Health, Delivery, Drift, NewApp, RemoteControl, Stalkerware }
 
 /** Mapped once to channel, banner behaviour and guardian message. */
 enum class Severity { Info, NeedsTap, Urgent }
@@ -38,6 +38,7 @@ object Evidence {
     const val MESSAGE_TITLE = "messageTitle"
     const val MESSAGE_TEXT = "messageText"
     const val MESSAGE_AT = "messageAt"
+    const val NOTICES = "notices" // how many counted notices an app sent
     val MESSAGE_KEYS = setOf(MESSAGE_TITLE, MESSAGE_TEXT, MESSAGE_AT)
 }
 

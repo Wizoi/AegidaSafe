@@ -23,4 +23,16 @@ object AdviceLines {
             Texts.Home.SCAM_ADVICE,
         )
     }
+
+    /** The same for an app that keeps sending ads as notices: which app, when the last one came, one example, how many, and what to do. */
+    fun ofNoisyApp(finding: Finding, now: Instant, zone: ZoneId, locale: Locale): List<String> {
+        val e = finding.evidence
+        return listOfNotNull(
+            Texts.Home.adviceFrom(e[Evidence.APP_LABEL]),
+            e[Evidence.MESSAGE_AT]?.toLongOrNull()?.let { TimeText.cameInLine(Instant.ofEpochMilli(it), now, zone, locale) },
+            Texts.Home.saidLine(e[Evidence.MESSAGE_TITLE]),
+            e[Evidence.NOTICES]?.let { Texts.Home.NOISY_COUNT.format(it) },
+            Texts.Home.NOISY_HOW,
+        )
+    }
 }

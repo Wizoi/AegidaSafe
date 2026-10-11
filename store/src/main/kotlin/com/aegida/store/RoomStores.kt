@@ -17,6 +17,10 @@ import com.aegida.core.model.FindingKey
 import com.aegida.core.model.FindingState
 import com.aegida.core.model.Setup
 import com.aegida.core.net.NtfyTopic
+import com.aegida.core.notice.AllowList
+import com.aegida.core.notice.AllowedItem
+import com.aegida.core.notice.NoticeLog
+import com.aegida.core.notice.NoticeRow
 import com.aegida.core.store.SetupStore
 import com.aegida.core.text.Problem
 import kotlinx.serialization.encodeToString
@@ -196,4 +200,32 @@ internal class RoomOutbox(private val dao: OutboxDao) : Outbox {
 
     override suspend fun remove(id: Long) = dao.remove(id)
     override suspend fun failedAgain(id: Long, at: Instant) = dao.failedAgain(id, at.toEpochMilli())
+}
+
+internal class RoomNoticeLog(private val dao: NoticeDao) : NoticeLog {
+    override suspend fun record(packageName: String, key: String, at: Instant, signals: Int) {
+        val last = dao.lastAt(key)
+        // The same notice updated a moment later (a download bar, an edited text) is one notice, not a new one.
+        if (last != null && at.toEpochMilli() - last < SAME_NOTICE_MILLIS) return
+        dao.add(NoticeEntity(packageName = packageName, notifKey = key, atMillis = at.toEpochMilli(), signals = signals))
+    }
+
+    override suspend fun since(packageName: String, from: Instant): List<NoticeRow> =
+        dao.since(packageName, from.toEpochMilli()).map { NoticeRow(Instant.ofEpochMilli(it.atMillis), it.signals) }
+
+    override suspend fun prune(before: Instant): Int = dao.prune(before.toEpochMilli())
+
+    private companion object {
+        const val SAME_NOTICE_MILLIS = 10 * 60 * 1000L
+    }
+}
+
+internal class RoomAllowList(private val dao: AllowedDao) : AllowList {
+    override suspend fun add(item: AllowedItem) =
+        dao.put(AllowedEntity(item.problem.name, item.subject, item.label, item.at.toEpochMilli()))
+
+    override suspend fun remove(problem: Problem, subject: String) = dao.remove(problem.name, subject)
+
+    override suspend fun all(): List<AllowedItem> =
+        dao.all().map { AllowedItem(Problem.valueOf(it.problem), it.subject, it.label, Instant.ofEpochMilli(it.atMillis)) }
 }

@@ -47,6 +47,7 @@ abstract class AppModule {
 
     @Binds @IntoSet abstract fun linkDetector(impl: LinkDetector): Detector
     @Binds @IntoSet abstract fun popupSpamDetector(impl: PopupSpamDetector): Detector
+    @Binds @IntoSet abstract fun noisyAppDetector(impl: com.aegida.detectors.NoisyAppDetector): Detector
     @Binds @IntoSet abstract fun dnsDetector(impl: DnsDetector): Detector
     @Binds @IntoSet abstract fun healthDetector(impl: HealthDetector): Detector
     @Binds @IntoSet abstract fun deliveryDetector(impl: DeliveryDetector): Detector
@@ -61,6 +62,8 @@ abstract class AppModule {
 
         @Provides fun checkLog(store: AegidaStore): CheckLog = store.checkLog
         @Provides fun findings(store: AegidaStore): FindingStore = store.findings
+        @Provides fun notices(store: AegidaStore): com.aegida.core.notice.NoticeLog = store.notices
+        @Provides fun allowList(store: AegidaStore): com.aegida.core.notice.AllowList = store.allowList
         @Provides fun history(store: AegidaStore): HistoryLog = store.history
         @Provides fun outbox(store: AegidaStore): Outbox = store.outbox
         @Provides fun setup(store: AegidaStore): SetupStore = store.setup

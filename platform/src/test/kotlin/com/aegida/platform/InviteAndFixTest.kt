@@ -67,6 +67,16 @@ class InviteAndFixTest {
         listOf("safe", "secure", "password", "pay", "code").forEach { assertFalse("body mentions '$it'", Regex("\\b$it\\b").containsMatchIn(body)) }
     }
 
+    /** Finding #92: from the "noisy app" warning, the app's own notice switch and its App info page, found by package. */
+    @Test fun anAppsNoticeSettingsAndAppInfoOpenForThatPackage() {
+        val notices = FixActions.appNotificationSettings("com.example.pdf")
+        assertEquals(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS, notices.action)
+        assertEquals("com.example.pdf", notices.getStringExtra(android.provider.Settings.EXTRA_APP_PACKAGE))
+        val info = FixActions.appDetails("com.example.pdf")
+        assertEquals(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, info.action)
+        assertEquals("package:com.example.pdf", info.data.toString())
+    }
+
     @Test fun callingAGuardianOpensTheDialerWithTheNumberAndNeedsNoPermission() {
         val intent = FixActions.callGuardian("(555) 010-0199")
         assertEquals(Intent.ACTION_DIAL, intent.action)

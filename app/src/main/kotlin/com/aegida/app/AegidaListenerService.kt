@@ -2,12 +2,14 @@ package com.aegida.app
 
 import android.content.ComponentName
 import android.content.pm.ApplicationInfo
+import android.os.Build
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
 import com.aegida.alerts.CheckRunner
 import com.aegida.core.health.Trigger
 import com.aegida.platform.notify.NotificationMapper
+import com.aegida.platform.notify.RankingFacts
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
@@ -42,14 +44,28 @@ class AegidaListenerService : NotificationListenerService() {
         requestRebind(ComponentName(this, AegidaListenerService::class.java))
     }
 
-    override fun onNotificationPosted(sbn: StatusBarNotification) {
+    override fun onNotificationPosted(sbn: StatusBarNotification, rankingMap: RankingMap) {
         if (sbn.packageName == packageName) return
-        val event = NotificationMapper.toEvent(sbn.key, sbn.packageName, sbn.notification, sbn.postTime)
+        val event = NotificationMapper.toEvent(sbn.key, sbn.packageName, sbn.notification, sbn.postTime, rankingFactsOf(sbn.key, rankingMap))
         scope.launch {
             val outcome = checks.run(Trigger.NotificationPosted, event)
             outcome.notificationsToHide.forEach(::cancelNotification)
             outcome.notificationsToSnooze.forEach { snoozeNotification(it, SNOOZE_MILLIS) }
         }
+    }
+
+    /** What the phone's ranking knows about this notice: its channel's name, how it is shown, and whether the owner tends to dismiss it. */
+    private fun rankingFactsOf(key: String, rankingMap: RankingMap): RankingFacts? {
+        val ranking = Ranking()
+        if (!rankingMap.getRanking(key, ranking)) return null
+        val channel = ranking.channel
+        return RankingFacts(
+            channelName = channel?.name?.toString(),
+            channelDescription = channel?.description,
+            importance = ranking.importance,
+            conversation = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && ranking.isConversation, // API 31+; older phones say no
+            sentimentNegative = ranking.userSentiment == Ranking.USER_SENTIMENT_NEGATIVE,
+        )
     }
 
     override fun onDestroy() {

@@ -24,6 +24,11 @@ object HistoryDetail {
                 evidence[Evidence.SITE]?.let(HostMask::hostOf)?.takeIf { it.isNotEmpty() }?.let { Texts.History.WEBSITE_WAS.format(it) },
                 Texts.Home.saidLine(evidence[Evidence.MESSAGE_TITLE]),
             )
+            Problem.NoisyApp -> listOf(
+                Texts.Home.cleanLabel(evidence[Evidence.APP_LABEL].orEmpty()).takeIf { it.isNotEmpty() }?.let { label ->
+                    Texts.History.NOISY.format("“$label”", evidence[Evidence.NOTICES] ?: "several")
+                },
+            )
             else -> listOf(Texts.Home.confirmApp(problem, evidence[Evidence.APP_LABEL]))
         }
         return parts.filterNotNull().joinToString(" ") { if (it.endsWith(".") || it.endsWith(".”")) it else "$it." }.ifEmpty { null }

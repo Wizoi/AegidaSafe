@@ -48,6 +48,41 @@ class FindingActionsTest {
         assertEquals(mapOf(e.HOST to "evil.example", e.APP_LABEL to "Messages"), findings.get(withMessage.key)!!.evidence)
     }
 
+    private val allowList = FakeAllowList()
+    private val noisy = Finding(
+        FindingKey(DetectorId.NoisyApp, Problem.NoisyApp, "com.example.pdf"),
+        mapOf(com.aegida.core.model.Evidence.APP_LABEL to "Image to PDF", com.aegida.core.model.Evidence.PACKAGE to "com.example.pdf"), now.minus(Duration.ofMinutes(1)), now,
+    )
+
+    /** Kevin, Oct 11: the owner may say an app is fine; it is written to the list in My settings and the guardian is always told. */
+    @Test fun allowingANoisyAppAddsItToTheListMarksItSeenAndTellsTheGuardian() = runTest {
+        val withAllow = FindingActions(findings, history, owner, baselines, { phone }, pipeline, AlertGate(), allowList = allowList) { now }
+        pipeline.handle(listOf(noisy), setOf(DetectorId.NoisyApp))
+        http.posts.clear(); http.bodies.clear()
+
+        assertTrue(withAllow.allow(noisy.key))
+
+        assertEquals(listOf(com.aegida.core.notice.AllowedItem(Problem.NoisyApp, "com.example.pdf", "Image to PDF", now)), allowList.items)
+        assertEquals(FindingState.Acknowledged, findings.get(noisy.key)!!.state)
+        assertEquals(listOf("Ruth told Aegida that an app (“Image to PDF”) is fine, so Aegida will stop warning about it. If that surprises you, it may be a good time to ask Ruth."), http.bodies)
+    }
+
+    @Test fun onlyAnAppWarningCanBeAllowedNeverASpyingOrRemoteControlOne() = runTest {
+        val withAllow = FindingActions(findings, history, owner, baselines, { phone }, pipeline, AlertGate(), allowList = allowList) { now }
+        val spy = Finding(FindingKey(DetectorId.Stalkerware, Problem.StalkerwareApp, "org.spy"), emptyMap(), now, now)
+        pipeline.handle(listOf(spy), setOf(DetectorId.Stalkerware))
+        assertFalse(withAllow.allow(spy.key))
+        assertEquals(emptyList<Any>(), allowList.items)
+    }
+
+    @Test fun takingAnAppOffTheListLetsItBeWarnedAboutAgain() = runTest {
+        val withAllow = FindingActions(findings, history, owner, baselines, { phone }, pipeline, AlertGate(), allowList = allowList) { now }
+        pipeline.handle(listOf(noisy), setOf(DetectorId.NoisyApp))
+        withAllow.allow(noisy.key)
+        withAllow.stopAllowing(Problem.NoisyApp, "com.example.pdf")
+        assertEquals(emptyList<Any>(), allowList.items)
+    }
+
     @Test fun aSeenWarningLeavesHomeClearsItsBannerAndIsWrittenToHistory() = runTest {
         pipeline.handle(listOf(scam), setOf(DetectorId.Link))
         assertTrue(HomeState.of(findings.open(), null) is HomeState.NeedsTaps)

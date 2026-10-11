@@ -8,6 +8,10 @@ import com.aegida.core.model.DetectorId
 import com.aegida.core.model.Finding
 import com.aegida.core.model.NotificationEvent
 import com.aegida.core.model.Snapshot
+import com.aegida.core.notice.AllowList
+import com.aegida.core.notice.NoticeLog
+import com.aegida.core.notice.NoticeRules
+import com.aegida.core.text.Problem
 import com.aegida.core.store.BaselineStore
 import com.aegida.core.store.FeedStore
 import com.aegida.core.store.SetupStore
@@ -29,6 +33,8 @@ class Evaluator @Inject constructor(
     private val checkLog: CheckLog,
     private val outbox: Outbox,
     private val baselines: BaselineStore,
+    private val notices: NoticeLog = NoticeLog.None,
+    private val allowList: AllowList = AllowList.None,
 ) {
     private val mutex = Mutex()
 
@@ -37,7 +43,20 @@ class Evaluator @Inject constructor(
 
     suspend fun run(trigger: Trigger, snapshot: Snapshot, event: NotificationEvent? = null): List<Finding> = mutex.withLock {
         val started = clock.now()
-        val input = Inputs(snapshot, started, setupStore.setup(), feedStore.current(), event, checkLog.latest(Trigger.Daily), outbox.all().minOfOrNull { it.queuedAt }, baselines.baseline())
+        val counted = event != null && NoticeRules.counted(event, snapshot.apps, setOfNotNull(snapshot.smsApp, snapshot.dialerApp, snapshot.browser))
+        // A notice that counts is written down before the detectors look (finding #92); only counts and signals, never its words.
+        val recent = if (event != null && counted) {
+            val category = snapshot.apps.firstOrNull { it.packageName == event.packageName }?.category?.takeIf { it >= 0 }
+            notices.record(event.packageName, event.key, started, NoticeRules.signals(event, category))
+            notices.since(event.packageName, started.minus(NoticeRules.WEEK))
+        } else {
+            emptyList()
+        }
+        val allowedApps = allowList.all().filter { it.problem == Problem.NoisyApp }.map { it.subject }.toSet()
+        val input = Inputs(
+            snapshot, started, setupStore.setup(), feedStore.current(), event, checkLog.latest(Trigger.Daily), outbox.all().minOfOrNull { it.queuedAt },
+            baselines.baseline(), recent, allowedApps,
+        )
         val findings = detectors.sortedBy { it.id }.flatMap { it.evaluate(input) }.distinctBy { it.key }
         checkLog.record(CheckRun(trigger, started, clock.now()))
         findings

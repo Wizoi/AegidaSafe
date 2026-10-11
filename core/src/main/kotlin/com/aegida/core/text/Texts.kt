@@ -23,6 +23,8 @@ object Texts {
         /** For urgent kinds: it could be a scammer coaching the owner, so it never says everything is fine. */
         const val CONFIRMED_URGENT = "%1\$s confirmed the change Aegida asked about. If you were not expecting it, please call %1\$s."
         const val CHANGED = "%1\$s picked a different guardian in Aegida. You will not get messages about %1\$s's phone from now on. If you did not expect this, please call %1\$s."
+        /** %1 the owner, %2 the app. Sent when the owner tells Aegida an app is fine (finding #92); the guardian is always told. */
+        const val ALLOWED = "%1\$s told Aegida that an app (“%2\$s”) is fine, so Aegida will stop warning about it. If that surprises you, it may be a good time to ask %1\$s."
         const val NOT_CHECKED_IN = "Aegida hasn't checked in on %1\$s's phone for 2 days. The phone may be off or asleep. It may be a good time to call %1\$s."
     }
 
@@ -42,6 +44,11 @@ object Texts {
         const val NEEDS_MANY = "%s things need a tap"
         const val FIX_MY_PHONE = "Fix my phone"
         const val SHOW_ME = "Show me"
+        const val NOISY_COUNT = "It sent %s notices that look like ads lately."
+        const val NOISY_HOW = "Open its notice settings and switch Allow notifications off. You can also remove the app."
+        const val NOISY_TURN_OFF = "Turn off its notices"
+        const val NOISY_REMOVE = "Remove this app"
+        const val NOISY_FINE = "This app is fine"
         const val ADVICE_FROM = "It came from the %s app."
         const val CAME_IN_TODAY = "It came in today at %s."
         const val CAME_IN_YESTERDAY = "It came in yesterday at %s."
@@ -72,7 +79,7 @@ object Texts {
          * shown; otherwise it is cut short, stripped of control characters and quoted (R17).
          */
         /** The one big button on Home: "Fix my phone" only where something really gets fixed; a scam warning just shows what to do. */
-        fun fixButton(fix: Fix): String = if (fix == Fix.Acknowledge) SHOW_ME else FIX_MY_PHONE
+        fun fixButton(fix: Fix): String = if (fix == Fix.Acknowledge || fix == Fix.AppNotices) SHOW_ME else FIX_MY_PHONE
 
         /** "It came from the “Messages” app." for the scam-link advice page, or null when the app is not known. Cleaned like [confirmApp]. */
         fun adviceFrom(label: String?): String? {
@@ -110,7 +117,7 @@ object Texts {
             return if (clean.isEmpty()) null else CONFIRM_APP.format("“$clean”")
         }
 
-        internal fun cleanLabel(raw: String, max: Int = CONFIRM_LABEL_MAX): String {
+        fun cleanLabel(raw: String, max: Int = CONFIRM_LABEL_MAX): String {
             val spaced = StringBuilder()
             var i = 0
             while (i < raw.length) {
@@ -129,6 +136,7 @@ object Texts {
 
     object History {
         const val WEBSITE_WAS = "The website was %s."
+        const val NOISY = "The %1\$s app sent %2\$s notices that look like ads."
         const val LINK_WENT = "The link went to %s."
         const val TITLE = "History"
         const val EMPTY = "Nothing has happened yet. When Aegida does something for you, it will show here."
@@ -218,6 +226,8 @@ object Texts {
         const val TELL_GUARDIANS = "Tell my guardian about serious problems"
         const val WEBSITE_PROTECTION = "Website protection"
         const val TURN_ON_WEBSITE_PROTECTION = "Turn on website protection"
+        const val ALLOWED_TITLE = "Things you told Aegida are fine"
+        const val ALLOWED_REMOVE = "Warn me again"
         const val ON = "On"
         const val OFF = "Off"
         const val CANT_TELL = "Can't tell"

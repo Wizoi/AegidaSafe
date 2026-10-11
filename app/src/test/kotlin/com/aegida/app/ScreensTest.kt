@@ -136,6 +136,71 @@ class ScreensTest(private val dark: Boolean, private val fontScale: Float) {
         assertEquals(link, shown)
     }
 
+    private fun noisy() = Finding(
+        FindingKey(DetectorId.NoisyApp, Problem.NoisyApp, "com.example.pdf"),
+        mapOf(
+            com.aegida.core.model.Evidence.APP_LABEL to "Image to PDF", com.aegida.core.model.Evidence.NOTICES to "8",
+            com.aegida.core.model.Evidence.MESSAGE_TITLE to "File converter is ready!", com.aegida.core.model.Evidence.MESSAGE_AT to now.minus(Duration.ofMinutes(5)).toEpochMilli().toString(),
+        ),
+        now.minus(Duration.ofMinutes(5)), now,
+    )
+
+    /** Finding #92: an app that keeps sending ads as notices. Show me opens a page that says which app and gives her four ways out. */
+    @Test fun theNoisyAppPageSaysWhichAppAndOffersToTurnItOffRemoveItLeaveItAloneOrJustCloseTheWarning() {
+        val taps = mutableListOf<String>()
+        show {
+            com.aegida.app.ui.NoisyAppPage(
+                picture, noisy(), now, zone, locale,
+                onTurnOff = { taps += "off" }, onRemove = { taps += "remove" }, onFine = { taps += "fine" }, onGotIt = { taps += "gotit" },
+            )
+        }
+        reachable(Problem.NoisyApp.forMom)
+        reachable("It came from the “Image to PDF” app.")
+        reachable("It said: “File converter is ready!”")
+        reachable("It sent 8 notices that look like ads lately.")
+        for (button in listOf(Texts.Home.NOISY_TURN_OFF, Texts.Home.NOISY_REMOVE, Texts.Home.NOISY_FINE, Texts.Home.GOT_IT)) {
+            compose.onNodeWithText(button).performScrollTo().performClick()
+        }
+        assertEquals(listOf("off", "remove", "fine", "gotit"), taps)
+    }
+
+    @Test fun homeOffersShowMeForANoisyAppToo() {
+        var shown: Finding? = null
+        show { HomeScreen(HomeState.NeedsTaps(listOf(noisy())), picture, now, zone, locale, { shown = it }, {}) }
+        compose.onNodeWithText(Texts.Home.SHOW_ME).performScrollTo().performClick()
+        assertEquals(noisy().key, shown!!.key)
+    }
+
+    /** Kevin, Oct 11: everything the owner said is fine is listed in My settings, each with a way to take it back. */
+    @Test fun settingsListsWhatWasAllowedAndTakingItBackIsOneTap() {
+        var removed: com.aegida.core.notice.AllowedItem? = null
+        val item = com.aegida.core.notice.AllowedItem(Problem.NoisyApp, "com.example.pdf", "Image to PDF", now)
+        show {
+            SettingsScreen(
+                Setup(null, emptySet(), pictureId = picture),
+                Guardians(alertsOn = false, ownerName = "Ruth", firstTopic = null, firstGuardianName = "Kevin"),
+                filterOn = true, onChangePicture = {}, onChangeGuardian = {}, onResendInvite = {}, onAlerts = {}, onFilterHelp = {}, onHowItWorks = {},
+                listsUpdatedAt = null, zone = zone, locale = locale, allowed = listOf(item), onStopAllowing = { removed = it },
+            )
+        }
+        reachable(Texts.Settings.ALLOWED_TITLE)
+        reachable("Image to PDF")
+        compose.onNodeWithText(Texts.Settings.ALLOWED_REMOVE).performScrollTo().performClick()
+        assertEquals(item, removed)
+    }
+
+    @Test fun settingsHasNoAllowedListWhenNothingWasAllowed() {
+        show {
+            SettingsScreen(
+                Setup(null, emptySet(), pictureId = picture),
+                Guardians(alertsOn = false, ownerName = "Ruth", firstTopic = null, firstGuardianName = "Kevin"),
+                filterOn = true, onChangePicture = {}, onChangeGuardian = {}, onResendInvite = {}, onAlerts = {}, onFilterHelp = {}, onHowItWorks = {},
+                listsUpdatedAt = null, zone = zone, locale = locale,
+            )
+        }
+        compose.onNodeWithText(Texts.Settings.ALLOWED_TITLE).assertDoesNotExistOrFail()
+    }
+
     @Test fun homeWithSeveralProblemsCountsThemAndStartsWithTheFirst() {
         val first = finding(Problem.ListenerOff, minutesOld = 60)
         var fixed: Finding? = null

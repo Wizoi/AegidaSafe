@@ -11,6 +11,8 @@ data class InstalledApp(
     val isSystem: Boolean,
     /** SHA-1 of each certificate the app is signed with, lower-case hex. Read for apps that did not ship with the phone. */
     val certSha1s: Set<String> = emptySet(),
+    /** The developer's own category (`ApplicationInfo.category`: game 0, image 3, social 4, news 5, productivity 7 ...), -1 when none. */
+    val category: Int = -1,
 ) {
     val fromPlayStore: Boolean get() = installer == PLAY_STORE
 

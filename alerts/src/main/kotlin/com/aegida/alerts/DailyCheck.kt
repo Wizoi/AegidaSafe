@@ -6,6 +6,8 @@ import com.aegida.core.feed.FeedUpdate
 import com.aegida.core.feed.FeedUpdater
 import com.aegida.core.health.CheckLog
 import com.aegida.core.health.Trigger
+import com.aegida.core.notice.NoticeLog
+import com.aegida.core.notice.NoticeRules
 import com.aegida.core.store.FeedStore
 import com.aegida.detectors.HealthDetector
 import com.aegida.core.time.Clock
@@ -31,6 +33,7 @@ class DailyCheck @Inject constructor(
     private val switch: DeadMansSwitch,
     private val guardianAlerts: GuardianAlerts,
     private val gate: AlertGate,
+    private val notices: NoticeLog = NoticeLog.None,
     private val clock: Clock,
 ) {
     suspend fun run(downloadFeed: Boolean = true): DailyResult {
@@ -40,6 +43,7 @@ class DailyCheck @Inject constructor(
         val pruned = history.prune(now.minus(HISTORY_KEPT))
         val findingsPruned = findings.prune(now.minus(HISTORY_KEPT))
         val runsPruned = checkLog.prune(now.minus(CHECK_LOG_KEPT))
+        notices.prune(now.minus(NoticeRules.WEEK)) // counts of notices older than a week are no longer needed (finding #92)
         // Checked in. Alerts on: push the "hasn't checked in" message two days further out. Alerts off: cancel it again,
         // which retries a cancel that failed offline (always sent while off; one tiny request a day). A welcome that failed is retried here too.
         val heartbeat = gate.run {

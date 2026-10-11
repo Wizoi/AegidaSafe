@@ -37,6 +37,28 @@ class NotificationMapperTest {
         assertEquals(postedAt.toEpochMilli(), event.postedAt.toEpochMilli())
     }
 
+    /** Finding #92: what the sending app says it is, and what the phone does with it, so ad-like notices can be told from real ones. */
+    @Test fun theCategoryAndSteadyFlagsAreRead() {
+        val promo = builder().setContentTitle("Deal").setCategory(Notification.CATEGORY_PROMO).build()
+        assertEquals("promo", map(promo).category)
+        assertEquals(false, map(promo).ongoing)
+        val player = builder().setContentTitle("Playing").setOngoing(true).build()
+        assertEquals(true, map(player).ongoing)
+        val service = builder().setContentTitle("Syncing").build().apply { flags = flags or Notification.FLAG_FOREGROUND_SERVICE }
+        assertEquals(true, map(service).ongoing)
+        assertEquals(null, map(builder().setContentTitle("Hi").build()).category)
+    }
+
+    @Test fun whatThePhoneKnowsAboutTheNoticeIsPassedThrough() {
+        val facts = com.aegida.platform.notify.RankingFacts(channelName = "Special offers", channelDescription = "Deals", importance = 4, conversation = false, sentimentNegative = true)
+        val event = NotificationMapper.toEvent("k", "p", builder().setContentTitle("Hi").build(), postedAt.toEpochMilli(), facts)
+        assertEquals("Special offers", event.channelName)
+        assertEquals("Deals", event.channelDescription)
+        assertEquals(4, event.importance)
+        assertEquals(true, event.sentimentNegative)
+        assertEquals("without it the notice reads as plain", 0, map(builder().setContentTitle("Hi").build()).importance)
+    }
+
     @Test fun aLongBodyAndTheShortOneAreBothKept() {
         val n = builder().setContentTitle("Bank").setContentText("Your account is locked")
             .setStyle(Notification.BigTextStyle().bigText("Your account is locked. Verify at examp1e-bank.test/login")).build()

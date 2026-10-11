@@ -3,6 +3,7 @@ package com.aegida.platform
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.ComponentName
+import android.content.pm.ApplicationInfo
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ActivityInfo
@@ -52,6 +53,20 @@ class AndroidSnapshotterTest {
     private fun resolvesTo(packageName: String) {
         val info = ResolveInfo().apply { activityInfo = ActivityInfo().apply { this.packageName = packageName; name = "Main" } }
         shadowOf(context.packageManager).addResolveInfoForIntent(probe, info)
+    }
+
+    @Test fun anAppsOwnCategoryIsReadAndNoneIsMinusOne() { // finding #92
+        fun install(pkg: String, category: Int) = shadowOf(context.packageManager).installPackage(
+            android.content.pm.PackageInfo().apply {
+                packageName = pkg
+                applicationInfo = ApplicationInfo().apply { packageName = pkg; this.category = category }
+            },
+        )
+        install("com.example.pdf", ApplicationInfo.CATEGORY_IMAGE)
+        install("com.example.plain", ApplicationInfo.CATEGORY_UNDEFINED)
+        val apps = take().apps.associateBy { it.packageName }
+        assertEquals(ApplicationInfo.CATEGORY_IMAGE, apps.getValue("com.example.pdf").category)
+        assertEquals(-1, apps.getValue("com.example.plain").category)
     }
 
     @Test fun anAbsentPrivateDnsKeyIsAutomaticNotOff() { // findings #14: a never-set phone has no key at all

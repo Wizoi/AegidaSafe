@@ -12,8 +12,8 @@ import androidx.sqlite.db.SupportSQLiteDatabase
  * schema in store/schemas, and Kevin's OK first. No destructive fallback, ever.
  */
 @Database(
-    entities = [CheckRunEntity::class, FindingEntity::class, HistoryEntity::class, OutboxEntity::class, SettingEntity::class],
-    version = 2,
+    entities = [CheckRunEntity::class, FindingEntity::class, HistoryEntity::class, OutboxEntity::class, SettingEntity::class, NoticeEntity::class, AllowedEntity::class],
+    version = 3,
     exportSchema = true,
 )
 abstract class AegidaDatabase : RoomDatabase() {
@@ -22,6 +22,8 @@ abstract class AegidaDatabase : RoomDatabase() {
     abstract fun history(): HistoryDao
     abstract fun outbox(): OutboxDao
     abstract fun settings(): SettingDao
+    abstract fun notices(): NoticeDao
+    abstract fun allowed(): AllowedDao
 
     companion object {
         const val NAME = "aegida.db"
@@ -33,7 +35,17 @@ abstract class AegidaDatabase : RoomDatabase() {
             }
         }
 
+        /** The notice counts and the list of things the owner said are fine (finding #92). Nothing existing is touched. */
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS `notice` (`rowId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `packageName` TEXT NOT NULL, `notifKey` TEXT NOT NULL, `atMillis` INTEGER NOT NULL, `signals` INTEGER NOT NULL)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_notice_packageName_atMillis` ON `notice` (`packageName`, `atMillis`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_notice_notifKey` ON `notice` (`notifKey`)")
+                db.execSQL("CREATE TABLE IF NOT EXISTS `allowed` (`problem` TEXT NOT NULL, `subject` TEXT NOT NULL, `label` TEXT NOT NULL, `atMillis` INTEGER NOT NULL, PRIMARY KEY(`problem`, `subject`))")
+            }
+        }
+
         fun open(context: Context): AegidaDatabase =
-            Room.databaseBuilder(context, AegidaDatabase::class.java, NAME).addMigrations(MIGRATION_1_2).build()
+            Room.databaseBuilder(context, AegidaDatabase::class.java, NAME).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build()
     }
 }

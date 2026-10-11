@@ -20,6 +20,34 @@ class EvaluatorTest {
     private fun evaluator(detectors: Set<Detector> = all) =
         Evaluator(detectors, { now }, FakeSetupStore(), FakeFeedStore(Fixtures.feed()), log, outbox, FakeBaselines())
 
+    /** Finding #92: each counted notice is written down, and the third ad-like one in a day flags the app. */
+    @Test fun threeAdLikeNoticesInADayFlagTheApp() = runTest {
+        val notices = FakeNoticeLog()
+        val e = Evaluator(setOf(NoisyAppDetector()), { now }, FakeSetupStore(), FakeFeedStore(Fixtures.feed()), log, outbox, FakeBaselines(), notices)
+        fun ad(n: Int) = Fixtures.message("File converter is ready! Convert", title = "Image to PDF").copy(key = "0|com.android.shell|$n|null|1", importance = 4)
+        assertEquals(emptyList<Problem>(), e.run(Trigger.NotificationPosted, snapshot(), ad(1)).map { it.key.problem })
+        assertEquals(emptyList<Problem>(), e.run(Trigger.NotificationPosted, snapshot(), ad(2)).map { it.key.problem })
+        assertEquals(listOf(Problem.NoisyApp), e.run(Trigger.NotificationPosted, snapshot(), ad(3)).map { it.key.problem })
+        assertEquals(3, notices.rows.size)
+    }
+
+    @Test fun aNoticeThatIsNotCountedIsNotWrittenDown() = runTest {
+        val notices = FakeNoticeLog()
+        val e = Evaluator(setOf(NoisyAppDetector()), { now }, FakeSetupStore(), FakeFeedStore(Fixtures.feed()), log, outbox, FakeBaselines(), notices)
+        e.run(Trigger.NotificationPosted, snapshot(), Fixtures.message("hi", title = "Mom").copy(category = "msg"))
+        e.run(Trigger.Daily, snapshot())
+        assertEquals(emptyList<Any>(), notices.rows)
+    }
+
+    @Test fun anAppTheOwnerSaidIsFineIsNotFlaggedEvenAfterManyNotices() = runTest {
+        val allow = FakeAllowList().apply { items += com.aegida.core.notice.AllowedItem(Problem.NoisyApp, "com.android.shell", "Image to PDF", now) }
+        val e = Evaluator(setOf(NoisyAppDetector()), { now }, FakeSetupStore(), FakeFeedStore(Fixtures.feed()), log, outbox, FakeBaselines(), FakeNoticeLog(), allow)
+        repeat(5) { n ->
+            val ad = Fixtures.message("File converter is ready! Convert").copy(key = "0|x|$n|null|1", importance = 4)
+            assertEquals(emptyList<Problem>(), e.run(Trigger.NotificationPosted, snapshot(), ad).map { it.key.problem })
+        }
+    }
+
     @Test fun runningTwiceGivesTheSameFindings() = runTest {
         val e = evaluator()
         assertEquals(e.run(Trigger.NotificationPosted, snapshot(), chromeSiteNotification), e.run(Trigger.NotificationPosted, snapshot(), chromeSiteNotification))

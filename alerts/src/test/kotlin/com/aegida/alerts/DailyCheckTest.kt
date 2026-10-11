@@ -171,6 +171,20 @@ class DailyCheckTest {
         assertTrue("http://old.example" !in subjects)
     }
 
+    @Test fun noticeCountsOlderThanAWeekAreDropped() = runTest { // finding #92
+        val notices = FakeNoticeLog().apply {
+            record("com.example.pdf", "k1", now.minus(Duration.ofDays(8)), 2)
+            record("com.example.pdf", "k2", now.minus(Duration.ofDays(1)), 2)
+        }
+        val withNotices = DailyCheck(
+            FeedUpdater(http, FeedVerifier(keys.public.encoded), feedStore) { now },
+            CheckRunner({ snapshot }, evaluator, pipeline, BaselineKeeper(FakeSetupStore(), FakeBaselines()), OutboxFlusher(outbox, NtfySender(http), history, guardians, { now }), AlertGate()),
+            history, findings, checkLog, feedStore, switch, guardianAlerts, AlertGate(), notices = notices,
+        ) { now }
+        withNotices.run()
+        assertEquals(1, notices.rows.size)
+    }
+
     @Test fun checkRunsOlderThanThirtyDaysAreDroppedAndTheNewestDailyOneIsKept() = runTest {
         checkLog.record(CheckRun(Trigger.NotificationPosted, now.minus(Duration.ofDays(31)), now.minus(Duration.ofDays(31))))
         checkLog.record(CheckRun(Trigger.NotificationPosted, now.minus(Duration.ofDays(29)), now.minus(Duration.ofDays(29))))

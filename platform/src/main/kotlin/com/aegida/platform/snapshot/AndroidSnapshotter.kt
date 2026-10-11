@@ -89,6 +89,7 @@ class AndroidSnapshotter(
                 isSystem = system,
                 // Apps that came with the phone are matched by name only, which keeps a check to about a second.
                 certSha1s = if (system) emptySet() else certificatesOf(pm, info.packageName),
+                category = info.category,
             )
         }
     }

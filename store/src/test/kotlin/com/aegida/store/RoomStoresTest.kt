@@ -4,6 +4,8 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.aegida.core.alert.Guardians
 import com.aegida.core.alert.HistoryEntry
+import com.aegida.core.notice.AllowedItem
+import com.aegida.core.notice.NoticeRow
 import com.aegida.core.alert.Outcome
 import com.aegida.core.feed.FeedCodec
 import com.aegida.core.feed.FeedSource
@@ -87,6 +89,40 @@ class RoomStoresTest {
         val without = HistoryEntry(now.minus(Duration.ofDays(1)), Problem.ListenerOff, Outcome.OwnerWarned)
         log.add(with); log.add(without)
         assertEquals(listOf(with, without), log.since(now.minus(Duration.ofDays(2))))
+    }
+
+    /** Finding #92: the notices an app posted, as counts and signals only. */
+    @Test fun noticesAreKeptPerAppByTimeAndTheSameNoticeUpdatedWithinTenMinutesCountsOnce() = runTest {
+        val log = RoomNoticeLog(db.notices())
+        log.record("com.example.pdf", "k1", now.minus(Duration.ofHours(2)), 2)
+        log.record("com.example.pdf", "k1", now.minus(Duration.ofHours(2)).plusSeconds(300), 2) // the same notice updated: one notice
+        log.record("com.example.pdf", "k1", now.minus(Duration.ofHours(1)), 3)                 // the same id posted again an hour later: a new notice
+        log.record("com.example.pdf", "k2", now.minus(Duration.ofMinutes(5)), 0)
+        log.record("org.other", "k3", now, 1)
+        assertEquals(
+            listOf(NoticeRow(now.minus(Duration.ofHours(2)), 2), NoticeRow(now.minus(Duration.ofHours(1)), 3), NoticeRow(now.minus(Duration.ofMinutes(5)), 0)),
+            log.since("com.example.pdf", now.minus(Duration.ofDays(1))),
+        )
+        assertEquals(emptyList<NoticeRow>(), log.since("com.example.pdf", now))
+    }
+
+    @Test fun oldNoticesArePrunedByAge() = runTest {
+        val log = RoomNoticeLog(db.notices())
+        log.record("a", "k1", now.minus(Duration.ofDays(8)), 1)
+        log.record("a", "k2", now.minus(Duration.ofDays(1)), 1)
+        assertEquals(1, log.prune(now.minus(Duration.ofDays(7))))
+        assertEquals(1, log.since("a", now.minus(Duration.ofDays(30))).size)
+    }
+
+    @Test fun theAllowListKeepsOneRowPerAppAndAnItemCanBeRemoved() = runTest {
+        val list = RoomAllowList(db.allowed())
+        val pdf = AllowedItem(Problem.NoisyApp, "com.example.pdf", "Image to PDF", now.minus(Duration.ofDays(1)))
+        list.add(pdf)
+        list.add(pdf.copy(label = "Image to PDF 2", at = now)) // REPLACE, not append (CLAUDE.md)
+        list.add(AllowedItem(Problem.NoisyApp, "org.other", "Other", now.minus(Duration.ofDays(2))))
+        assertEquals(listOf("Image to PDF 2", "Other"), list.all().map { it.label }) // newest first
+        list.remove(Problem.NoisyApp, "com.example.pdf")
+        assertEquals(listOf("Other"), list.all().map { it.label })
     }
 
     @Test fun historyIsNewestFirstAndPrunesByAge() = runTest {

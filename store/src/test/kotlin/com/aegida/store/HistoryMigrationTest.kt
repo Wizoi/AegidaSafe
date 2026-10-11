@@ -28,4 +28,19 @@ class HistoryMigrationTest {
             assertNull(c.getString(3))
         }
     }
+
+    /** Version 3 adds the notice counts and the list of things the owner said are fine (finding #92). Nothing from version 2 is touched. */
+    @Test fun versionTwoGainsTheNoticeAndAllowedTablesAndKeepsItsRows() {
+        migrations.createDatabase("notice-migration", 2).apply {
+            execSQL("INSERT INTO history (rowId, atMillis, historyProblem, outcome, detail) VALUES (1, 1000, 'ScamLink', 'OwnerWarned', 'It came from the app.')")
+            close()
+        }
+        val db = migrations.runMigrationsAndValidate("notice-migration", 3, true, AegidaDatabase.MIGRATION_2_3)
+        db.execSQL("INSERT INTO notice (packageName, notifKey, atMillis, signals) VALUES ('a', 'k', 5, 2)")
+        db.execSQL("INSERT INTO allowed (problem, subject, label, atMillis) VALUES ('NoisyApp', 'a', 'A', 5)")
+        db.query("SELECT detail FROM history").use { c ->
+            assertEquals(true, c.moveToFirst())
+            assertEquals("It came from the app.", c.getString(0))
+        }
+    }
 }

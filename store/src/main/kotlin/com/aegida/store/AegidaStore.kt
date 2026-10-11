@@ -6,6 +6,8 @@ import com.aegida.core.alert.GuardianSettings
 import com.aegida.core.alert.HistoryLog
 import com.aegida.core.alert.Outbox
 import com.aegida.core.health.CheckLog
+import com.aegida.core.notice.AllowList
+import com.aegida.core.notice.NoticeLog
 import com.aegida.core.store.BaselineStore
 import com.aegida.core.store.FeedStore
 import com.aegida.core.store.SetupStore
@@ -23,6 +25,8 @@ class AegidaStore(context: Context) {
     val findings: FindingStore = RoomFindingStore(db.findings())
     val history: HistoryLog = RoomHistoryLog(db.history())
     val outbox: Outbox = RoomOutbox(db.outbox())
+    val notices: NoticeLog = RoomNoticeLog(db.notices())
+    val allowList: AllowList = RoomAllowList(db.allowed())
     val setup: SetupStore = settings
     val guardians: GuardianSettings = settings
     val baselines: BaselineStore = settings

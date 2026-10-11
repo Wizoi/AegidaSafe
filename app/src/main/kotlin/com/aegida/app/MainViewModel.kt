@@ -55,6 +55,8 @@ data class MainState(
     val home: HomeState = HomeState.CouldntCheck(null),
     val history: List<HistoryRow> = emptyList(),
     val snapshot: Snapshot? = null,
+    /** What the owner told Aegida is fine, listed in My settings. */
+    val allowed: List<com.aegida.core.notice.AllowedItem> = emptyList(),
     /** The phone may have a maker feature worth asking about (Auto Blocker); false on a Pixel or the emulator. */
     val blockerRelevant: Boolean = false,
     /** When the scam lists on the phone were built (the feed's own date), or null before the first download. */
@@ -84,6 +86,7 @@ class MainViewModel @Inject constructor(
     private val clock: Clock,
     private val banner: PictureBanner,
     private val feedStore: FeedStore,
+    private val allowList: com.aegida.core.notice.AllowList,
 ) : ViewModel() {
 
     /**
@@ -131,6 +134,7 @@ class MainViewModel @Inject constructor(
             home = HomeState.of(findings.open(), checkLog.latest()),
             history = HistoryRows.of(historyLog.since(now.minus(HISTORY_SHOWN))),
             snapshot = snapshot,
+            allowed = allowList.all(),
             blockerRelevant = oem.installBlocker() != Reading.NotPresent,
             listsUpdatedAt = feedStore.current()?.generatedAt,
         )
@@ -148,6 +152,22 @@ class MainViewModel @Inject constructor(
     fun acknowledge(finding: Finding) {
         viewModelScope.launch(work) {
             actions.acknowledge(finding.key)
+            load()
+        }
+    }
+
+    /** "This app is fine": goes on the list in My settings, the warning is marked seen and the guardian is told. */
+    fun allowApp(finding: Finding) {
+        viewModelScope.launch(work) {
+            quietly { actions.allow(finding.key) }
+            load()
+        }
+    }
+
+    /** Takes an app off the list, so Aegida warns about it again. */
+    fun stopAllowing(item: com.aegida.core.notice.AllowedItem) {
+        viewModelScope.launch(work) {
+            quietly { actions.stopAllowing(item.problem, item.subject) }
             load()
         }
     }

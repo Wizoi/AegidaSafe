@@ -31,4 +31,8 @@ data class Inputs(
     val oldestUndelivered: Instant? = null,
     /** What the phone looked like when setup finished (plus changes she accepted), or null before then. */
     val baseline: Baseline? = null,
+    /** The counted notices of the app that posted [event], from the last week (finding #92). */
+    val notices: List<com.aegida.core.notice.NoticeRow> = emptyList(),
+    /** Apps the owner said are fine, so no "noisy app" warning for them. */
+    val allowedApps: Set<String> = emptySet(),
 )
