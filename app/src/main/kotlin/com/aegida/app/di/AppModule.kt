@@ -44,7 +44,6 @@ import javax.inject.Singleton
 abstract class AppModule {
     @Binds abstract fun clock(impl: SystemClock): Clock
     @Binds @Singleton abstract fun http(impl: OkHttpHttpClient): HttpClient
-    @Binds abstract fun oem(impl: AndroidOemSource): OemSource
 
     @Binds @IntoSet abstract fun linkDetector(impl: LinkDetector): Detector
     @Binds @IntoSet abstract fun popupSpamDetector(impl: PopupSpamDetector): Detector
@@ -79,6 +78,8 @@ abstract class AppModule {
             NotificationPoster(context, banner)
 
         @Provides fun ownerNotifier(poster: NotificationPoster): OwnerNotifier = poster
+
+        @Provides fun oem(@ApplicationContext context: Context): OemSource = AndroidOemSource(context)
 
         /** One snapshotter, so there is one 5-minute app-list cache, not one per injection (R5). */
         @Provides @Singleton

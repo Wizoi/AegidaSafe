@@ -1,2 +1,3 @@
 What's new:
 • The email to your guardian now explains that they will get a first message when messages are turned on, and to ask you if they do not
+• Older Samsung phones that have no Auto Blocker are no longer asked about it
