@@ -1,0 +1,3 @@
+What's new:
+• Aegida now notices an app that keeps sending you ads as notices, tells you which app, and helps you turn its notices off or remove it
+• If you say an app is fine, it goes on a list in My settings, where you can take it off again; your guardian is told
