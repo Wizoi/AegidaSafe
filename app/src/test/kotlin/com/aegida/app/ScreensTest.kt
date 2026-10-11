@@ -238,53 +238,6 @@ class ScreensTest(private val dark: Boolean, private val fontScale: Float) {
         compose.onNodeWithText(Texts.Settings.TURN_ON_WEBSITE_PROTECTION).assertDoesNotExistOrFail()
     }
 
-    /** Kevin, Oct 10 (Mom): Aegida cannot read Auto Blocker (findings #10), so it must say what it was told and never that it is on. */
-    @Test fun autoBlockerOnASamsungShowsWhatMomToldAegidaAndLetsHerAnswerAgain() {
-        var on = 0
-        var shown = 0
-        show {
-            SettingsScreen(
-                Setup(null, emptySet(), pictureId = picture, autoBlocker = com.aegida.core.model.AutoBlockerAnswer.NotNow),
-                Guardians(alertsOn = false, ownerName = "Ruth", firstTopic = null, firstGuardianName = "Kevin"),
-                filterOn = true, onChangePicture = {}, onChangeGuardian = {}, onResendInvite = {}, onAlerts = {}, onFilterHelp = {}, onHowItWorks = {},
-                listsUpdatedAt = null, zone = zone, locale = locale,
-                blockerRelevant = true, onBlockerShow = { shown++ }, onBlockerOn = { on++ },
-            )
-        }
-        reachable(Texts.Settings.AUTO_BLOCKER)
-        reachable(Texts.Settings.AUTO_BLOCKER_NOT_ON)
-        compose.onNodeWithText(Texts.Setup.BLOCKER_SHOW).performScrollTo().performClick()
-        compose.onNodeWithText(Texts.Setup.BLOCKER_IS_ON).performScrollTo().performClick()
-        assertEquals(1, shown)
-        assertEquals(1, on)
-    }
-
-    @Test fun autoBlockerToldOnSaysYouToldAegidaAndThatItCannotCheckAndIsAbsentOffASamsung() {
-        show {
-            SettingsScreen(
-                Setup(null, emptySet(), pictureId = picture, autoBlocker = com.aegida.core.model.AutoBlockerAnswer.UserSaidOn),
-                Guardians(alertsOn = false, ownerName = "Ruth", firstTopic = null, firstGuardianName = "Kevin"),
-                filterOn = true, onChangePicture = {}, onChangeGuardian = {}, onResendInvite = {}, onAlerts = {}, onFilterHelp = {}, onHowItWorks = {},
-                listsUpdatedAt = null, zone = zone, locale = locale, blockerRelevant = true,
-            )
-        }
-        reachable(Texts.Settings.AUTO_BLOCKER_TOLD_ON)
-        assertTrue("it never says it is simply on", !Texts.Settings.AUTO_BLOCKER_TOLD_ON.startsWith("On"))
-        compose.onNodeWithText(Texts.Setup.BLOCKER_IS_ON).assertDoesNotExistOrFail()
-    }
-
-    @Test fun noAutoBlockerRowOnAPhoneThatCannotHaveOne() {
-        show {
-            SettingsScreen(
-                Setup(null, emptySet(), pictureId = picture),
-                Guardians(alertsOn = false, ownerName = "Ruth", firstTopic = null, firstGuardianName = "Kevin"),
-                filterOn = true, onChangePicture = {}, onChangeGuardian = {}, onResendInvite = {}, onAlerts = {}, onFilterHelp = {}, onHowItWorks = {},
-                listsUpdatedAt = null, zone = zone, locale = locale,
-            )
-        }
-        compose.onNodeWithText(Texts.Settings.AUTO_BLOCKER).assertDoesNotExistOrFail()
-    }
-
     /** Kevin, Oct 9: the "How does this work?" button is the last thing on My settings, below her choices and the credits. */
     @Test fun theHowDoesThisWorkButtonIsAtTheBottomOfMySettings() {
         show {

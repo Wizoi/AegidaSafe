@@ -36,10 +36,6 @@ fun SettingsScreen(
     listsUpdatedAt: java.time.Instant?,
     zone: java.time.ZoneId,
     locale: java.util.Locale,
-    /** A Samsung-type phone that may have Auto Blocker. Aegida cannot read it, so this only shows what the owner said (findings #10). */
-    blockerRelevant: Boolean = false,
-    onBlockerShow: () -> Unit = {},
-    onBlockerOn: () -> Unit = {},
 ) {
     val picture = SafetyPicture.fromId(setup.pictureId)
     AegidaScreen(setup.pictureId) {
@@ -69,16 +65,6 @@ fun SettingsScreen(
         SettingCard {
             ValueRow(Texts.Settings.WEBSITE_PROTECTION, if (filterOn) Texts.Settings.ON else Texts.Settings.OFF)
             if (!filterOn) BigButton(Texts.Settings.TURN_ON_WEBSITE_PROTECTION, onFilterHelp) // skipped in setup: an easy way to try again
-        }
-        if (blockerRelevant) {
-            SettingCard {
-                val toldOn = setup.autoBlocker == com.aegida.core.model.AutoBlockerAnswer.UserSaidOn
-                ValueRow(Texts.Settings.AUTO_BLOCKER, if (toldOn) Texts.Settings.AUTO_BLOCKER_TOLD_ON else Texts.Settings.AUTO_BLOCKER_NOT_ON)
-                if (!toldOn) {
-                    QuietButton(Texts.Setup.BLOCKER_SHOW, onBlockerShow)
-                    QuietButton(Texts.Setup.BLOCKER_IS_ON, onBlockerOn)
-                }
-            }
         }
         SettingCard {
             ValueRow(Texts.Settings.CREDITS_TITLE, Texts.Settings.CREDITS)
