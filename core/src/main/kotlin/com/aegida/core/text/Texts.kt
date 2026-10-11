@@ -200,7 +200,7 @@ object Texts {
         const val FILTER_CHECK = "Check it"
 
         const val BLOCKER_TITLE = "One more switch to try"
-        const val BLOCKER_BODY = "Some Samsung phones have a switch called Auto Blocker. It helps stop bad apps. Aegida can't tell if it's on, so it will take your word."
+        const val BLOCKER_BODY = "Some Samsung phones have a switch called Auto Blocker. It helps stop bad apps. Aegida can't see whether it is on. If you turn it on, tell Aegida below. Aegida will write down that you said so, and will not say it is on unless you did."
         const val BLOCKER_SHOW = "Show me"
         const val BLOCKER_IS_ON = "I turned it on"
 
@@ -217,6 +217,10 @@ object Texts {
         const val NOT_SET = "Not set"
         const val TELL_GUARDIANS = "Tell my guardian about serious problems"
         const val WEBSITE_PROTECTION = "Website protection"
+        const val TURN_ON_WEBSITE_PROTECTION = "Turn on website protection"
+        const val AUTO_BLOCKER = "Auto Blocker"
+        const val AUTO_BLOCKER_TOLD_ON = "You told Aegida it is on. Aegida can't check this one."
+        const val AUTO_BLOCKER_NOT_ON = "Not turned on. Aegida can't check this one."
         const val ON = "On"
         const val OFF = "Off"
         const val CANT_TELL = "Can't tell"

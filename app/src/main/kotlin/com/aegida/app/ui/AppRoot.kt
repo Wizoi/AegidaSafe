@@ -244,6 +244,9 @@ private fun MainContent(state: MainState, vm: MainViewModel) {
                     Tab.History -> HistoryScreen(state.history, pictureId, state.now, zone, locale)
                     Tab.Settings -> SettingsScreen(
                         state.setup, state.guardians, state.filterOn,
+                        blockerRelevant = state.blockerRelevant,
+                        onBlockerShow = { context.startSafely(FixActions.securitySettings()) },
+                        onBlockerOn = { vm.answerBlocker(AutoBlockerAnswer.UserSaidOn) },
                         onChangePicture = { page = Page.ChangePicture },
                         onChangeGuardian = { page = Page.ChangeGuardian },
                         onResendInvite = {

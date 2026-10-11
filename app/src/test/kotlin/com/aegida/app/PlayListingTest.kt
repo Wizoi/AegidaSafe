@@ -101,4 +101,12 @@ class PlayListingTest {
         fun int(at: Int) = ((b[at].toInt() and 255) shl 24) or ((b[at + 1].toInt() and 255) shl 16) or ((b[at + 2].toInt() and 255) shl 8) or (b[at + 3].toInt() and 255)
         return int(16) to int(20)
     }
+
+    /** Kevin, Oct 10: how to say the name, in the store text and on the page (AY-gih-dah). */
+    @Test fun theNameComesWithItsPronunciationInTheStoreTextAndOnThePage() {
+        assertTrue(File(play, "listings/en-US/full-description.txt").readText().contains("Aegida (say it AY-gih-dah)"))
+        val page = File("../docs/site/how-it-works.html").readText()
+        assertTrue(page.contains("<b>AY-gih-dah</b>"))
+        assertTrue(page.contains("How Aegida (AY-gih-dah) works"))
+    }
 }
