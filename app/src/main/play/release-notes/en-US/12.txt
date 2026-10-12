@@ -1,7 +1,7 @@
 What's new:
-• Banks, news and other real apps are no longer mistaken for apps that send ads
-• Web addresses in warnings and History are hidden more reliably, and your guardian never gets a whole address
-• Saying No to a new website now sticks; you are asked again only after a week
-• Sending the invitation again also re-sends the "set up" message to your guardian
-• While messages to your guardian are off, Aegida sends nothing at all
-• Old warnings are cleared after 90 days, and History shows more clearly what is done
+• Banks, news and other real apps are no longer mistaken for ad apps
+• Links inside a scam message are hidden more reliably, and your guardian never gets a whole web address
+• Saying No to a new website now sticks; you are asked again after a week
+• Sending the invitation again also re-sends the "set up" message
+• With guardian messages off, Aegida sends nothing
+• Old warnings are cleared after 90 days
