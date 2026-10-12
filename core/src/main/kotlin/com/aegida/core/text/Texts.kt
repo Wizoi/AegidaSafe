@@ -136,7 +136,7 @@ object Texts {
                 val cp = text.codePointAt(i)
                 i += Character.charCount(cp)
                 when {
-                    Character.getType(cp) == Character.FORMAT.toInt() -> Unit
+                    Character.getType(cp) == Character.FORMAT.toInt() || isIgnoredByBrowsers(cp) -> Unit
                     cp in DOT_LOOK_ALIKES -> out.append('.')
                     else -> out.appendCodePoint(cp)
                 }
@@ -164,10 +164,19 @@ object Texts {
         }
 
         private val WORD_GAPS = Regex("""[\s\p{Z}]+""")
-        private val DOT_LETTERS = Regex("""\.\p{L}{2,}""")
+        /** A dot and two letters, with any marks between them ("evil.ćom" too, findings #102). */
+        private val DOT_LETTERS = Regex("""\.\p{M}*\p{L}(\p{M}*\p{L})+""")
+
+        /** Default-ignorable code points a browser drops from an address (Unicode's list, beyond the format characters). */
+        private fun isIgnoredByBrowsers(cp: Int): Boolean =
+            cp == 0x034F || cp in 0x115F..0x1160 || cp in 0x17B4..0x17B5 || cp in 0x180B..0x180F || cp == 0x3164 ||
+                cp in 0xFE00..0xFE0F || cp == 0xFFA0 || cp in 0xE0000..0xE0FFF
         private val IPV4 = Regex("""\d{1,3}(\.\d{1,3}){3}""")
         private val TITLES = setOf("Mr", "Mrs", "Ms", "Dr", "St", "Mt", "Jr", "Sr", "Ft")
-        private val DOT_LOOK_ALIKES = setOf(0x2024, 0xFE52, 0xFE12, 0xFF0E, 0x3002, 0xFF61, 0x00B7, 0x0701, 0x2E3C, 0x2219, 0x22C5, 0x30FB)
+        private val DOT_LOOK_ALIKES = setOf(
+            0x2024, 0xFE52, 0xFE12, 0xFF0E, 0x3002, 0xFF61, 0x00B7, 0x0701, 0x2E3C, 0x2219, 0x22C5, 0x30FB,
+            0x2027, 0x0387, 0x16EB, 0x2E31, 0xFF65, 0xA78F, 0x1427, // findings #102
+        )
 
         /** "It said: “…”" for what a website's notification said (its title), cleaned and cut short. */
         fun saidLine(title: String?): String? {

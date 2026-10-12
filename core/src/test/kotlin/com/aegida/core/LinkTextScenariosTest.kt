@@ -44,6 +44,17 @@ class LinkTextScenariosTest {
         "pay­pal.com" to "pay",
         "secure_paypal.com" to "paypal", // the link finder does not start after "_"; the dot-and-letters rule still hides it
         "_evil.com" to "evil",
+        // findings #102: characters a browser ignores, a visible mark, more dot look-alikes
+        "evil.c͏om" to "evil",
+        "paypal.͏com/login" to "paypal",
+        "evil.️com" to "evil",
+        "evil.c︀om" to "evil",
+        "evil.᠋com" to "evil",
+        "evil.ćom" to "evil",
+        "evil‧com" to "evil",
+        "evil·com" to "evil",
+        "evil⸱com" to "evil",
+        "evil･com" to "evil",
     )
 
     @Test fun offThePhoneEveryAddressTheLinkFinderSeesIsMaskedWithNoExceptions() {
@@ -58,6 +69,11 @@ class LinkTextScenariosTest {
             val note = Problem.NoisyApp.forGuardian("Ruth", text)!!
             assertFalse("$text: $note", note.contains(leak, ignoreCase = true))
         }
+    }
+
+    @Test fun aCharacterBrowsersIgnoreIsRemovedSoTheGuardianStillGetsAUsefulMask() { // findings #102
+        assertEquals("ev*****.com", Texts.Home.guardianLabel("evil.c͏om"))
+        assertEquals("ev*****.com", Texts.Home.guardianLabel("evil.️com"))
     }
 
     @Test fun aLabelThatEndsInAnAddressAfterTheCutIsStillMasked() {

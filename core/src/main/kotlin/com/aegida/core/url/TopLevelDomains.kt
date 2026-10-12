@@ -8,15 +8,18 @@ package com.aegida.core.url
  */
 object TopLevelDomains {
     private val list: Set<String> by lazy {
-        TopLevelDomains::class.java.getResourceAsStream("tlds.txt")?.bufferedReader()?.useLines { lines ->
+        TopLevelDomains::class.java.getResourceAsStream(RESOURCE)?.bufferedReader()?.useLines { lines ->
             lines.map { it.trim() }.filter { it.isNotEmpty() && !it.startsWith("#") }.map { it.lowercase() }.toSet()
         }.orEmpty()
     }
 
     /** The "# Version 2026101001, ..." line of the file, or null. */
     val version: String? by lazy {
-        TopLevelDomains::class.java.getResourceAsStream("tlds.txt")?.bufferedReader()?.useLines { lines -> lines.firstOrNull { it.startsWith("#") } }
+        TopLevelDomains::class.java.getResourceAsStream(RESOURCE)?.bufferedReader()?.useLines { lines -> lines.firstOrNull { it.startsWith("#") } }
     }
 
     fun isDomain(ending: String): Boolean = list.isEmpty() || ending.lowercase() in list
+
+    /** Absolute: the release build renames this class, so a name relative to it would find nothing there (findings #102). */
+    private const val RESOURCE = "/com/aegida/core/url/tlds.txt"
 }
