@@ -222,7 +222,7 @@ object Texts {
         const val FILTER_CHECK = "Check it"
 
         const val BLOCKER_TITLE = "One more switch to try"
-        const val BLOCKER_BODY = "Some Samsung phones have a switch called Auto Blocker. It helps stop bad apps. Aegida can't see whether it is on. If you turn it on, tell Aegida below. Aegida will write down that you said so, and will not say it is on unless you did."
+        const val BLOCKER_BODY = "Some Samsung phones have a switch called Auto Blocker. It helps stop bad apps. Aegida can't see whether it is on, so it will never say it is."
         const val BLOCKER_SHOW = "Show me"
         const val BLOCKER_IS_ON = "I turned it on"
 

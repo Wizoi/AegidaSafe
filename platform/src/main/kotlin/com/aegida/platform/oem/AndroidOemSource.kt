@@ -9,7 +9,7 @@ import com.aegida.core.oem.Reading
  * The only place that knows any phone maker's names (OemSingleOwnerTest). Nothing here is validated
  * on a Samsung yet (design section 8b), so on a Samsung every reading is Unreadable, never guessed.
  *
- * Auto Blocker came with One UI 6.1, so a Samsung from before that (a Galaxy S20+ stops at One UI 5.1) has none and must not be
+ * Auto Blocker came with One UI 6.0, so a Samsung from before that (a Galaxy S20+ stops at One UI 5.1) has none and must not be
  * asked about it (findings #91). Its own package is the sign that it exists, and a disabled one is not in Settings (findings #11).
  */
 class AndroidOemSource(private val context: Context) : OemSource {

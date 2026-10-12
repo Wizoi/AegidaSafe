@@ -61,7 +61,7 @@ Never counted, never flagged (the allow side):
 - Notices with category `msg`, `call`, `email`, `alarm`, `navigation`, `progress`, `service`, `status`, `transport`, `reminder`, `event`, `social`.
 - Conversation notices; ongoing and foreground-service notices; apps whose own notices she has dealt with before ("Was that you?" yes).
 
-Signals (each one is worth one point; each is a plain yes or no on the notice):
+Signals (as built after findings #93 and #96; a notice scores only with a content sign, and the context signs then add):
 1. `category` is `promo` or `recommendation`.
 2. The channel name or description has an ad word ("promo", "offer", "deal", "ads", "sale", "marketing", "news", "recommend", "discover").
 3. The notice is a heads-up (importance 4 or more) from an app that is not in the allow side.
@@ -106,3 +106,15 @@ or text is kept beyond the warning page for one example notice, cleared when she
 3. Guardian note with the app name, as proposed?
 4. Is the "hide this app's notices" option wanted, or only the advice?
 5. Do you want me to try the idea on a fixture app on the emulator first, and may I read one `dumpsys notification` from your own phone?
+
+## As built (Oct 11, after reviews #93 and #96)
+
+- Content signs (one point each): the app calls it `promo` or `recommendation`; an ad word in the channel name or description
+  (promo, offer, deal, ad, advert, sale, marketing, recommend); pushy words (convert, clean now, boost, scan now, limited time, speed up,
+  optimize, storage full) or fake-virus words (virus, infected, malware, trojan, spyware, battery damaged). Not news, discover, free,
+  win, install, ready!, security alert, your phone is, hacked: real apps say those.
+- Context signs (add only when there is a content sign): pop-up importance, a game/image/productivity app, the phone's negative sentiment.
+- Flag: 3 or more counted notices in 1 hour with 2 or more scoring 2+, or 6 or more in a week with most scoring 1+.
+- A notice is identified by a hash of its key and its own time: the same one coming back (snooze, repost) is not new; an update
+  within 10 minutes is not new. Accepted gaps: an app that reposts with a fixed time counts once a week; an app that rebuilds its
+  notice for each update counts an update more than 10 minutes later. Neither makes a false flag likelier.
