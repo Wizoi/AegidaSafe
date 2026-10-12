@@ -154,6 +154,14 @@ class PublicPagesTest {
         assertTrue("it says Aegida never needs one", detailed.contains("Aegida does not need an account and never asks for one"))
     }
 
+    /** Kevin, Oct 11: the Simple view fell behind the app. It must explain what Mom actually meets on her screens, in the app's own words. */
+    @Test fun theSimpleViewExplainsWhatMomMeetsOnHerScreens() {
+        val simpleHtml = html.substringAfter("id=\"simple-view\"").substringBefore("id=\"detailed-view\"")
+        for (phrase in listOf("needs a tap", Texts.Home.CONFIRM_YES, Texts.Home.CONFIRM_NO, Texts.Home.NOISY_FINE, "waits a week", "copy the name")) {
+            assertTrue("the Simple view does not explain: $phrase", simpleHtml.contains(phrase))
+        }
+    }
+
     @Test fun itSaysWhichVersionOfTheAppItDescribesAndLinksToThePrivacyPage() {
         val version = Regex("""versionName\s*=\s*"([^"]+)"""").find(File("build.gradle.kts").readText())!!.groupValues[1]
         assertTrue("the page must say it describes Aegida $version (update it with each release)", plain.contains("Aegida $version"))
