@@ -29,6 +29,21 @@ class LinkTextScenariosTest {
         "a".repeat(70) + ".usps-redeliver.com" to "usps-redeliver",
         "paypal。com" to "paypal",
         "paypal．com" to "paypal",
+        // findings #101
+        "evil․com" to "evil",
+        "evil﹒com" to "evil",
+        "evil·com" to "evil",
+        "evil​.com" to "evil",
+        "paypal­.com" to "paypal",
+        "evil.c​om" to "evil",
+        "evil⁠.com" to "evil",
+        "http://evil%2Ecom/login" to "evil",
+        "http://3232235777/x" to "3232235777",
+        "https://evil/x" to "evil",
+        "192.168.1.5/login" to "192.168",
+        "pay­pal.com" to "pay",
+        "secure_paypal.com" to "paypal", // the link finder does not start after "_"; the dot-and-letters rule still hides it
+        "_evil.com" to "evil",
     )
 
     @Test fun offThePhoneEveryAddressTheLinkFinderSeesIsMaskedWithNoExceptions() {
@@ -67,6 +82,10 @@ class LinkTextScenariosTest {
         for (text in listOf("Dr.Bank", "usps.Sbs", "irs.Gov", "amazon.Lol", "chase.Bond", "St.Shop", "paypal.Ltd")) {
             assertEquals(text, "(link)", Texts.Home.withoutLinks(text))
         }
+    }
+
+    @Test fun onThePhoneOnlyPlainWordsArePassedNotOtherAlphabets() { // findings #101
+        assertEquals("(link)", Texts.Home.withoutLinks("пример.Рф"))
     }
 
     @Test fun aLinkWithAPathSchemeOrAtSignIsAlwaysALink() {

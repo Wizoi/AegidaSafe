@@ -104,45 +104,70 @@ object Texts {
         }
 
         /**
-         * [text] for the phone's screens. A word that holds any address is shown as "(link)" whole, so no part of an address can be left
-         * behind by a nested or repeated one; a word whose only "addresses" are ordinary words with a dot stays (findings #99, #100).
+         * [text] for the phone's screens. Invisible characters are removed and dot look-alikes become dots first; then a word that looks
+         * like an address at all (see [looksLikeAddress]) shows as "(link)" whole. Only an ordinary word with a dot stays (findings #99-#101).
          */
         fun withoutLinks(text: String): String =
-            text.split(WORD_GAPS).joinToString(" ") { word ->
-                val links = Links.findForMasking(word)
-                if (links.isEmpty() || links.all(::isOrdinaryWord)) word else LINK_REMOVED
-            }
+            prepared(text).split(WORD_GAPS).joinToString(" ") { word -> if (looksLikeAddress(word) && !isOrdinaryWord(word)) LINK_REMOVED else word }
 
         /**
-         * "Mr.Smith", "St.Louis", "held.Please" (no space after a full stop): two parts, no scheme, path or @, the first a title or a
-         * lowercase word, and the ending a capitalised word that is in no IANA top-level-domain list ("smith" is not; "sbs", "gov", "bank"
-         * are). Only for what Mom sees; anything sent off the phone is masked with no exceptions ([guardianLabel]).
+         * An app's label as it may be sent off the phone. After the same preparation, a word that looks like an address is sent as the
+         * masks of the addresses found in it, or as `*****` when none can be read; never any part of the word. Then it is cut short.
          */
-        private fun isOrdinaryWord(link: com.aegida.core.url.Link): Boolean {
-            val raw = link.raw
-            if (raw.contains("://") || raw.any { it in "/?@:" }) return false
-            val parts = raw.trimEnd('.').split('.')
+        fun guardianLabel(raw: String): String =
+            cleanLabel(
+                cleanLabel(prepared(raw), Int.MAX_VALUE).split(WORD_GAPS).joinToString(" ") { word ->
+                    if (!looksLikeAddress(word)) {
+                        word
+                    } else {
+                        Links.findForMasking(word).map { HostMask.of(it.host) }.ifEmpty { listOf(HostMask.of("")) }.joinToString(" ")
+                    }
+                },
+            )
+
+        /**
+         * Removes invisible and format characters (zero-width ones, soft hyphen, direction marks: an address split by one is still the
+         * address to a browser) and turns every dot look-alike into "." (findings #101).
+         */
+        private fun prepared(text: String): String {
+            val out = StringBuilder(text.length)
+            var i = 0
+            while (i < text.length) {
+                val cp = text.codePointAt(i)
+                i += Character.charCount(cp)
+                when {
+                    Character.getType(cp) == Character.FORMAT.toInt() -> Unit
+                    cp in DOT_LOOK_ALIKES -> out.append('.')
+                    else -> out.appendCodePoint(cp)
+                }
+            }
+            return out.toString()
+        }
+
+        /** Fails closed: a scheme, a dot followed by two letters, an IPv4 address, or anything the link finder sees. */
+        private fun looksLikeAddress(word: String): Boolean =
+            word.contains("://") || DOT_LETTERS.containsMatchIn(word) || IPV4.containsMatchIn(word) || Links.findForMasking(word).isNotEmpty()
+
+        /**
+         * "Mr.Smith", "St.Louis", "held.Please" (no space after a full stop): plain ASCII, two parts, no scheme, path or @, the first a
+         * title or a lowercase word, and the ending a capitalised word in no IANA top-level-domain list. Only for what Mom sees.
+         */
+        private fun isOrdinaryWord(word: String): Boolean {
+            val w = word.trim { !it.isLetterOrDigit() }
+            if (w.any { it.code > 127 } || w.any { it in "/?@:" }) return false
+            val parts = w.split('.')
             if (parts.size != 2) return false
             val (first, ending) = parts
-            if (ending.isEmpty() || !ending.first().isUpperCase() || !ending.drop(1).all { it.isLowerCase() }) return false
+            if (ending.length < 2 || !ending.first().isUpperCase() || !ending.drop(1).all { it.isLowerCase() }) return false
             if (com.aegida.core.url.TopLevelDomains.isDomain(ending)) return false
             return first in TITLES || (first.isNotEmpty() && first.all { it.isLowerCase() })
         }
 
         private val WORD_GAPS = Regex("""[\s\p{Z}]+""")
+        private val DOT_LETTERS = Regex("""\.\p{L}{2,}""")
+        private val IPV4 = Regex("""\d{1,3}(\.\d{1,3}){3}""")
         private val TITLES = setOf("Mr", "Mrs", "Ms", "Dr", "St", "Mt", "Jr", "Sr", "Ft")
-
-        /**
-         * An app's label as it may be sent off the phone. A word that holds any address is sent as the masks of its addresses only,
-         * never any part of the word, with no exceptions (findings #94, #99, #100); only then is it cut short (#98).
-         */
-        fun guardianLabel(raw: String): String =
-            cleanLabel(
-                cleanLabel(raw, Int.MAX_VALUE).split(WORD_GAPS).joinToString(" ") { word ->
-                    val links = Links.findForMasking(word)
-                    if (links.isEmpty()) word else links.joinToString(" ") { HostMask.of(it.host) }
-                },
-            )
+        private val DOT_LOOK_ALIKES = setOf(0x2024, 0xFE52, 0xFE12, 0xFF0E, 0x3002, 0xFF61, 0x00B7, 0x0701, 0x2E3C, 0x2219, 0x22C5, 0x30FB)
 
         /** "It said: “…”" for what a website's notification said (its title), cleaned and cut short. */
         fun saidLine(title: String?): String? {
