@@ -41,6 +41,34 @@ object Links {
         return found.toList()
     }
 
+    /**
+     * For hiding and masking only (never for detection, which [extract] owns): every address in [text], also one that [extract]
+     * drops because its candidate does not parse, and ideographic or fullwidth dots ("paypal。com") taken as dots (findings #100).
+     * Erring towards finding too much is right here: a found address is only hidden or masked.
+     */
+    fun findForMasking(text: String): List<Link> {
+        val found = LinkedHashSet<Link>()
+        val cut = if (text.length > MAX_PART_CHARS) text.substring(0, MAX_PART_CHARS) else text
+        scan(withPlainDots(cut)) { candidate -> parseOrInner(candidate.trimEnd { c -> c in TRAILING })?.let(found::add) }
+        return found.toList()
+    }
+
+    /** Ideographic and fullwidth dots ("paypal。com") are dots to a browser, so they are dots here too (findings #100). Same length. */
+    private fun withPlainDots(text: String): String = text.replace('。', '.').replace('．', '.').replace('｡', '.')
+
+    /**
+     * A candidate that does not parse (a label too long, mixed writing directions) may still hold an address after its first dot:
+     * "xא.evil.com" holds evil.com. Try the rest after each dot until one parses, so it is never dropped whole (findings #100).
+     */
+    private fun parseOrInner(candidate: String): Link? {
+        var rest = candidate
+        while (rest.contains('.')) {
+            parse(rest)?.let { return it }
+            rest = rest.substringAfter('.')
+        }
+        return null
+    }
+
     // A scheme URL, or a bare domain with a letters-only top-level label (so "e.g." and "3.14" are not links).
     // Scanned by hand in one pass: the regex this replaced recursed once per label and overflowed the stack
     // on a long "a.a.a.a" run (R11). It finds the same candidates (LinksTest, LinksLongTextTest).

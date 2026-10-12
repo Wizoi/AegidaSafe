@@ -104,18 +104,19 @@ object Texts {
         }
 
         /**
-         * [text] for the phone's screens, with every link replaced by "(link)". Each link the link finder sees is judged on its own, so an
-         * address glued to other words ("evil-site.com,Hello") is still taken out; only an ordinary word with a dot stays (findings #99).
+         * [text] for the phone's screens. A word that holds any address is shown as "(link)" whole, so no part of an address can be left
+         * behind by a nested or repeated one; a word whose only "addresses" are ordinary words with a dot stays (findings #99, #100).
          */
         fun withoutLinks(text: String): String =
             text.split(WORD_GAPS).joinToString(" ") { word ->
-                Links.extract(word).fold(word) { shown, link -> if (isOrdinaryWord(link)) shown else shown.replace(link.raw, LINK_REMOVED) }
+                val links = Links.findForMasking(word)
+                if (links.isEmpty() || links.all(::isOrdinaryWord)) word else LINK_REMOVED
             }
 
         /**
-         * "Mr.Smith", "St.Louis", "held.Please" (no space after a full stop): two parts, no scheme, path or @, the ending a capitalised
-         * word that is not a site ending, and the first part a title or a lowercase word. "Paypa1.Com", "evil.Top", "EVIL.COM" are links.
-         * Only for what Mom sees; anything sent off the phone is masked with no exceptions ([guardianLabel]).
+         * "Mr.Smith", "St.Louis", "held.Please" (no space after a full stop): two parts, no scheme, path or @, the first a title or a
+         * lowercase word, and the ending a capitalised word that is in no IANA top-level-domain list ("smith" is not; "sbs", "gov", "bank"
+         * are). Only for what Mom sees; anything sent off the phone is masked with no exceptions ([guardianLabel]).
          */
         private fun isOrdinaryWord(link: com.aegida.core.url.Link): Boolean {
             val raw = link.raw
@@ -124,25 +125,22 @@ object Texts {
             if (parts.size != 2) return false
             val (first, ending) = parts
             if (ending.isEmpty() || !ending.first().isUpperCase() || !ending.drop(1).all { it.isLowerCase() }) return false
-            return first in TITLES || (first.isNotEmpty() && first.all { it.isLowerCase() } && ending.lowercase() !in SITE_ENDINGS)
+            if (com.aegida.core.url.TopLevelDomains.isDomain(ending)) return false
+            return first in TITLES || (first.isNotEmpty() && first.all { it.isLowerCase() })
         }
 
-        private val WORD_GAPS = Regex("""[\s ]+""")
+        private val WORD_GAPS = Regex("""[\s\p{Z}]+""")
         private val TITLES = setOf("Mr", "Mrs", "Ms", "Dr", "St", "Mt", "Jr", "Sr", "Ft")
-        private val SITE_ENDINGS = setOf(
-            "com", "net", "org", "top", "xyz", "shop", "app", "info", "online", "site", "live", "help", "club", "store", "io", "co", "us",
-            "uk", "me", "biz", "click", "link", "vip", "win", "bid", "loan", "work", "tech", "space", "fun", "icu", "cc", "tk", "ml", "ga",
-            "cf", "gq", "pw", "ru", "cn", "de", "fr", "in", "au", "ca", "eu", "page", "support", "bank", "pay",
-        )
 
         /**
-         * An app's label as it may be sent off the phone: every address the link finder sees is masked, with no exceptions (findings
-         * #94, #99), and only then is it cut short, so a long label can never end in half an address (#98).
+         * An app's label as it may be sent off the phone. A word that holds any address is sent as the masks of its addresses only,
+         * never any part of the word, with no exceptions (findings #94, #99, #100); only then is it cut short (#98).
          */
         fun guardianLabel(raw: String): String =
             cleanLabel(
                 cleanLabel(raw, Int.MAX_VALUE).split(WORD_GAPS).joinToString(" ") { word ->
-                    Links.extract(word).fold(word) { sent, link -> sent.replace(link.raw, HostMask.of(link.host)) }
+                    val links = Links.findForMasking(word)
+                    if (links.isEmpty()) word else links.joinToString(" ") { HostMask.of(it.host) }
                 },
             )
 

@@ -173,8 +173,9 @@ class AlertPipeline @Inject constructor(
         val candidates = findings.open().filter { it.state == FindingState.Open && it.severity >= Severity.NeedsTap }
             .filter { it.key.problem.forGuardian(guardianName(settings)) != null }
         val due = candidates.filter { finding ->
-            if (finding.firstSeen.isAfter(now.plus(CLOCK_SKEW))) {
-                findings.put(withFirstSeenPutRight(finding, now))
+            val putRight = withFirstSeenPutRight(finding, now)
+            if (putRight != finding) {
+                findings.put(putRight)
                 return@filter false
             }
             Duration.between(minOf(finding.firstSeen, now), now) >= REMIND_AFTER

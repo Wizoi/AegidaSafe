@@ -21,6 +21,14 @@ class LinkTextScenariosTest {
         "evil-site.com,Hello.There" to "evil-site",
         "x evil.com.Now" to "evil.com",
         "evil-site.com Mr.Smith" to "evil-site",
+        // findings #100
+        "go.io,paypal-secure.com/go.io" to "paypal-secure",
+        "pal.com,paypal.com" to "paypal",
+        "evil.top,secure-login.evil.top" to "secure-login",
+        "xא.evil.com" to "evil",
+        "a".repeat(70) + ".usps-redeliver.com" to "usps-redeliver",
+        "paypal。com" to "paypal",
+        "paypal．com" to "paypal",
     )
 
     @Test fun offThePhoneEveryAddressTheLinkFinderSeesIsMaskedWithNoExceptions() {
@@ -53,6 +61,12 @@ class LinkTextScenariosTest {
     @Test fun onThePhoneOrdinaryWordsWithADotStayWords() {
         assertEquals("Mr.Smith says your parcel is held.Please call St.Louis", Texts.Home.withoutLinks("Mr.Smith says your parcel is held.Please call St.Louis"))
         assertEquals("Dr.Lee e.g. v2.1 3.14", Texts.Home.withoutLinks("Dr.Lee e.g. v2.1 3.14"))
+    }
+
+    @Test fun onThePhoneARealDomainEndingIsALinkEvenAfterATitle() { // findings #100
+        for (text in listOf("Dr.Bank", "usps.Sbs", "irs.Gov", "amazon.Lol", "chase.Bond", "St.Shop", "paypal.Ltd")) {
+            assertEquals(text, "(link)", Texts.Home.withoutLinks(text))
+        }
     }
 
     @Test fun aLinkWithAPathSchemeOrAtSignIsAlwaysALink() {
