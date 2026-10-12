@@ -103,29 +103,46 @@ object Texts {
             return if (clean.isEmpty()) null else SAYS_LINE.format("“$clean”")
         }
 
-        /** [text] with every link (as [Links] finds them) replaced by "(link)". */
+        /**
+         * [text] for the phone's screens, with every link replaced by "(link)". Each link the link finder sees is judged on its own, so an
+         * address glued to other words ("evil-site.com,Hello") is still taken out; only an ordinary word with a dot stays (findings #99).
+         */
         fun withoutLinks(text: String): String =
-            text.split(Regex("""\s+""")).joinToString(" ") { word -> if (isLink(word)) LINK_REMOVED else word }
+            text.split(WORD_GAPS).joinToString(" ") { word ->
+                Links.extract(word).fold(word) { shown, link -> if (isOrdinaryWord(link)) shown else shown.replace(link.raw, LINK_REMOVED) }
+            }
 
         /**
-         * Whether a word is a web address. "Mr.Smith", "St.Louis" and "held.Please" (no space after a full stop) are not: an ending that
-         * starts with a capital letter is a sentence or a name, not a site (findings #98).
+         * "Mr.Smith", "St.Louis", "held.Please" (no space after a full stop): two parts, no scheme, path or @, the ending a capitalised
+         * word that is not a site ending, and the first part a title or a lowercase word. "Paypa1.Com", "evil.Top", "EVIL.COM" are links.
+         * Only for what Mom sees; anything sent off the phone is masked with no exceptions ([guardianLabel]).
          */
-        private fun isLink(word: String): Boolean {
-            if (Links.extract(word).isEmpty()) return false
-            val ending = word.trimEnd { !it.isLetterOrDigit() }.substringAfterLast('.', "")
-            return !(ending.firstOrNull()?.isUpperCase() == true && !word.contains("://"))
+        private fun isOrdinaryWord(link: com.aegida.core.url.Link): Boolean {
+            val raw = link.raw
+            if (raw.contains("://") || raw.any { it in "/?@:" }) return false
+            val parts = raw.trimEnd('.').split('.')
+            if (parts.size != 2) return false
+            val (first, ending) = parts
+            if (ending.isEmpty() || !ending.first().isUpperCase() || !ending.drop(1).all { it.isLowerCase() }) return false
+            return first in TITLES || (first.isNotEmpty() && first.all { it.isLowerCase() } && ending.lowercase() !in SITE_ENDINGS)
         }
 
+        private val WORD_GAPS = Regex("""[\s ]+""")
+        private val TITLES = setOf("Mr", "Mrs", "Ms", "Dr", "St", "Mt", "Jr", "Sr", "Ft")
+        private val SITE_ENDINGS = setOf(
+            "com", "net", "org", "top", "xyz", "shop", "app", "info", "online", "site", "live", "help", "club", "store", "io", "co", "us",
+            "uk", "me", "biz", "click", "link", "vip", "win", "bid", "loan", "work", "tech", "space", "fun", "icu", "cc", "tk", "ml", "ga",
+            "cf", "gq", "pw", "ru", "cn", "de", "fr", "in", "au", "ca", "eu", "page", "support", "bank", "pay",
+        )
+
         /**
-         * An app's label as it may be sent off the phone: cleaned and cut short, and any web address in it masked, because an app can
-         * name itself like an address (findings #94).
+         * An app's label as it may be sent off the phone: every address the link finder sees is masked, with no exceptions (findings
+         * #94, #99), and only then is it cut short, so a long label can never end in half an address (#98).
          */
         fun guardianLabel(raw: String): String =
-            // Masked before it is cut, so a long label can never end in half an address (findings #98).
             cleanLabel(
-                cleanLabel(raw, Int.MAX_VALUE).split(" ").joinToString(" ") { word ->
-                    if (isLink(word)) Links.extract(word).first().let { HostMask.of(it.host) } else word
+                cleanLabel(raw, Int.MAX_VALUE).split(WORD_GAPS).joinToString(" ") { word ->
+                    Links.extract(word).fold(word) { sent, link -> sent.replace(link.raw, HostMask.of(link.host)) }
                 },
             )
 

@@ -97,4 +97,13 @@ class GuardianChangeTest {
         assertEquals(true, guardians.value.heartbeatCancelled)
         assertEquals(null, guardians.value.welcomePendingFor)
     }
+
+    @Test fun changingTheGuardianWhileAlertsAreOffAfterAFailedCancelSendsOneCancelToTheOldTopic() = runTest { // finding #99
+        val old = guardians.value.firstTopic!!
+        guardians.value = guardians.value.copy(alertsOn = false, heartbeatCancelled = false)
+        http.deleted.clear(); http.posts.clear()
+        change.change("Ann", "ann@example.org", "")
+        assertEquals(listOf("https://ntfy.sh/${old.value}/heartbeat"), http.deleted.map { it.url })
+        assertEquals(emptyList<Any>(), http.posts)
+    }
 }

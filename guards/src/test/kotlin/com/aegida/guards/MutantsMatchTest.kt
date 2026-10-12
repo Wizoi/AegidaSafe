@@ -54,5 +54,10 @@ class MutantsMatchTest {
             if (count == 1) null else "$name: its text is in the file $count times"
         }
         assertEquals("mutation checks that no longer match their code", emptyList<String>(), broken)
+        // One entry per line, every entry read, names unique (findings #99).
+        val names = entries.mapNotNull { line -> field.findAll(line).firstOrNull { it.groupValues[1] == "name" }?.groupValues?.get(2) }
+        val declared = File(root, "scripts/mutants.json").readText().split("\"name\":").size - 1
+        assertEquals("every entry is on its own line and read", declared, names.size)
+        assertEquals("names are unique", names.size, names.toSet().size)
     }
 }

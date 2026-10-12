@@ -46,9 +46,9 @@ class AlertPipeline @Inject constructor(
         current.forEach { finding ->
             val stored = findings.get(finding.key)
             if (stored != null && stored.state.needsHer) {
-                findings.put(stored.copy(lastSeen = finding.lastSeen))
-                // A first-seen time from a clock that was ahead counts as long open, or it would be put aside until the clock caught up (findings #98).
-                if (Duration.between(stored.firstSeen, now) > LONG_OPEN || stored.firstSeen.isAfter(now.plus(CLOCK_SKEW))) openLong += finding.key
+                val held = withFirstSeenPutRight(stored, now)
+                findings.put(held.copy(lastSeen = finding.lastSeen))
+                if (Duration.between(held.firstSeen, now) > LONG_OPEN) openLong += finding.key
                 return@forEach
             }
             // Once the owner has seen it, a warning that keeps happening is quiet for a while (an app flooding her with ads would warn on every notice).
@@ -174,7 +174,7 @@ class AlertPipeline @Inject constructor(
             .filter { it.key.problem.forGuardian(guardianName(settings)) != null }
         val due = candidates.filter { finding ->
             if (finding.firstSeen.isAfter(now.plus(CLOCK_SKEW))) {
-                findings.put(finding.copy(firstSeen = now))
+                findings.put(withFirstSeenPutRight(finding, now))
                 return@filter false
             }
             Duration.between(minOf(finding.firstSeen, now), now) >= REMIND_AFTER
@@ -222,6 +222,10 @@ class AlertPipeline @Inject constructor(
         val (topic, message) = messageFor(finding) ?: return
         outbox.add(QueuedMessage(0, topic.value, message.title, message.body, message.urgent, finding.key.problem, now, 1, now))
     }
+
+    /** A first-seen time from a clock that was ahead is taken as now: the one rule for both the open check and the reminder (findings #99). */
+    private fun withFirstSeenPutRight(finding: Finding, now: Instant): Finding =
+        if (finding.firstSeen.isAfter(now.plus(CLOCK_SKEW))) finding.copy(firstSeen = now) else finding
 
     companion object {
         private val BACKOFF_FIRST: Duration = Duration.ofHours(24)
