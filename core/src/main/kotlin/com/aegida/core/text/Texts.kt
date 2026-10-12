@@ -28,6 +28,8 @@ object Texts {
         const val CHANGED = "%1\$s picked a different guardian in Aegida. You will not get messages about %1\$s's phone from now on. If you did not expect this, please call %1\$s."
         /** %1 the owner, %2 the app. Sent when the owner tells Aegida an app is fine (finding #92); the guardian is always told. */
         const val ALLOWED = "%1\$s told Aegida that an app (“%2\$s”) is fine, so Aegida will stop warning about it. If that surprises you, it may be a good time to ask %1\$s."
+        /** The same for an app with no name: its package name looks like a web address and is never sent (findings #98). */
+        const val ALLOWED_NO_NAME = "%1\$s told Aegida that an app is fine, so Aegida will stop warning about it. If that surprises you, it may be a good time to ask %1\$s."
         const val NOT_CHECKED_IN = "Aegida hasn't checked in on %1\$s's phone for 2 days. The phone may be off or asleep. It may be a good time to call %1\$s."
     }
 
@@ -103,18 +105,33 @@ object Texts {
 
         /** [text] with every link (as [Links] finds them) replaced by "(link)". */
         fun withoutLinks(text: String): String =
-            text.split(Regex("""\s+""")).joinToString(" ") { word -> if (Links.extract(word).isNotEmpty()) LINK_REMOVED else word }
+            text.split(Regex("""\s+""")).joinToString(" ") { word -> if (isLink(word)) LINK_REMOVED else word }
+
+        /**
+         * Whether a word is a web address. "Mr.Smith", "St.Louis" and "held.Please" (no space after a full stop) are not: an ending that
+         * starts with a capital letter is a sentence or a name, not a site (findings #98).
+         */
+        private fun isLink(word: String): Boolean {
+            if (Links.extract(word).isEmpty()) return false
+            val ending = word.trimEnd { !it.isLetterOrDigit() }.substringAfterLast('.', "")
+            return !(ending.firstOrNull()?.isUpperCase() == true && !word.contains("://"))
+        }
 
         /**
          * An app's label as it may be sent off the phone: cleaned and cut short, and any web address in it masked, because an app can
          * name itself like an address (findings #94).
          */
         fun guardianLabel(raw: String): String =
-            cleanLabel(raw).split(" ").joinToString(" ") { word -> Links.extract(word).firstOrNull()?.let { HostMask.of(it.host) } ?: word }
+            // Masked before it is cut, so a long label can never end in half an address (findings #98).
+            cleanLabel(
+                cleanLabel(raw, Int.MAX_VALUE).split(" ").joinToString(" ") { word ->
+                    if (isLink(word)) Links.extract(word).first().let { HostMask.of(it.host) } else word
+                },
+            )
 
         /** "It said: “…”" for what a website's notification said (its title), cleaned and cut short. */
         fun saidLine(title: String?): String? {
-            val clean = cleanLabel(title.orEmpty(), SAYS_MAX)
+            val clean = cleanLabel(withoutLinks(title.orEmpty()), SAYS_MAX) // a pop-up's title can carry a link too (findings #98)
             return if (clean.isEmpty()) null else SAID_LINE.format("“$clean”")
         }
 

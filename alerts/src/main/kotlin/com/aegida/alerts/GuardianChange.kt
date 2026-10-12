@@ -24,14 +24,17 @@ class GuardianChange @Inject constructor(
     suspend fun change(name: String, email: String, phone: String): GuardianChanged = gate.run {
         val before = settings.current()
         val told = alerts.tellReplaced(before)
-        val cancelled = switch.disarm()
+        // While alerts are off and the cancel already went through, nothing is sent (the pages promise it, findings #98).
+        val cancelled = if (before.alertsOn || !before.heartbeatCancelled) switch.disarm() else null
         settings.save(
-            before.copy(
+            settings.current().copy( // read again: disarm may have saved
                 firstTopic = NtfyTopic.generate(),
                 firstGuardianName = name.trim(),
                 firstGuardianEmail = email.trim(),
                 firstGuardianPhone = phone.trim(),
                 pairedAt = clock.now(),
+                welcomePendingFor = null,
+                heartbeatCancelled = !before.alertsOn, // the new topic has nothing waiting; startTelling arms it when alerts are on
             ),
         )
         if (before.alertsOn) alerts.startTelling()

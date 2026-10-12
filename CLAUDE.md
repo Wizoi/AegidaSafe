@@ -49,7 +49,7 @@ New code goes where design section 2 puts it. Modules (compile-time layering, im
   premise about "all" or "none" needs a count over the whole set, recorded in the findings row.
 - **Scenarios before code (Kevin, Oct 11).** Before writing a feature or fix, write a scenario table from the problem's
   side, not the code's: who, what happens, what Mom and the guardian should see. It must have must-never rows (a bank
-  is never flagged, a scam address never shows as text), hostile inputs (look-alike letters, labels shaped like web
+  is never flagged, a scam address never leaves the phone unmasked and never shows as a link in message words), hostile inputs (look-alike letters, labels shaped like web
   addresses), repeats and returns (same notice twice, snooze, repost), failure states (offline, killed half way, clock
   wrong, alerts off) and undo paths (No, Warn me again, change guardian). Put it in the design doc or the finding row.
   An Opus 5.5 high reviewer checks the table for missing rows before coding. Tests come from the table, one per row,
@@ -73,7 +73,7 @@ New code goes where design section 2 puts it. Modules (compile-time layering, im
   seen on a device is a finding in the same step, with an emulator reproduction tried before it is deferred.
 - Samsung-specific checks come last (see `docs/samsung-validation-options.md`).
 - Look at every screen in both themes and at 200% font size.
-- `python scripts/mutation-check.py` breaks each guarded rule on purpose and requires a test to go red (156 checks in
+- `python scripts/mutation-check.py` breaks each guarded rule on purpose and requires a test to go red (160 checks in
   `scripts/mutants.json`). Add one when you add a rule worth guarding; it always restores the file.
 - Check per-class test times when the suite passes 5 minutes or a class passes 60 s.
 

@@ -67,6 +67,26 @@ class FindingActionsTest {
         assertEquals(listOf("Ruth told Aegida that an app (“Image to PDF”) is fine, so Aegida will stop warning about it. If that surprises you, it may be a good time to ask Ruth."), http.bodies)
     }
 
+    @Test fun allowingAnAppNamedLikeAWebAddressTellsTheGuardianOnlyAMaskedAddress() = runTest { // finding #98
+        val withAllow = FindingActions(findings, history, owner, baselines, { phone }, pipeline, AlertGate(), allowList = allowList) { now }
+        val sly = noisy.copy(evidence = mapOf(com.aegida.core.model.Evidence.APP_LABEL to "Get evil-site.com"))
+        pipeline.handle(listOf(sly), setOf(DetectorId.NoisyApp))
+        http.posts.clear(); http.bodies.clear()
+        withAllow.allow(sly.key)
+        val note = http.bodies.single()
+        assertFalse(note, note.contains("evil-site.com"))
+        assertTrue(note, note.contains("ev*****.com"))
+    }
+
+    @Test fun allowingAnAppWithNoNameNeverSendsItsPackageName() = runTest {
+        val withAllow = FindingActions(findings, history, owner, baselines, { phone }, pipeline, AlertGate(), allowList = allowList) { now }
+        val unnamed = noisy.copy(evidence = emptyMap())
+        pipeline.handle(listOf(unnamed), setOf(DetectorId.NoisyApp))
+        http.posts.clear(); http.bodies.clear()
+        withAllow.allow(unnamed.key)
+        assertEquals(listOf("Ruth told Aegida that an app is fine, so Aegida will stop warning about it. If that surprises you, it may be a good time to ask Ruth."), http.bodies)
+    }
+
     @Test fun onlyAnAppWarningCanBeAllowedNeverASpyingOrRemoteControlOne() = runTest {
         val withAllow = FindingActions(findings, history, owner, baselines, { phone }, pipeline, AlertGate(), allowList = allowList) { now }
         val spy = Finding(FindingKey(DetectorId.Stalkerware, Problem.StalkerwareApp, "org.spy"), emptyMap(), now, now)

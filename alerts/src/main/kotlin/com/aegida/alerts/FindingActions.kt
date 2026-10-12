@@ -52,9 +52,10 @@ class FindingActions @Inject constructor(
         if (key.problem !in ALLOWABLE) return@run false
         val finding = findings.get(key)?.takeIf { it.state.needsHer } ?: return@run false
         val now = clock.now()
-        val label = Texts.Home.cleanLabel(finding.evidence[Evidence.APP_LABEL].orEmpty()).ifEmpty { key.subject }
+        val raw = finding.evidence[Evidence.APP_LABEL].orEmpty()
+        val label = Texts.Home.cleanLabel(raw).ifEmpty { key.subject } // on the phone the package name is fine
         // The guardian first (sent or queued), so a check killed half way never leaves a silent allow (finding #93).
-        pipeline.tellAllowed(label, now)
+        pipeline.tellAllowed(raw, label, now)
         history.add(HistoryEntry(now, Problem.AppAllowed, Outcome.Acknowledged, Texts.History.APP_IS.format("“$label”")))
         allowList.add(AllowedItem(key.problem, key.subject, label, now))
         markSeen(key, now)

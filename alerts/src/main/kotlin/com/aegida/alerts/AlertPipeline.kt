@@ -47,7 +47,8 @@ class AlertPipeline @Inject constructor(
             val stored = findings.get(finding.key)
             if (stored != null && stored.state.needsHer) {
                 findings.put(stored.copy(lastSeen = finding.lastSeen))
-                if (Duration.between(stored.firstSeen, now) > LONG_OPEN) openLong += finding.key
+                // A first-seen time from a clock that was ahead counts as long open, or it would be put aside until the clock caught up (findings #98).
+                if (Duration.between(stored.firstSeen, now) > LONG_OPEN || stored.firstSeen.isAfter(now.plus(CLOCK_SKEW))) openLong += finding.key
                 return@forEach
             }
             // Once the owner has seen it, a warning that keeps happening is quiet for a while (an app flooding her with ads would warn on every notice).
@@ -92,11 +93,15 @@ class AlertPipeline @Inject constructor(
      * Tells the guardian the owner said an app is fine (Kevin, Oct 11), so the list in My settings is never a secret. Sent, or queued
      * when offline, as its own kind ([Problem.AppAllowed]) with a History line that says the app. Nothing is sent while alerts are off.
      */
-    suspend fun tellAllowed(label: String, now: java.time.Instant) {
-        val detail = Texts.History.APP_IS.format("“$label”")
+    suspend fun tellAllowed(rawLabel: String, phoneLabel: String, now: java.time.Instant) {
+        val detail = Texts.History.APP_IS.format("“$phoneLabel”")
         val settings = guardians.current()
         val topic = settings.firstTopic?.takeIf { settings.alertsOn } ?: return
-        val message = GuardianMessage(title = guardianName(settings), body = Texts.Guardian.ALLOWED.format(guardianName(settings), label), urgent = false)
+        // Sent off the phone: masked, and an app with no name is not named by its package (findings #98).
+        val sent = Texts.Home.guardianLabel(rawLabel)
+        val owner = guardianName(settings)
+        val body = if (sent.isEmpty()) Texts.Guardian.ALLOWED_NO_NAME.format(owner) else Texts.Guardian.ALLOWED.format(owner, sent)
+        val message = GuardianMessage(title = owner, body = body, urgent = false)
         when (ntfy.send(topic, message)) {
             SendResult.Delivered -> history.add(HistoryEntry(now, Problem.AppAllowed, Outcome.GuardianTold, detail))
             is SendResult.NotDelivered -> {

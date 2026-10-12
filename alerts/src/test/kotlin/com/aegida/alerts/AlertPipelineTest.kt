@@ -94,6 +94,13 @@ class AlertPipelineTest {
         assertEquals(setOf(site.key), pipeline.handle(listOf(site), setOf(DetectorId.PopupSpam)).quieted)
     }
 
+    @Test fun aQuestionFirstSeenUnderAClockThatWasAheadIsNotPutAsideForever() = runTest { // finding #98
+        settings.value = settings.value.copy(alertsOn = false) // with alerts on, the reminder step already corrects the time
+        val site = Finding(FindingKey(DetectorId.PopupSpam, Problem.NewWebsiteNotifications, "https://new.example"), emptyMap(), now.plus(Duration.ofDays(3)), now)
+        pipeline.handle(listOf(site), setOf(DetectorId.PopupSpam))
+        assertEquals(setOf(site.key), pipeline.handle(listOf(site), setOf(DetectorId.PopupSpam)).openLong)
+    }
+
     @Test fun aSeenTimeFromAClockThatWasAheadDoesNotKeepItQuiet() = runTest { // finding #93
         pipeline.handle(listOf(noisy), setOf(DetectorId.NoisyApp))
         findings.put(findings.get(noisy.key)!!.copy(state = FindingState.Acknowledged, lastSeen = now.plus(Duration.ofDays(30))))

@@ -44,8 +44,8 @@ class DailyCheck @Inject constructor(
         val findingsPruned = findings.prune(now.minus(HISTORY_KEPT), now.plus(NoticeRules.CLOCK_SKEW))
         val runsPruned = checkLog.prune(now.minus(CHECK_LOG_KEPT))
         notices.prune(now.minus(NoticeRules.WEEK), now.plus(NoticeRules.CLOCK_SKEW)) // older than a week, or from a clock that was ahead (findings #92, #93)
-        // Checked in. Alerts on: push the "hasn't checked in" message two days further out. Alerts off: cancel it again,
-        // which retries a cancel that failed offline (always sent while off; one tiny request a day). A welcome that failed is retried here too.
+        // Checked in. Alerts on: push the "hasn't checked in" message two days further out. Alerts off: cancel it, retried daily
+        // until it works once, then nothing while alerts stay off (findings #95). A welcome that failed is retried here too.
         val heartbeat = gate.run {
             guardianAlerts.retryWelcome()
             switch.keepInStep()

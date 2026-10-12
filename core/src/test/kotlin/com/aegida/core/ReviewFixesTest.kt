@@ -23,6 +23,20 @@ class ReviewFixesTest {
         assertEquals("From: “Visit (link) now”", Texts.Home.senderLine("Visit paypa1-help.example now"))
     }
 
+    @Test fun aWebsitePopUpTitleNeverShowsALinkAsText() { // finding #98
+        val said = Texts.Home.saidLine("Infected! Go to cleaner-app.top now")!!
+        assertFalse(said, said.contains("cleaner-app"))
+    }
+
+    @Test fun ordinaryWordsWithADotAreNotTakenForLinks() { // finding #98
+        assertEquals("Mr.Smith says your parcel is held.Please call St.Louis", Texts.Home.withoutLinks("Mr.Smith says your parcel is held.Please call St.Louis"))
+    }
+
+    @Test fun aLongLabelEndingInAnAddressIsMaskedBeforeItIsCut() { // finding #98
+        val label = Texts.Home.guardianLabel("A very long app name that goes on and on before evil-site.com")
+        assertFalse(label, label.contains("evil-site") || label.contains("evil-si"))
+    }
+
     @Test fun anAppNamedLikeAWebAddressReachesTheGuardianMasked() {
         val note = Problem.NoisyApp.forGuardian("Ruth", "evil-site.com")!!
         assertFalse(note, note.contains("evil-site.com"))

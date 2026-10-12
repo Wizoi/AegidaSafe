@@ -8,8 +8,9 @@ import com.aegida.core.url.HostMask
 /**
  * The line under a History entry that says what it was (Kevin, Oct 10): the app, who sent a message, the first words of it
  * with any link taken out, and a masked address; the website that was sending notifications; the app that changed.
- * Written once, when the entry is made, from the finding's evidence. Null when there is nothing more to say. A scam
- * address never shows in full, and an app's own words never show for the urgent kinds (R17).
+ * Written once, when the entry is made, from the finding's evidence. Null when there is nothing more to say. On the phone the
+ * address is whole (Kevin, Oct 11: mask only what is sent); links in the words are still taken out, and an app's own words never
+ * show for the urgent kinds (R17).
  */
 object HistoryDetail {
     fun of(problem: Problem, evidence: Map<String, String>): String? {

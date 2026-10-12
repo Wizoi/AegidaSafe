@@ -88,4 +88,13 @@ class GuardianChangeTest {
             assertNotEquals(oldTopic, guardians.value.firstTopic)
         }
     }
+
+    @Test fun changingTheGuardianWhileAlertsAreOffSendsNothingAndKeepsTheCancelledFlag() = runTest { // finding #98
+        guardians.value = guardians.value.copy(alertsOn = false, heartbeatCancelled = true, welcomePendingFor = "old")
+        http.deleted.clear(); http.posts.clear()
+        change.change("Ann", "ann@example.org", "")
+        assertEquals("nothing goes to ntfy while alerts stay off", emptyList<Any>(), http.deleted + http.posts)
+        assertEquals(true, guardians.value.heartbeatCancelled)
+        assertEquals(null, guardians.value.welcomePendingFor)
+    }
 }
