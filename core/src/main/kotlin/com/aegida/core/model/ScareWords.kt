@@ -1,8 +1,8 @@
 package com.aegida.core.model
 
 /**
- * The words of a fake warning ("virus", "infected", "your phone is ..."). One list for the website pop-up check and the notice
- * ad-spam check (findings #93), so the two cannot drift apart.
+ * The words of a fake warning on a website's notification ("virus", "infected", "your phone is ..."). Too broad for an app's own
+ * notices, which have a narrower list in NoticeRules (findings #96).
  */
 object ScareWords {
     val REGEX = Regex(

@@ -46,15 +46,24 @@ class InviteAndFixTest {
         assertTrue("android install link", body.contains("https://play.google.com/store/apps/details?id=io.heckel.ntfy"))
         assertTrue("iphone install link", body.contains("https://apps.apple.com/app/ntfy/id1625396347"))
         // Kevin, Oct 10: an https://ntfy.sh/<topic> link opens ntfy's web page, not the Android app, so the guardian never subscribed in the app.
-        assertTrue("the topic name to type in the app", body.contains("type this name:\n   ${topic.value}"))
+        // Findings #95: a 47-character name with l/I/1 and O/0 is copied, not typed; the switch is named as Mom sees it; the signature is the owner.
+        assertTrue("the topic name to copy into the app", body.contains("copy this name and paste it:\n   ${topic.value}"))
+        assertTrue("the switch is named as she sees it", body.contains("“Tell my guardian about serious problems”"))
+        assertTrue("signed by the owner", body.endsWith("\nRuth"))
         assertTrue("the link that opens the Android app already subscribed", body.contains("ntfy://ntfy.sh/${topic.value}"))
         // Kevin, Oct 11: Mom said no to alerts in setup and the guardian was never told; the email is written before she answers, so it says what to expect either way.
         assertTrue("it says a first message arrives when it is on", body.contains("you will get a first message saying it is set up"))
-        assertTrue("and what to do if none comes", body.contains("If you do not get that message, I may have left it off, so please ask me."))
+        assertTrue("and what to do if none comes", body.contains("If it has not come within a day of adding the name, please ask me."))
         assertTrue("the guardian is asked to save it for other devices", body.contains("Please save this email"))
         // The web page is offered only as an extra for a computer, after the app steps, and says what it cannot do.
         assertTrue("the web page is offered for a computer", body.contains("3. Optional, to read them on a computer too: open https://ntfy.sh/${topic.value} in a web browser"))
         assertTrue("and comes after the app steps", body.indexOf("https://ntfy.sh/") > body.indexOf("ntfy://ntfy.sh/"))
+    }
+
+    @Test fun withNoOwnerNameTheInviteDoesNotSayTheAppPickedThem() { // findings #95
+        val intent = InviteEmail.intent(guardians.copy(ownerName = " "))!!
+        assertEquals("You have been picked as a guardian", intent.getStringExtra(Intent.EXTRA_SUBJECT))
+        assertFalse(intent.getStringExtra(Intent.EXTRA_TEXT)!!.trimEnd().endsWith("Aegida"))
     }
 
     @Test fun theInviteCannotBeBuiltWithoutAnEmailOrATopic() {

@@ -61,7 +61,7 @@ class AlertPipelineTest {
         val e = com.aegida.core.model.Evidence
         val named = scamLink.copy(evidence = mapOf(e.APP_LABEL to "Messages", e.HOST to "evil.example", e.MESSAGE_TITLE to "Bank"))
         pipeline.handle(listOf(named), setOf(DetectorId.Link))
-        val expected = "It came from the “Messages” app. From: “Bank”. The link went to ev*****.example."
+        val expected = "It came from the “Messages” app. From: “Bank”. The link went to evil.example."
         assertEquals(listOf(expected, expected), history.entries.map { it.detail })
     }
 

@@ -38,7 +38,7 @@ object Evidence {
     const val MESSAGE_TITLE = "messageTitle"
     const val MESSAGE_TEXT = "messageText"
     const val MESSAGE_AT = "messageAt"
-    const val NOTICES = "notices" // how many counted notices an app sent
+    const val NOTICES = "notices" // how many of an app's notices in the last week looked like ads
     val MESSAGE_KEYS = setOf(MESSAGE_TITLE, MESSAGE_TEXT, MESSAGE_AT)
 }
 

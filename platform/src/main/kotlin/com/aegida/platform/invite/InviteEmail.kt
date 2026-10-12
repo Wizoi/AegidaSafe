@@ -24,12 +24,12 @@ object InviteEmail {
     fun intent(guardians: Guardians, mailApps: List<String> = emptyList()): Intent? {
         val topic = guardians.firstTopic?.value ?: return null
         val email = guardians.firstGuardianEmail.trim().ifEmpty { return null }
-        val owner = guardians.ownerName.ifBlank { Texts.APP_NAME }
+        val owner = guardians.ownerName.trim() // blank: no name, never "Aegida has picked you" (findings #95)
         val guardian = guardians.firstGuardianName.ifBlank { "there" }
         fun send() = Intent(Intent.ACTION_SEND)
             .setType("text/plain")
             .putExtra(Intent.EXTRA_EMAIL, arrayOf(email))
-            .putExtra(Intent.EXTRA_SUBJECT, Texts.Invite.SUBJECT.format(owner))
+            .putExtra(Intent.EXTRA_SUBJECT, if (owner.isEmpty()) Texts.Invite.SUBJECT_NO_NAME else Texts.Invite.SUBJECT.format(owner))
             .putExtra(Intent.EXTRA_TEXT, Texts.Invite.BODY.format(guardian, topic, topic, topic, owner))
         val intent = when (mailApps.size) {
             0 -> send()

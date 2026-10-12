@@ -18,7 +18,7 @@ class HistoryDetailTest {
             Problem.LookalikeLink,
             mapOf(Evidence.APP_LABEL to "Messages", Evidence.MESSAGE_TITLE to "Chase Bank", Evidence.MESSAGE_TEXT to "Refund: paypa1-help.example/claim now", Evidence.HOST to "paypa1-help.example"),
         )
-        assertEquals("It came from the “Messages” app. From: “Chase Bank”. It says: “Refund: (link) now”. The link went to pa*****.example.", detail)
+        assertEquals("It came from the “Messages” app. From: “Chase Bank”. It says: “Refund: (link) now”. The link went to paypa1-help.example.", detail)
     }
 
     @Test fun aWebsiteWarningSaysWhichWebsiteAndWhatItSaid() {

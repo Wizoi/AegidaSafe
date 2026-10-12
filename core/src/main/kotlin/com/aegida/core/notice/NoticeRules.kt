@@ -3,7 +3,6 @@ package com.aegida.core.notice
 import com.aegida.core.model.Aegida
 import com.aegida.core.model.InstalledApp
 import com.aegida.core.model.NotificationEvent
-import com.aegida.core.model.ScareWords
 import java.time.Duration
 import java.time.Instant
 
@@ -26,11 +25,17 @@ object NoticeRules {
     /** Ad words in a channel's name or description. Not "news" or "discover": breaking news and a bank called Discover are real. */
     private val AD_CHANNEL_WORDS = Regex("""\b(promo\w*|offers?|deals?|ads?|advert\w*|sales?|marketing|recommend\w*)\b""", RegexOption.IGNORE_CASE)
 
-    /** Words that push an action, the way the fake-ad notices do. Not "free", "win" or "install": banks, scores and updates say those. */
+    /** Words that push an action, the way the fake-ad notices do. Not "free", "win", "install" or "ready!": banks, scores, updates and pharmacies say those. */
     private val PUSH_WORDS = Regex(
-        """(\bready!|\bconvert\b|\bclean now\b|\bboost\b|\bscan now\b|\blimited time\b|\bspeed up\b|\boptimi[sz]e\b|\bstorage (is )?full\b)""",
+        """(\bconvert\b|\bclean now\b|\bboost\b|\bscan now\b|\blimited time\b|\bspeed up\b|\boptimi[sz]e\b|\bstorage (is )?full\b)""",
         RegexOption.IGNORE_CASE,
     )
+
+    /**
+     * Fake-virus words in an app's notice. Not the website check's whole list: "security alert", "your phone is", "hacked" and
+     * "clean your" are what banks, watches and news say (findings #96).
+     */
+    private val SCARE_WORDS = Regex("""\b(virus(es)?|infected|malware|trojan|spyware)\b|battery (is )?damaged""", RegexOption.IGNORE_CASE)
 
     /** ApplicationInfo.category values where a steady flow of notices is unusual: game, image, productivity. */
     private val TOOL_CATEGORIES = setOf(0, 3, 7)
@@ -65,7 +70,7 @@ object NoticeRules {
         var content = 0
         if (event.category == "promo" || event.category == "recommendation") content++
         if (AD_CHANNEL_WORDS.containsMatchIn(event.channelName.orEmpty() + " " + event.channelDescription.orEmpty())) content++
-        if (PUSH_WORDS.containsMatchIn(words) || ScareWords.REGEX.containsMatchIn(words)) content++
+        if (PUSH_WORDS.containsMatchIn(words) || SCARE_WORDS.containsMatchIn(words)) content++
         if (content == 0) return 0
         var context = 0
         if (event.importance >= HEADS_UP) context++

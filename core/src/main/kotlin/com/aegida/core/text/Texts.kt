@@ -1,5 +1,8 @@
 package com.aegida.core.text
 
+import com.aegida.core.url.HostMask
+import com.aegida.core.url.Links
+
 /**
  * Every sentence the owner or a guardian can see (UserTextTest, CopyRulesTest). Plain words, one idea per line,
  * never red, never "safe": say "no known problems found". Kept in :core so the notification owner in
@@ -73,11 +76,6 @@ object Texts {
 
         const val CONFIRM_LABEL_MAX = 40
 
-        /**
-         * The "The app is called" line on the "Was that you?" page, or null for no line. An app chooses its own
-         * label, so an attacker can make it read like an instruction. For an urgent problem the label is never
-         * shown; otherwise it is cut short, stripped of control characters and quoted (R17).
-         */
         /** The one big button on Home: "Fix my phone" only where something really gets fixed; a scam warning just shows what to do. */
         fun fixButton(fix: Fix): String = if (fix == Fix.Acknowledge || fix == Fix.AppNotices) SHOW_ME else FIX_MY_PHONE
 
@@ -89,21 +87,30 @@ object Texts {
 
         /** "From: “Chase Bank”" (the notification's title), or null when there is none. Cleaned and cut short like an app label. */
         fun senderLine(title: String?): String? {
-            val clean = cleanLabel(title.orEmpty())
+            val clean = cleanLabel(withoutLinks(title.orEmpty()))
             return if (clean.isEmpty()) null else SENDER_LINE.format("“$clean”")
         }
 
         /**
-         * "It says: “...”" with the first words of the message. A link in it is replaced by "(link)", so a scam address never
-         * shows as text the owner might copy or type; the rest is cleaned and cut short.
+         * "It says: “...”" with the first words of the message. Every link in it is replaced by "(link)", found by the same code that
+         * finds links ([Links]), so a look-alike in another alphabet or a second link is taken out too (findings #94); the rest is
+         * cleaned and cut short. [host] is no longer needed and kept for callers.
          */
         fun saysLine(text: String?, host: String?): String? {
-            val unlinked = text.orEmpty().split(Regex("\\s+")).joinToString(" ") { word ->
-                if (word.contains("://") || (!host.isNullOrEmpty() && word.contains(host, ignoreCase = true))) LINK_REMOVED else word
-            }
-            val clean = cleanLabel(unlinked, SAYS_MAX)
+            val clean = cleanLabel(withoutLinks(text.orEmpty()), SAYS_MAX)
             return if (clean.isEmpty()) null else SAYS_LINE.format("“$clean”")
         }
+
+        /** [text] with every link (as [Links] finds them) replaced by "(link)". */
+        fun withoutLinks(text: String): String =
+            text.split(Regex("""\s+""")).joinToString(" ") { word -> if (Links.extract(word).isNotEmpty()) LINK_REMOVED else word }
+
+        /**
+         * An app's label as it may be sent off the phone: cleaned and cut short, and any web address in it masked, because an app can
+         * name itself like an address (findings #94).
+         */
+        fun guardianLabel(raw: String): String =
+            cleanLabel(raw).split(" ").joinToString(" ") { word -> Links.extract(word).firstOrNull()?.let { HostMask.of(it.host) } ?: word }
 
         /** "It said: “…”" for what a website's notification said (its title), cleaned and cut short. */
         fun saidLine(title: String?): String? {
@@ -111,6 +118,11 @@ object Texts {
             return if (clean.isEmpty()) null else SAID_LINE.format("“$clean”")
         }
 
+        /**
+         * The "The app is called" line on the "Was that you?" page, or null for no line. An app chooses its own
+         * label, so an attacker can make it read like an instruction. For an urgent problem the label is never
+         * shown; otherwise it is cut short, stripped of control characters and quoted (R17).
+         */
         fun confirmApp(problem: Problem, label: String?): String? {
             if (problem.severity == com.aegida.core.model.Severity.Urgent) return null
             val clean = cleanLabel(label.orEmpty())
@@ -251,12 +263,13 @@ object Texts {
     object Invite {
         const val CHOOSE = "Pick your email app"
         const val SUBJECT = "%s has picked you as a guardian"
+        const val SUBJECT_NO_NAME = "You have been picked as a guardian"
         const val BODY = "Hi %s,\n\n" +
-            "I've picked you as my guardian. If I have turned on messages in my Aegida app, you will get a first message saying it is set up, and then a message if my phone needs help. If you do not get that message, I may have left it off, so please ask me.\n\n" +
+            "I've picked you as my guardian. If I have switched on “Tell my guardian about serious problems” in my Aegida app, you will get a first message saying it is set up, and then a message if my phone needs help. If it has not come within a day of adding the name, please ask me.\n\n" +
             "1. Get the free ntfy app.\n" +
             "   Android: https://play.google.com/store/apps/details?id=io.heckel.ntfy\n" +
             "   iPhone: https://apps.apple.com/app/ntfy/id1625396347\n\n" +
-            "2. Open ntfy, tap +, and type this name:\n" +
+            "2. Open ntfy, tap +, then copy this name and paste it:\n" +
             "   %s\n" +
             "   (On Android you can instead tap this link once ntfy is installed: ntfy://ntfy.sh/%s)\n\n" +
             "3. Optional, to read them on a computer too: open https://ntfy.sh/%s in a web browser. It only shows messages while that page is open, so it does not replace step 2.\n\n" +

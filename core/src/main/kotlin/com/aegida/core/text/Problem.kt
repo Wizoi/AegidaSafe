@@ -69,6 +69,8 @@ enum class Problem(
         whatHappened = "A new website started sending notifications",
         hidesNotification = true,
         fix = Fix.ConfirmEvent,
+        // "No" does not stop a site sending; the same question is not asked again for a week (findings #94).
+        quietAfterSeen = java.time.Duration.ofDays(7),
     ),
     WebsiteFilterOff(
         Severity.NeedsTap,
@@ -184,7 +186,7 @@ enum class Problem(
      */
     fun forGuardian(ownerName: String, appLabel: String? = null, host: String? = null): String? {
         val base = guardianTemplate?.format(ownerName) ?: return null
-        val app = Texts.Home.cleanLabel(appLabel.orEmpty()).takeIf { it.isNotEmpty() }?.let { "“$it”" }
+        val app = Texts.Home.guardianLabel(appLabel.orEmpty()).takeIf { it.isNotEmpty() }?.let { "“$it”" }
         val where = host?.takeIf { it.isNotBlank() }?.let { HostMask.of(it) }
         return when (this) {
             ScamLink, LookalikeLink -> {
@@ -197,9 +199,6 @@ enum class Problem(
         }
     }
 
-    private companion object {
-        val NAMES_THE_APP = setOf(ScamLink, LookalikeLink)
-    }
 }
 
 /** How a problem is put right, so the screens do the same thing for it every time. */
@@ -223,8 +222,8 @@ enum class Fix {
     ConfirmChange,
 
     /**
-     * "Was that you?" about something that happened once and will not be detected again (a website that started notifying): yes
-     * adds it to the baseline; no opens its switch and counts it as seen, because nothing would ever clear it by itself.
+     * "Was that you?" about something the phone cannot undo for her (a website that started notifying): yes adds it to the
+     * baseline; no opens its switch and counts it as seen. The site may keep sending, so the question then waits a week (findings #94).
      */
     ConfirmEvent,
 
