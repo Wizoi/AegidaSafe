@@ -22,12 +22,6 @@ class GuardianAlerts @Inject constructor(
     private val switch: DeadMansSwitch,
     private val gate: AlertGate,
 ) {
-    /**
-     * The guardian whose welcome did not go out (offline). Kept in memory and retried by the daily check while alerts
-     * stay on and the guardian is unchanged. Lost if the process dies first; the messages that matter (findings) have the Outbox.
-     */
-    private var welcomePendingFor: NtfyTopic? = null
-
     suspend fun setAlertsOn(on: Boolean): AlertsSwitched = gate.run { switchAlerts(on) }
 
     private suspend fun switchAlerts(on: Boolean): AlertsSwitched {
@@ -35,7 +29,7 @@ class GuardianAlerts @Inject constructor(
         if (current.alertsOn == on) return AlertsSwitched(null, null)
         settings.save(current.copy(alertsOn = on))
         if (!on) {
-            welcomePendingFor = null
+            settings.save(settings.current().copy(welcomePendingFor = null))
             return AlertsSwitched(null, switch.disarm())
         }
         return startTelling()
@@ -45,17 +39,27 @@ class GuardianAlerts @Inject constructor(
     suspend fun startTelling(): AlertsSwitched {
         val current = settings.current()
         val owner = current.ownerName.ifBlank { Texts.APP_NAME }
-        welcomePendingFor = null
         val welcome = current.firstTopic?.let { sendWelcome(it, owner) }
         return AlertsSwitched(welcome, switch.arm())
     }
 
-    /** The daily check's second try at a welcome that failed. Null when none is waiting. The caller holds the [AlertGate]. */
+    /** The daily check's second try at a welcome that failed, kept across restarts. Null when none is waiting. The caller holds the [AlertGate]. */
     suspend fun retryWelcome(): SendResult? {
-        val pending = welcomePendingFor ?: return null
         val current = settings.current()
-        if (!current.alertsOn || current.firstTopic != pending) { welcomePendingFor = null; return null }
-        return sendWelcome(pending, current.ownerName.ifBlank { Texts.APP_NAME })
+        val pending = current.welcomePendingFor ?: return null
+        val topic = current.firstTopic?.takeIf { current.alertsOn && it.value == pending }
+            ?: run { settings.save(current.copy(welcomePendingFor = null)); return null } // alerts off, or a different guardian now
+        return sendWelcome(topic, current.ownerName.ifBlank { Texts.APP_NAME })
+    }
+
+    /**
+     * "Send the invitation again": the guardian is told once more that Aegida is set up, so the email's promise of a first message
+     * holds for a guardian who subscribes late (ntfy keeps messages about 12 hours) (findings #95). Null while alerts are off.
+     */
+    suspend fun resendWelcome(): SendResult? = gate.run {
+        val current = settings.current()
+        val topic = current.firstTopic?.takeIf { current.alertsOn } ?: return@run null
+        sendWelcome(topic, current.ownerName.ifBlank { Texts.APP_NAME })
     }
 
     /**
@@ -71,7 +75,7 @@ class GuardianAlerts @Inject constructor(
 
     private suspend fun sendWelcome(topic: NtfyTopic, owner: String): SendResult {
         val sent = ntfy.send(topic, GuardianMessage(title = owner, body = Texts.Guardian.SET_UP.format(owner), urgent = false))
-        welcomePendingFor = if (sent == SendResult.Delivered) null else topic
+        settings.save(settings.current().copy(welcomePendingFor = if (sent == SendResult.Delivered) null else topic.value))
         return sent
     }
 }

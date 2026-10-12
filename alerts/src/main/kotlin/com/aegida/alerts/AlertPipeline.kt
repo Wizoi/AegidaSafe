@@ -41,16 +41,22 @@ class AlertPipeline @Inject constructor(
         val now = clock.now()
         var alerted = 0
         var notReached = 0
+        val quieted = mutableSetOf<FindingKey>()
+        val openLong = mutableSetOf<FindingKey>()
         current.forEach { finding ->
             val stored = findings.get(finding.key)
             if (stored != null && stored.state.needsHer) {
                 findings.put(stored.copy(lastSeen = finding.lastSeen))
+                if (Duration.between(stored.firstSeen, now) > LONG_OPEN) openLong += finding.key
                 return@forEach
             }
             // Once the owner has seen it, a warning that keeps happening is quiet for a while (an app flooding her with ads would warn on every notice).
             val quiet = finding.key.problem.quietAfterSeen
             // A seen time from a clock that was ahead does not count (R14).
-            if (stored != null && quiet != null && now.isBefore(stored.lastSeen.plus(quiet)) && !stored.lastSeen.isAfter(now.plus(CLOCK_SKEW))) return@forEach
+            if (stored != null && quiet != null && now.isBefore(stored.lastSeen.plus(quiet)) && !stored.lastSeen.isAfter(now.plus(CLOCK_SKEW))) {
+                quieted += finding.key
+                return@forEach
+            }
             alerted++
             val detail = HistoryDetail.of(finding.key.problem, finding.evidence) // what it was, kept in History
             if (finding.severity >= Severity.NeedsTap) {
@@ -79,7 +85,7 @@ class AlertPipeline @Inject constructor(
             history.add(HistoryEntry(now, finding.key.problem, Outcome.Fixed))
         }
         notReached += remindAboutOldWarnings(now)
-        return PipelineResult(alerted = alerted, resolved = resolved.size, guardiansNotReached = notReached)
+        return PipelineResult(alerted = alerted, resolved = resolved.size, guardiansNotReached = notReached, quieted = quieted, openLong = openLong)
     }
 
     /**
@@ -216,6 +222,9 @@ class AlertPipeline @Inject constructor(
         private val BACKOFF_FIRST: Duration = Duration.ofHours(24)
         private val BACKOFF_LOOKBACK: Duration = Duration.ofDays(7)
         private val REMIND_AFTER: Duration = Duration.ofHours(24)
+
+        /** A question still open after this is no longer put aside again and again (findings #94). */
+        val LONG_OPEN: Duration = Duration.ofHours(24)
         private val CLOCK_SKEW: Duration = Duration.ofMinutes(5)
 
         /**
@@ -227,4 +236,12 @@ class AlertPipeline @Inject constructor(
 }
 
 /** Every run reports what it did (design section 1: a write reports what it changed). */
-data class PipelineResult(val alerted: Int, val resolved: Int, val guardiansNotReached: Int)
+data class PipelineResult(
+    val alerted: Int,
+    val resolved: Int,
+    val guardiansNotReached: Int,
+    /** Warnings seen again inside their quiet period: nothing was said (findings #94). */
+    val quieted: Set<FindingKey> = emptySet(),
+    /** Warnings still open after [AlertPipeline.LONG_OPEN] (a question left unanswered). */
+    val openLong: Set<FindingKey> = emptySet(),
+)

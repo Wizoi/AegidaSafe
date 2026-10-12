@@ -254,6 +254,7 @@ private fun MainContent(state: MainState, vm: MainViewModel) {
                             scope.launch {
                                 // The same email as in setup, to the same guardian, for when the first one never arrived.
                                 context.startSafely(InviteEmail.intent(vm.prepareInvite(), InviteEmail.emailApps(context)))
+                                vm.resendWelcome() // the email promises a first message (findings #95)
                             }
                         },
                         onAlerts = vm::setAlerts,

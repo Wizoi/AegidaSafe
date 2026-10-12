@@ -39,6 +39,13 @@ class EvaluatorTest {
         assertEquals(1, notices.rows.size)
     }
 
+    @Test fun theFakeLogCountsANewNoticeAfterTheClockWentBack() = runTest { // the fake behaves like RoomNoticeLog (finding #96)
+        val notices = FakeNoticeLog()
+        notices.record("a", "k1", 1, now.plus(Duration.ofHours(2)), 2)
+        notices.record("a", "k1", 2, now, 2)
+        assertEquals(2, notices.rows.size)
+    }
+
     @Test fun aNoticeThatIsNotCountedIsNotWrittenDown() = runTest {
         val notices = FakeNoticeLog()
         val e = Evaluator(setOf(NoisyAppDetector()), { now }, FakeSetupStore(), FakeFeedStore(Fixtures.feed()), log, outbox, FakeBaselines(), notices)

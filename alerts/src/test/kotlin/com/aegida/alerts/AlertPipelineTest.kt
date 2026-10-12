@@ -86,6 +86,14 @@ class AlertPipelineTest {
         assertEquals(2, owner.shown.size)
     }
 
+    @Test fun thePipelineSaysWhichWarningsItKeptQuietAndWhichHaveWaitedADay() = runTest { // finding #94
+        val site = Finding(FindingKey(DetectorId.PopupSpam, Problem.NewWebsiteNotifications, "https://new.example"), emptyMap(), now.minus(Duration.ofHours(30)), now)
+        pipeline.handle(listOf(site), setOf(DetectorId.PopupSpam))
+        assertEquals("open for 30 hours", setOf(site.key), pipeline.handle(listOf(site), setOf(DetectorId.PopupSpam)).openLong)
+        findings.put(findings.get(site.key)!!.copy(state = FindingState.Acknowledged, lastSeen = now)) // she said No
+        assertEquals(setOf(site.key), pipeline.handle(listOf(site), setOf(DetectorId.PopupSpam)).quieted)
+    }
+
     @Test fun aSeenTimeFromAClockThatWasAheadDoesNotKeepItQuiet() = runTest { // finding #93
         pipeline.handle(listOf(noisy), setOf(DetectorId.NoisyApp))
         findings.put(findings.get(noisy.key)!!.copy(state = FindingState.Acknowledged, lastSeen = now.plus(Duration.ofDays(30))))

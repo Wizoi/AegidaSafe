@@ -20,6 +20,21 @@ class CheckOutcomeTest {
         PipelineResult(alerted = 2, resolved = 0, guardiansNotReached = 0),
     )
 
+    /** Finding #94: after "No" the site's notice comes back from its snooze; it is then deleted, and she is not asked again for a week. */
+    @Test fun aWebsiteSheSaidNoToIsDeletedWhenItsNoticeComesBackNotPutAsideAgain() {
+        val asked = site(Problem.NewWebsiteNotifications, "new")
+        val quiet = CheckOutcome(listOf(asked), PipelineResult(0, 0, 0, quieted = setOf(asked.key)))
+        assertEquals(listOf("new"), quiet.notificationsToHide)
+        assertEquals(emptyList<String>(), quiet.notificationsToSnooze)
+    }
+
+    @Test fun aQuestionLeftUnansweredForADayStopsBeingPutAsideAndIsDeleted() {
+        val asked = site(Problem.NewWebsiteNotifications, "new")
+        val stale = CheckOutcome(listOf(asked), PipelineResult(0, 0, 0, openLong = setOf(asked.key)))
+        assertEquals(listOf("new"), stale.notificationsToHide)
+        assertEquals(emptyList<String>(), stale.notificationsToSnooze)
+    }
+
     @Test fun aFakeWarningIsRemovedAndANewWebsiteIsSnoozed() {
         assertEquals(listOf("scary"), outcome.notificationsToHide)
         assertEquals(listOf("new"), outcome.notificationsToSnooze)

@@ -205,6 +205,9 @@ class MainViewModel @Inject constructor(
 
     fun setAlerts(on: Boolean) = change { quietly { guardianAlerts.setAlertsOn(on) } }
 
+    /** With "Send the invitation again": tell the guardian once more that Aegida is set up (findings #95). */
+    fun resendWelcome() = change { quietly { guardianAlerts.resendWelcome() } }
+
     fun answerBlocker(answer: AutoBlockerAnswer) = change { setupStore.save(setupStore.setup().copy(autoBlocker = answer)) }
 
     /** Remembers the filter she set up, but only once Aegida has read it back as on. */

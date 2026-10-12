@@ -70,7 +70,7 @@ class RoomStoresTest {
         assertEquals(emptyList<Finding>(), store.open())
     }
 
-    @Test fun resolvedFindingsPruneByAgeButOpenAndRecentOnesStay() = runTest { // findings #81 (c)
+    @Test fun resolvedAndSeenFindingsPruneByAgeButOpenAndRecentOnesStay() = runTest { // findings #81 (c), #94
         val store = RoomFindingStore(db.findings())
         fun at(subject: String, daysAgo: Long, state: FindingState) =
             finding.copy(key = finding.key.copy(subject = subject), lastSeen = now.minus(Duration.ofDays(daysAgo)), state = state)
@@ -79,9 +79,13 @@ class RoomStoresTest {
         val oldOpen = at("old-open", 200, FindingState.Open)
         val oldSeen = at("old-acknowledged", 200, FindingState.Acknowledged)
         listOf(oldResolved, recentResolved, oldOpen, oldSeen).forEach { store.put(it) }
-        assertEquals(1, store.prune(now.minus(Duration.ofDays(90))))
+        assertEquals(2, store.prune(now.minus(Duration.ofDays(90)), now.plus(Duration.ofMinutes(5))))
         assertNull(store.get(oldResolved.key))
-        listOf(recentResolved, oldOpen, oldSeen).forEach { assertEquals(it, store.get(it.key)) }
+        assertNull("a scam host she saw 200 days ago is not kept forever (finding #94)", store.get(oldSeen.key))
+        listOf(recentResolved, oldOpen).forEach { assertEquals(it, store.get(it.key)) }
+        val ahead = at("from-a-clock-ahead", -30, FindingState.Acknowledged)
+        store.put(ahead)
+        assertEquals(1, store.prune(now.minus(Duration.ofDays(90)), now.plus(Duration.ofMinutes(5))))
     }
 
     @Test fun aHistoryRowKeepsItsDetailAndALegacyRowHasNone() = runTest { // Kevin, Oct 10
@@ -106,6 +110,13 @@ class RoomStoresTest {
             listOf(NoticeRow(t, 2), NoticeRow(t.plus(Duration.ofHours(1)), 3), NoticeRow(now.minus(Duration.ofMinutes(5)), 0)),
             log.since("com.example.pdf", now.minus(Duration.ofDays(1))),
         )
+    }
+
+    @Test fun afterTheClockWentBackANewNoticeIsStillCounted() = runTest { // finding #96
+        val log = RoomNoticeLog(db.notices())
+        log.record("a", "k1", 1, now.plus(Duration.ofHours(2)), 2) // stamped while the clock was two hours ahead
+        log.record("a", "k1", 2, now, 2)                          // the clock is right again: a new notice with the same id
+        assertEquals(2, log.since("a", now.minus(Duration.ofDays(1))).size)
     }
 
     @Test fun theNotificationKeyIsNeverStoredAsItIs() = runTest { // it can carry an app's own tag (finding #93)

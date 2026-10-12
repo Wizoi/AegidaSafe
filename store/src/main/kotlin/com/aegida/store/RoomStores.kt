@@ -46,7 +46,7 @@ internal class RoomFindingStore(private val dao: FindingDao) : FindingStore {
         ),
     )
 
-    override suspend fun prune(before: Instant): Int = dao.prune(before.toEpochMilli())
+    override suspend fun prune(before: Instant, notAfter: Instant): Int = dao.prune(before.toEpochMilli(), notAfter.toEpochMilli())
 
     private fun FindingEntity.toFinding() = Finding(
         key = FindingKey(DetectorId.valueOf(detectorId), Problem.valueOf(problem), subject),
@@ -103,6 +103,8 @@ internal class RoomSettings(private val dao: SettingDao) : SetupStore, GuardianS
             firstGuardianEmail = v[GUARDIAN_EMAIL].orEmpty(),
             firstGuardianPhone = v[GUARDIAN_PHONE].orEmpty(),
             pairedAt = v[GUARDIAN_PAIRED_AT]?.toLongOrNull()?.let(java.time.Instant::ofEpochMilli),
+            welcomePendingFor = v[WELCOME_PENDING]?.takeIf { it.isNotEmpty() },
+            heartbeatCancelled = v[HEARTBEAT_CANCELLED] == "true",
         )
     }
 
@@ -115,6 +117,8 @@ internal class RoomSettings(private val dao: SettingDao) : SetupStore, GuardianS
             SettingEntity(GUARDIAN_EMAIL, guardians.firstGuardianEmail),
             SettingEntity(GUARDIAN_PHONE, guardians.firstGuardianPhone),
             SettingEntity(GUARDIAN_PAIRED_AT, guardians.pairedAt?.toEpochMilli()?.toString().orEmpty()),
+            SettingEntity(WELCOME_PENDING, guardians.welcomePendingFor.orEmpty()),
+            SettingEntity(HEARTBEAT_CANCELLED, guardians.heartbeatCancelled.toString()),
         ),
     )
 
@@ -177,6 +181,8 @@ internal class RoomSettings(private val dao: SettingDao) : SetupStore, GuardianS
         const val GUARDIAN_EMAIL = "guardians.firstEmail"
         const val GUARDIAN_PHONE = "guardians.firstPhone"
         const val GUARDIAN_PAIRED_AT = "guardians.pairedAt"
+        const val WELCOME_PENDING = "guardians.welcomePending"
+        const val HEARTBEAT_CANCELLED = "guardians.heartbeatCancelled"
         const val PICTURE = "setup.pictureId"
         const val AUTO_BLOCKER = "setup.autoBlocker"
         const val STEPS_DONE = "setup.stepsDone"
@@ -209,7 +215,8 @@ internal class RoomNoticeLog(private val dao: NoticeDao) : NoticeLog {
         val noticeHash = hash(key + "|" + whenMillis)
         if (dao.seen(noticeHash) > 0) return // the same notice coming back (a snooze, a repost): not new
         val last = dao.lastAt(keyHash)
-        if (last != null && at.toEpochMilli() - last < NoticeRules.SAME_NOTICE.toMillis()) return // an update a moment later
+        val gap = if (last == null) null else at.toEpochMilli() - last
+        if (gap != null && gap >= 0 && gap < NoticeRules.SAME_NOTICE.toMillis()) return // an update a moment later; a negative gap is a clock that went back (findings #96)
         dao.add(NoticeEntity(packageName = packageName, keyHash = keyHash, noticeHash = noticeHash, atMillis = at.toEpochMilli(), signals = signals))
     }
 

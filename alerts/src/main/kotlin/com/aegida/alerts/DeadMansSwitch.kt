@@ -35,8 +35,16 @@ class DeadMansSwitch @Inject constructor(
         if (!wait.isNegative && !wait.isZero) delay(wait.toMillis())
     }
 
-    /** Alerts on: push the message out again. Alerts off: cancel it again (idempotent), so a disarm that failed offline is retried by every daily check. Null when no guardian is paired. */
-    suspend fun keepInStep(): SendResult? = if (guardians.current().alertsOn) arm() else disarm()
+    /**
+     * Alerts on: push the message out again. Alerts off: cancel it until that works once, then send nothing while alerts stay off,
+     * so the pages can truthfully say nothing is sent (findings #95). Null when no guardian is paired or nothing needs sending.
+     */
+    suspend fun keepInStep(): SendResult? {
+        val current = guardians.current()
+        if (current.alertsOn) return arm()
+        if (current.heartbeatCancelled) return null
+        return disarm()
+    }
 
     /** Null when there is nobody to tell (alerts off or no guardian paired). */
     suspend fun arm(): SendResult? {
@@ -45,6 +53,7 @@ class DeadMansSwitch @Inject constructor(
         if (!settings.alertsOn) return null
         val owner = settings.ownerName.ifBlank { Texts.APP_NAME }
         spaceFromLastRequest()
+        if (settings.heartbeatCancelled) guardians.save(settings.copy(heartbeatCancelled = false))
         return ntfy.send(
             topic,
             GuardianMessage(title = owner, body = Texts.Guardian.NOT_CHECKED_IN.format(owner), urgent = false, delay = QUIET_FOR, sequenceId = SEQUENCE_ID),
@@ -55,7 +64,10 @@ class DeadMansSwitch @Inject constructor(
     suspend fun disarm(): SendResult? {
         val topic = guardians.current().firstTopic ?: return null
         spaceFromLastRequest()
-        return ntfy.cancel(topic, SEQUENCE_ID).also { lastRequestAt = clock.now() }
+        return ntfy.cancel(topic, SEQUENCE_ID).also { result ->
+            lastRequestAt = clock.now()
+            if (result == SendResult.Delivered) guardians.current().let { guardians.save(it.copy(heartbeatCancelled = true)) }
+        }
     }
 
     companion object {

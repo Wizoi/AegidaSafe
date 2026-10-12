@@ -12,8 +12,11 @@ interface FindingStore {
     suspend fun get(key: FindingKey): Finding?
     suspend fun put(finding: Finding)
 
-    /** Deletes resolved findings last seen before [before] (open and acknowledged ones stay) and returns how many. */
-    suspend fun prune(before: java.time.Instant): Int
+    /**
+     * Deletes resolved and seen findings last seen before [before] or after [notAfter] (a clock that was ahead); open ones stay.
+     * Returns how many. Seen ones go too, or a scam host or a site she answered would be kept forever (findings #94).
+     */
+    suspend fun prune(before: java.time.Instant, notAfter: java.time.Instant): Int
 }
 
 /** Heads-up banners on the owner's phone. Implemented by NotificationPoster (the only notification owner). */
@@ -66,6 +69,10 @@ data class Guardians(
      * before this went to someone else, so the repeat back-off does not count it (findings #75).
      */
     val pairedAt: java.time.Instant? = null,
+    /** The topic whose "set up" message has not gone out yet (offline), kept so a restart does not lose it (findings #95); never sent to another guardian. */
+    val welcomePendingFor: String? = null,
+    /** While alerts are off: the waiting "hasn't checked in" message was cancelled, so nothing more is sent (findings #95). */
+    val heartbeatCancelled: Boolean = false,
 ) {
     companion object {
         val None = Guardians(alertsOn = false, ownerName = "", firstTopic = null)

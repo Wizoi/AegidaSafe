@@ -29,8 +29,9 @@ class Findings : FindingStore {
     override suspend fun open() = rows.values.filter { it.state.needsHer }
     override suspend fun get(key: FindingKey) = rows[key]
     override suspend fun put(finding: Finding) { rows[finding.key] = finding }
-    override suspend fun prune(before: Instant): Int =
-        rows.values.filter { it.state == FindingState.Resolved && it.lastSeen.isBefore(before) }.map { rows.remove(it.key) }.size
+    override suspend fun prune(before: Instant, notAfter: Instant): Int =
+        rows.values.filter { (it.state == FindingState.Resolved || it.state == FindingState.Acknowledged) && (it.lastSeen.isBefore(before) || it.lastSeen.isAfter(notAfter)) }
+            .map { rows.remove(it.key) }.size
 }
 
 class Owner : OwnerNotifier {
@@ -126,7 +127,8 @@ class FakeNoticeLog : com.aegida.core.notice.NoticeLog {
     override suspend fun record(packageName: String, key: String, whenMillis: Long, at: java.time.Instant, signals: Int) {
         if (rows.any { it.key == key && it.whenMillis == whenMillis }) return
         val last = rows.filter { it.key == key }.maxOfOrNull { it.at }
-        if (last != null && java.time.Duration.between(last, at) < com.aegida.core.notice.NoticeRules.SAME_NOTICE) return
+        val gap = last?.let { java.time.Duration.between(it, at) }
+        if (gap != null && !gap.isNegative && gap < com.aegida.core.notice.NoticeRules.SAME_NOTICE) return
         rows += Row(packageName, key, whenMillis, at, signals)
     }
     override suspend fun since(packageName: String, from: java.time.Instant) =

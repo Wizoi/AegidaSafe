@@ -114,7 +114,8 @@ class FakeNoticeLog : com.aegida.core.notice.NoticeLog {
     override suspend fun record(packageName: String, key: String, whenMillis: Long, at: java.time.Instant, signals: Int) {
         if (rows.any { it.key == key && it.whenMillis == whenMillis }) return
         val last = rows.filter { it.key == key }.maxOfOrNull { it.at }
-        if (last != null && java.time.Duration.between(last, at) < com.aegida.core.notice.NoticeRules.SAME_NOTICE) return
+        val gap = last?.let { java.time.Duration.between(it, at) }
+        if (gap != null && !gap.isNegative && gap < com.aegida.core.notice.NoticeRules.SAME_NOTICE) return
         rows += Row(packageName, key, whenMillis, at, signals)
     }
     override suspend fun since(packageName: String, from: java.time.Instant) =

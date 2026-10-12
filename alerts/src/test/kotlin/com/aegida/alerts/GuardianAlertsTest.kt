@@ -43,6 +43,29 @@ class GuardianAlertsTest {
         return GuardianAlerts(guardians, sender, switch, AlertGate()) to timed
     }
 
+    @Test fun resendingTheInvitationWhileAlertsAreOnSendsTheSetUpMessageAgain() = runTest { // finding #95
+        alerts.setAlertsOn(true)
+        http.bodies.clear()
+        assertEquals(SendResult.Delivered, alerts.resendWelcome())
+        assertEquals(listOf("Aegida is set up on Mom's phone. You will get a message here if it needs help."), http.bodies)
+    }
+
+    @Test fun resendingTheInvitationWhileAlertsAreOffSendsNothing() = runTest {
+        assertEquals(null, alerts.resendWelcome())
+        assertEquals(emptyList<String>(), http.bodies)
+    }
+
+    @Test fun aWelcomeThatFailedOfflineIsStillSentAfterTheAppWasRestarted() = runTest { // finding #95
+        http.result = HttpResult.Failed(null, FailureReason.Offline)
+        alerts.setAlertsOn(true)
+        http.result = HttpResult.Ok(200, "{}")
+        http.bodies.clear()
+        val afterRestart = GuardianAlerts(guardians, NtfySender(http), DeadMansSwitch(guardians, NtfySender(http)) { start }, AlertGate())
+        assertEquals(SendResult.Delivered, afterRestart.retryWelcome())
+        assertEquals(1, http.bodies.count { it.startsWith("Aegida is set up") })
+        assertEquals("sent once, not again", null, afterRestart.retryWelcome())
+    }
+
     @Test fun turningOnAndOffInUnderASecondWaitsSoNtfyCancelsTheHeartbeat() = runTest {
         val (paced, timed) = paced()
         paced.setAlertsOn(true)

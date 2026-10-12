@@ -10,16 +10,23 @@ import javax.inject.Inject
 
 /** What one check found and what the pipeline did about it. */
 data class CheckOutcome(val findings: List<Finding>, val pipeline: PipelineResult) {
-    /** Notifications to remove: those whose finding says so (Problem.hidesNotification) and names one, except a new website. */
+    /**
+     * Notifications to remove: those whose finding says so (Problem.hidesNotification) and names one. A new website's notice is put
+     * aside instead, unless she already said No (it is in its quiet week) or the question has waited a day (findings #94).
+     */
     val notificationsToHide: List<String>
-        get() = findings.filter { it.key.problem.hidesNotification && it.key.problem != Problem.NewWebsiteNotifications }.mapNotNull { it.evidence[com.aegida.core.model.Evidence.NOTIFICATION_KEY] }
+        get() = findings.filter { it.key.problem.hidesNotification && (it.key.problem != Problem.NewWebsiteNotifications || settled(it)) }.mapNotNull(::keyOf)
 
     /**
      * A new website is asked about ("Was that you?"), so its notification is put aside for a while instead of deleted: the phone
-     * brings it back, and the next check shows it if the owner said yes and puts it aside again if not (Kevin, Oct 10).
+     * brings it back, and the next check shows it if the owner said yes (Kevin, Oct 10).
      */
     val notificationsToSnooze: List<String>
-        get() = findings.filter { it.key.problem == Problem.NewWebsiteNotifications }.mapNotNull { it.evidence[com.aegida.core.model.Evidence.NOTIFICATION_KEY] }
+        get() = findings.filter { it.key.problem == Problem.NewWebsiteNotifications && !settled(it) }.mapNotNull(::keyOf)
+
+    private fun settled(finding: Finding) = finding.key in pipeline.quieted || finding.key in pipeline.openLong
+
+    private fun keyOf(finding: Finding) = finding.evidence[com.aegida.core.model.Evidence.NOTIFICATION_KEY]
 }
 
 /**

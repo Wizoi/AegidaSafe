@@ -41,7 +41,7 @@ class DailyCheck @Inject constructor(
         val check = runner.run(Trigger.Daily)
         val now = clock.now()
         val pruned = history.prune(now.minus(HISTORY_KEPT))
-        val findingsPruned = findings.prune(now.minus(HISTORY_KEPT))
+        val findingsPruned = findings.prune(now.minus(HISTORY_KEPT), now.plus(NoticeRules.CLOCK_SKEW))
         val runsPruned = checkLog.prune(now.minus(CHECK_LOG_KEPT))
         notices.prune(now.minus(NoticeRules.WEEK), now.plus(NoticeRules.CLOCK_SKEW)) // older than a week, or from a clock that was ahead (findings #92, #93)
         // Checked in. Alerts on: push the "hasn't checked in" message two days further out. Alerts off: cancel it again,

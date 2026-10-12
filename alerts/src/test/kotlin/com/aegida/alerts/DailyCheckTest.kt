@@ -93,7 +93,14 @@ class DailyCheckTest {
         http.posts.clear()
         daily.run()
         assertEquals(0, http.posts.size)
-        assertEquals("https://ntfy.sh/${topic.value}/heartbeat", http.deleted.single().url) // and the waiting message is cancelled again
+        assertEquals("https://ntfy.sh/${topic.value}/heartbeat", http.deleted.single().url) // and the waiting message is cancelled
+        daily.run()
+        assertEquals("once it worked, nothing more is sent while alerts stay off (finding #95)", 1, http.deleted.size)
+        guardians.value = guardians.value.copy(alertsOn = true)
+        daily.run()
+        guardians.value = guardians.value.copy(alertsOn = false)
+        daily.run()
+        assertEquals("on, then off again: one new cancel", 2, http.deleted.size)
     }
 
     @Test fun aCancelThatFailedOfflineIsSentAgainByTheNextDailyCheckUntilItWorks() = runTest {
