@@ -47,6 +47,13 @@ New code goes where design section 2 puts it. Modules (compile-time layering, im
 - **The second fix for one symptom is a question:** which single place should own this?
 - **Check the premise against real data** (an emulator or phone dump, a real feed) before writing a fix. A
   premise about "all" or "none" needs a count over the whole set, recorded in the findings row.
+- **Scenarios before code (Kevin, Oct 11).** Before writing a feature or fix, write a scenario table from the problem's
+  side, not the code's: who, what happens, what Mom and the guardian should see. It must have must-never rows (a bank
+  is never flagged, a scam address never shows as text), hostile inputs (look-alike letters, labels shaped like web
+  addresses), repeats and returns (same notice twice, snooze, repost), failure states (offline, killed half way, clock
+  wrong, alerts off) and undo paths (No, Warn me again, change guardian). Put it in the design doc or the finding row.
+  An Opus 5.5 high reviewer checks the table for missing rows before coding. Tests come from the table, one per row,
+  named after the situation; the final review checks every row has a test and the code handles nothing the table omits.
 - **Every fix gets a test that fails on the old code first.** Say that it failed, and how. No `git stash`:
   comment the fix out or use a worktree.
 - **A test's data is made by the code that makes the real thing.** Fixtures come from a real device or
