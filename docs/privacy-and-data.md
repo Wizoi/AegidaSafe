@@ -5,8 +5,10 @@ Written for someone auditing the code. Each statement is backed by a test or a g
 
 ## Reads on the phone
 - Notifications other apps post (through Android's notification access, which the owner grants). The title and text are
-  looked at for links and fake-warning patterns and are **not stored, logged or sent**. Only the host, the website or
-  channel, the notification key and the app package go into a finding.
+  looked at for links, fake-warning patterns and ads, and are **never sent**. For a scam message or a website pop-up the
+  sender, the first 200 characters and the time are kept with the warning until she taps Got it; History keeps a short line
+  (app, sender, a few words with links taken out, the address) for 90 days, on the phone only. For apps that send ads as
+  notices, only the time and a count of ad signs per notice are kept, for a week.
 - Which app opens web links, texts and calls; which apps have notification access, screen control or device-admin rights;
   Private DNS; every installed app with its name, the store that installed it and (for apps that did not ship with the phone)
   its signing-certificate fingerprint. No app data, no contacts, no messages, no location, no microphone, no camera.
@@ -31,3 +33,19 @@ overlays or full-screen takeovers, and never says a phone is "safe".
 ## Permissions (all approved individually)
 Internet, post notifications, foreground service (the visible "Aegida is looking out for you" notice), run at boot, query all
 packages (to notice a new or remote-control app).
+
+## Play Data safety form (as submitted Oct 12, 2026)
+
+Checked against what is sent above. Data shared with third parties: **none** (the note goes to the one guardian she chose, at her
+request; ntfy.sh only delivers it). Encrypted in transit: **yes** (HTTPS only, cleartext blocked). Data collected, each **optional**
+(only when guardian messages are on) and for **app functionality**:
+
+| Type | Why |
+|---|---|
+| Personal info → Name | her first name is the title of every note |
+| App activity → Installed apps | a note can name an app (a scam message's app, an app sending ads, an app she said is fine) |
+| App activity → Other actions | notes report what she did ("confirmed the change", "hasn't dealt with a warning", "said an app is fine", "picked a different guardian") |
+| Web browsing → Web browsing history | declared to be cautious: a note can carry a masked address (`pa*****.example`) |
+
+Fingerprint of what is sent: `d7bf5538ae4e6bdb` (`DataSafetyFormTest`). When the test fails, what a guardian can receive or the
+hosts Aegida contacts changed: re-check the form in Play Console, update this section, then record the new fingerprint.
