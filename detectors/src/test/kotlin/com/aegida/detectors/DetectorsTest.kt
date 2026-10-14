@@ -48,7 +48,8 @@ class LinkDetectorTest {
     @Test fun evidenceKeepsWhoSentItWhatItSaidAndWhenForTheOwnerToSee() {
         val event = message("https://evil.example/pay", title = "Chase Bank")
         val finding = detector.evaluate(inputs(event = event)).single()
-        assertEquals(setOf(Evidence.NOTIFICATION_KEY, Evidence.PACKAGE, Evidence.HOST, Evidence.MESSAGE_TITLE, Evidence.MESSAGE_TEXT, Evidence.MESSAGE_AT), finding.evidence.keys)
+        val expected = setOf(Evidence.NOTIFICATION_KEY, Evidence.PACKAGE, Evidence.HOST, Evidence.MESSAGE_TITLE, Evidence.MESSAGE_TEXT, Evidence.MESSAGE_AT)
+        assertEquals(expected, finding.evidence.keys)
         assertEquals("Chase Bank", finding.evidence[Evidence.MESSAGE_TITLE])
         assertEquals("https://evil.example/pay", finding.evidence[Evidence.MESSAGE_TEXT])
         assertEquals(event.postedAt.toEpochMilli().toString(), finding.evidence[Evidence.MESSAGE_AT])
@@ -93,7 +94,7 @@ class PopupSpamDetectorTest {
     )
 
     @Test fun aSiteThatAppearedAfterSetupIsAskedAboutAndNotSimplyBlocked() {
-        val finding = detector.evaluate(inputs(event = calm, baseline = baselineWith(setOf("https://news.example")))).single()
+        val finding = detector.evaluate(inputs(event = calm).copy(baseline = baselineWith(setOf("https://news.example")))).single()
         assertEquals(Problem.NewWebsiteNotifications, finding.key.problem)
         assertEquals(site, finding.key.subject)
         assertEquals("com.android.chrome", finding.evidence[Evidence.PACKAGE])
@@ -102,29 +103,29 @@ class PopupSpamDetectorTest {
 
     @Test fun aSiteSheAlreadyHadWhenSetupEndedIsLeftAloneUnlessItTurnsScary() {
         val known = baselineWith(setOf(site))
-        assertEquals(emptyList<Any>(), detector.evaluate(inputs(event = calm, baseline = known)))
-        assertEquals(Problem.SiteNotifications, detector.evaluate(inputs(event = chromeSiteNotification, baseline = known)).single().key.problem)
+        assertEquals(emptyList<Any>(), detector.evaluate(inputs(event = calm).copy(baseline = known)))
+        assertEquals(Problem.SiteNotifications, detector.evaluate(inputs(event = chromeSiteNotification).copy(baseline = known)).single().key.problem)
     }
 
     @Test fun aNewSiteWithFakeVirusWordsIsCalledFakeNotAskedAbout() {
         // "Was that you?" would offer to allow a fake virus warning; the plain "these are not real" message fits.
-        val finding = detector.evaluate(inputs(event = chromeSiteNotification, baseline = baselineWith(emptySet()))).single()
+        val finding = detector.evaluate(inputs(event = chromeSiteNotification).copy(baseline = baselineWith(emptySet()))).single()
         assertEquals(Problem.SiteNotifications, finding.key.problem)
     }
 
     @Test fun beforeTheListOfSitesIsRecordedItBehavesAsBefore() {
         assertEquals(Problem.SiteNotifications, detector.evaluate(inputs(event = calm)).single().key.problem)
-        assertEquals(Problem.SiteNotifications, detector.evaluate(inputs(event = calm, baseline = baselineWith(null))).single().key.problem)
+        assertEquals(Problem.SiteNotifications, detector.evaluate(inputs(event = calm).copy(baseline = baselineWith(null))).single().key.problem)
     }
 
     // Scenario rows WP11, WP15, WP16 (docs/scenarios/website-popups.md); findings #109.
     private val headline = chromeSiteNotification.copy(title = "Retailer hacked", text = "Millions of customer records stolen in data breach")
 
     @Test fun aNewsHeadlineFromASiteSheSaidYesToIsLeftInPlace() {
-        assertEquals(emptyList<Any>(), detector.evaluate(inputs(event = headline, baseline = baselineWith(setOf(site)))))
+        assertEquals(emptyList<Any>(), detector.evaluate(inputs(event = headline).copy(baseline = baselineWith(setOf(site)))))
         assertEquals(emptyList<Any>(), detector.evaluate(inputs(event = headline, setup = Setup(null, setOf(site)))))
         val malware = headline.copy(title = "New Android malware found in 40 apps", text = "Researchers say the virus spreads by text")
-        assertEquals(emptyList<Any>(), detector.evaluate(inputs(event = malware, baseline = baselineWith(setOf(site)))))
+        assertEquals(emptyList<Any>(), detector.evaluate(inputs(event = malware).copy(baseline = baselineWith(setOf(site)))))
     }
 
     @Test fun aSiteSheSaidYesToThatWarnsAboutHerPhoneIsStillHidden() {
@@ -136,13 +137,15 @@ class PopupSpamDetectorTest {
             headline.copy(title = "Alert", text = "Trojan detected on this phone"),
             headline.copy(title = "Warning", text = "You are infected"),
         )) {
-            assertEquals(scare.title, Problem.SiteNotifications, detector.evaluate(inputs(event = scare, baseline = known)).single().key.problem)
-            assertEquals(scare.title, Problem.SiteNotifications, detector.evaluate(inputs(event = scare, setup = Setup(null, setOf(site)))).single().key.problem)
+            assertEquals(scare.title, Problem.SiteNotifications, detector.evaluate(inputs(event = scare).copy(baseline = known)).single().key.problem)
+            val found = detector.evaluate(inputs(event = scare, setup = Setup(null, setOf(site)))).single()
+            assertEquals(scare.title, Problem.SiteNotifications, found.key.problem)
         }
     }
 
     @Test fun aNewSitePostingAScareHeadlineIsStillCalledFake() {
-        assertEquals(Problem.SiteNotifications, detector.evaluate(inputs(event = headline, baseline = baselineWith(setOf("https://news.example")))).single().key.problem)
+        val known = baselineWith(setOf("https://news.example"))
+        assertEquals(Problem.SiteNotifications, detector.evaluate(inputs(event = headline).copy(baseline = known)).single().key.problem)
     }
 
     @Test fun ordinaryAppNotificationsAreIgnored() {
@@ -153,7 +156,7 @@ class PopupSpamDetectorTest {
 class DnsDetectorTest {
     private val detector = DnsDetector()
     private val chosen = Setup("security.cloudflare-dns.com", emptySet())
-    private fun problems(dns: PrivateDns, setup: Setup = chosen) = detector.evaluate(inputs(snapshot(privateDns = dns), setup)).map { it.key.problem }
+    private fun problems(dns: PrivateDns, setup: Setup = chosen) = detector.evaluate(inputs(snapshot().copy(privateDns = dns), setup)).map { it.key.problem }
 
     @Test fun nothingToSayBeforeSetup() = assertEquals(emptyList<Problem>(), problems(PrivateDns.Off, Setup.NotDone))
 
@@ -175,8 +178,8 @@ class HealthDetectorTest {
     private val finished = Setup.NotDone.copy(stepsDone = SetupStep.entries.size)
 
     @Test fun lostPermissionsAreFindings() {
-        assertEquals(setOf(Problem.ListenerOff), problems(inputs(snapshot(listenerEnabled = false), setup = finished)))
-        assertEquals(setOf(Problem.NotificationsBlocked), problems(inputs(snapshot(canPostNotifications = false), setup = finished)))
+        assertEquals(setOf(Problem.ListenerOff), problems(inputs(snapshot().copy(listenerEnabled = false), setup = finished)))
+        assertEquals(setOf(Problem.NotificationsBlocked), problems(inputs(snapshot().copy(canPostNotifications = false), setup = finished)))
     }
 
     /**
@@ -186,8 +189,8 @@ class HealthDetectorTest {
      */
     @Test fun lostPermissionsAreNotRaisedWhileSetupIsStillBeingDone() {
         val notDone = Setup.NotDone.copy(stepsDone = SetupStep.Access.ordinal)
-        assertEquals(emptySet<Problem>(), problems(inputs(snapshot(listenerEnabled = false, canPostNotifications = false), setup = notDone)))
-        assertEquals(emptySet<Problem>(), problems(inputs(snapshot(listenerEnabled = false), setup = Setup.NotDone)))
+        assertEquals(emptySet<Problem>(), problems(inputs(snapshot().copy(listenerEnabled = false, canPostNotifications = false), setup = notDone)))
+        assertEquals(emptySet<Problem>(), problems(inputs(snapshot().copy(listenerEnabled = false), setup = Setup.NotDone)))
     }
 
     @Test fun aMissedDailyCheckIsNoticedAfter26Hours() {

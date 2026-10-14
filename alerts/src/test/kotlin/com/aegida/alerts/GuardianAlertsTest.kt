@@ -19,7 +19,9 @@ import org.junit.Test
 class GuardianAlertsTest {
     private val topic = NtfyTopic("aegida_" + "x9Y8z7W6".repeat(4))
     private val http = Http()
-    private val guardians = FakeGuardians(Guardians(alertsOn = false, ownerName = "Mom", firstTopic = topic, firstGuardianName = "Kevin", firstGuardianEmail = "k@example.com"))
+    private val guardians = FakeGuardians(
+        Guardians(alertsOn = false, ownerName = "Mom", firstTopic = topic, firstGuardianName = "Kevin", firstGuardianEmail = "k@example.com"),
+    )
     private val start = Instant.now().truncatedTo(ChronoUnit.SECONDS)
     private val alerts = GuardianAlerts(guardians, NtfySender(http), DeadMansSwitch(guardians, NtfySender(http)) { start }, AlertGate())
 

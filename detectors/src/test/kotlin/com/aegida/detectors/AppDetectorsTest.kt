@@ -108,12 +108,10 @@ class AppDetectorsTest {
         assertEquals(
             listOf(Problem.RemoteControlApp to "com.anydesk.anydeskandroid", Problem.RemoteControlApp to "com.teamviewer.quicksupport.market"),
             RemoteControlDetector().evaluate(
-                inputs(
-                    snapshot = snapshot().copy(
+                inputs(snapshot = snapshot().copy(
                         apps = atSetup + aGalaxyStoreApp("com.anydesk.anydeskandroid") + aGalaxyStoreApp("com.teamviewer.quicksupport.market"),
                         makerStores = setOf(store),
-                    ),
-                ).copy(baseline = baseline),
+                    )).copy(baseline = baseline),
             ).map { it.key.problem to it.key.subject },
         )
 

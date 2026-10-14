@@ -22,6 +22,7 @@ import com.aegida.core.oem.Reading
 import com.aegida.core.text.Problem
 import com.aegida.detectors.DnsDetector
 import com.aegida.detectors.Evaluator
+import com.aegida.detectors.EvaluatorMemory
 import com.aegida.detectors.HealthDetector
 import com.aegida.detectors.LinkDetector
 import com.aegida.detectors.PopupSpamDetector
@@ -50,10 +51,14 @@ class CheckRunnerTest {
     private val baselines = FakeBaselines()
 
     private val evaluator = Evaluator(
-        setOf(LinkDetector(), PopupSpamDetector(), DnsDetector(), HealthDetector()), { now }, setupStore, feedStore, checkLog, outbox, baselines,
+        setOf(LinkDetector(), PopupSpamDetector(), DnsDetector(), HealthDetector()), { now },
+        EvaluatorMemory(setupStore, feedStore, checkLog, outbox, baselines),
     )
-    private val pipeline = AlertPipeline(findings, owner, history, guardians, NtfySender(http), outbox) { now }
-    private val runner = CheckRunner({ snapshot() }, evaluator, pipeline, BaselineKeeper(setupStore, baselines), OutboxFlusher(outbox, NtfySender(http), history, guardians, { now }), AlertGate())
+    private val pipeline = AlertPipeline(findings, owner, history, GuardianLine(guardians, NtfySender(http), outbox)) { now }
+    private val runner = CheckRunner(
+        { snapshot() }, evaluator, pipeline, BaselineKeeper(setupStore, baselines),
+        OutboxFlusher(outbox, NtfySender(http), history, guardians, { now }), AlertGate(),
+    )
 
     private fun snapshot() = Snapshot(now, dns, "com.android.chrome", true, true, Reading.NotPresent, Reading.NotPresent)
 

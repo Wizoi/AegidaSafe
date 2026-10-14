@@ -16,6 +16,7 @@ import com.aegida.core.model.Snapshot
 import com.aegida.core.net.NtfyTopic
 import com.aegida.core.oem.Reading
 import com.aegida.detectors.Evaluator
+import com.aegida.detectors.EvaluatorMemory
 import com.aegida.detectors.LinkDetector
 import com.aegida.core.feed.FeedSource
 import com.aegida.core.feed.ThreatFeed
@@ -39,15 +40,23 @@ class ConcurrencyTest {
     private val outbox = FakeOutbox()
     private val guardians = FakeGuardians(Guardians(alertsOn = true, ownerName = "Ruth", firstTopic = topic))
     private val gate = AlertGate()
-    private val feedStore = FakeFeedStore(ThreatFeed.of(now.minus(Duration.ofHours(3)), listOf(FeedSource("test", "test", 1)), listOf("evil.example"), emptyList()))
-    private val pipeline = AlertPipeline(findings, owner, history, guardians, NtfySender(http), outbox) { now }
+    private val feedStore = FakeFeedStore(
+        ThreatFeed.of(now.minus(Duration.ofHours(3)), listOf(FeedSource("test", "test", 1)), listOf("evil.example"), emptyList()),
+    )
+    private val pipeline = AlertPipeline(findings, owner, history, GuardianLine(guardians, NtfySender(http), outbox)) { now }
     private val phone = Snapshot(now, PrivateDns.Automatic, "com.android.chrome", true, true, Reading.NotPresent, Reading.NotPresent)
     private val runner = CheckRunner(
         { phone },
-        Evaluator(setOf(LinkDetector()), { now }, FakeSetupStore(Setup.NotDone), feedStore, FakeCheckLog(), outbox, FakeBaselines()),
+        Evaluator(setOf(LinkDetector()), { now }, EvaluatorMemory(FakeSetupStore(Setup.NotDone), feedStore, FakeCheckLog(), outbox, FakeBaselines())),
         pipeline, BaselineKeeper(FakeSetupStore(), FakeBaselines()), OutboxFlusher(outbox, NtfySender(http), history, guardians, { now }), gate,
     )
-    private val actions = FindingActions(findings, history, owner, FakeBaselines(), { phone }, pipeline, gate) { now }
+    private val seen = SeenMarker(findings, history, owner)
+    private val actions = FindingActions(
+        seen,
+        AppAllowing(findings, history, pipeline, seen) { now },
+        ChangeAcceptor(findings, FakeBaselines(), { phone }, pipeline, seen) { now },
+        gate,
+    ) { now }
 
     private fun scam(n: Int) = NotificationEvent("k$n", "com.android.shell", "c", "Bank", "Verify at https://login.evil.example/x$n", now)
 

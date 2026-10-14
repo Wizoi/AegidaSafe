@@ -16,6 +16,7 @@ import com.aegida.core.model.FindingKey
 import com.aegida.core.model.FindingState
 import com.aegida.core.model.HomeState
 import com.aegida.core.net.NtfyTopic
+import com.aegida.core.notice.AllowList
 import com.aegida.core.text.Fix
 import com.aegida.core.text.Problem
 import kotlinx.coroutines.test.runTest
@@ -35,17 +36,27 @@ class FindingActionsTest {
     private val topic = NtfyTopic.generate(java.util.Random(3))
     private val outbox = FakeOutbox()
     private val guardians = FakeGuardians(Guardians(alertsOn = true, ownerName = "Ruth", firstTopic = topic))
-    private val pipeline = AlertPipeline(findings, owner, history, guardians, NtfySender(http), outbox) { now }
+    private val pipeline = AlertPipeline(findings, owner, history, GuardianLine(guardians, NtfySender(http), outbox)) { now }
     private val baselines = FakeBaselines()
     private var phone = Snapshot(now, PrivateDns.Automatic, "com.android.chrome", true, true, Reading.NotPresent, Reading.NotPresent)
-    private val actions = FindingActions(findings, history, owner, baselines, { phone }, pipeline, AlertGate()) { now }
+    private fun actionsWith(allowList: AllowList = AllowList.None): FindingActions {
+        val seen = SeenMarker(findings, history, owner)
+        val allowing = AppAllowing(findings, history, pipeline, seen, allowList) { now }
+        return FindingActions(seen, allowing, ChangeAcceptor(findings, baselines, { phone }, pipeline, seen) { now }, AlertGate()) { now }
+    }
+
+    private val actions = actionsWith()
 
     private val scam = Finding(FindingKey(DetectorId.Link, Problem.ScamLink, "evil.example"), emptyMap(), now.minus(Duration.ofMinutes(1)), now)
 
     /** Kevin, Oct 10: the sender, words and time of a scam message are kept on the phone only until the owner has seen the warning. */
     @Test fun gotItClearsTheMessageDetailsButKeepsTheRest() = runTest {
         val e = com.aegida.core.model.Evidence
-        val withMessage = scam.copy(evidence = mapOf(e.HOST to "evil.example", e.APP_LABEL to "Messages", e.MESSAGE_TITLE to "Bank", e.MESSAGE_TEXT to "Verify now", e.MESSAGE_AT to "123"))
+        val withMessage = scam.copy(
+            evidence = mapOf(
+                e.HOST to "evil.example", e.APP_LABEL to "Messages", e.MESSAGE_TITLE to "Bank", e.MESSAGE_TEXT to "Verify now", e.MESSAGE_AT to "123",
+            ),
+        )
         pipeline.handle(listOf(withMessage), setOf(DetectorId.Link))
         assertTrue(actions.acknowledge(withMessage.key))
         assertEquals(mapOf(e.HOST to "evil.example", e.APP_LABEL to "Messages"), findings.get(withMessage.key)!!.evidence)
@@ -54,12 +65,14 @@ class FindingActionsTest {
     private val allowList = FakeAllowList()
     private val noisy = Finding(
         FindingKey(DetectorId.NoisyApp, Problem.NoisyApp, "com.example.pdf"),
-        mapOf(com.aegida.core.model.Evidence.APP_LABEL to "Image to PDF", com.aegida.core.model.Evidence.PACKAGE to "com.example.pdf"), now.minus(Duration.ofMinutes(1)), now,
+        mapOf(com.aegida.core.model.Evidence.APP_LABEL to "Image to PDF", com.aegida.core.model.Evidence.PACKAGE to "com.example.pdf"),
+        now.minus(Duration.ofMinutes(1)),
+        now,
     )
 
     /** Kevin, Oct 11: the owner may say an app is fine; it is written to the list in My settings and the guardian is always told. */
     @Test fun allowingANoisyAppAddsItToTheListMarksItSeenAndTellsTheGuardian() = runTest {
-        val withAllow = FindingActions(findings, history, owner, baselines, { phone }, pipeline, AlertGate(), allowList = allowList) { now }
+        val withAllow = actionsWith(allowList)
         pipeline.handle(listOf(noisy), setOf(DetectorId.NoisyApp))
         http.posts.clear(); http.bodies.clear()
 
@@ -67,11 +80,13 @@ class FindingActionsTest {
 
         assertEquals(listOf(com.aegida.core.notice.AllowedItem(Problem.NoisyApp, "com.example.pdf", "Image to PDF", now)), allowList.items)
         assertEquals(FindingState.Acknowledged, findings.get(noisy.key)!!.state)
-        assertEquals(listOf("Ruth told Aegida that an app (“Image to PDF”) is fine, so Aegida will stop warning about it. If that surprises you, it may be a good time to ask Ruth."), http.bodies)
+        val told = "Ruth told Aegida that an app (“Image to PDF”) is fine, so Aegida will stop warning about it. " +
+            "If that surprises you, it may be a good time to ask Ruth."
+        assertEquals(listOf(told), http.bodies)
     }
 
     @Test fun allowingAnAppNamedLikeAWebAddressTellsTheGuardianOnlyAMaskedAddress() = runTest { // finding #98
-        val withAllow = FindingActions(findings, history, owner, baselines, { phone }, pipeline, AlertGate(), allowList = allowList) { now }
+        val withAllow = actionsWith(allowList)
         val sly = noisy.copy(evidence = mapOf(com.aegida.core.model.Evidence.APP_LABEL to "Get evil-site.com"))
         pipeline.handle(listOf(sly), setOf(DetectorId.NoisyApp))
         http.posts.clear(); http.bodies.clear()
@@ -82,16 +97,18 @@ class FindingActionsTest {
     }
 
     @Test fun allowingAnAppWithNoNameNeverSendsItsPackageName() = runTest {
-        val withAllow = FindingActions(findings, history, owner, baselines, { phone }, pipeline, AlertGate(), allowList = allowList) { now }
+        val withAllow = actionsWith(allowList)
         val unnamed = noisy.copy(evidence = emptyMap())
         pipeline.handle(listOf(unnamed), setOf(DetectorId.NoisyApp))
         http.posts.clear(); http.bodies.clear()
         withAllow.allow(unnamed.key)
-        assertEquals(listOf("Ruth told Aegida that an app is fine, so Aegida will stop warning about it. If that surprises you, it may be a good time to ask Ruth."), http.bodies)
+        val told = "Ruth told Aegida that an app is fine, so Aegida will stop warning about it. " +
+            "If that surprises you, it may be a good time to ask Ruth."
+        assertEquals(listOf(told), http.bodies)
     }
 
     @Test fun onlyAnAppWarningCanBeAllowedNeverASpyingOrRemoteControlOne() = runTest {
-        val withAllow = FindingActions(findings, history, owner, baselines, { phone }, pipeline, AlertGate(), allowList = allowList) { now }
+        val withAllow = actionsWith(allowList)
         val spy = Finding(FindingKey(DetectorId.Stalkerware, Problem.StalkerwareApp, "org.spy"), emptyMap(), now, now)
         pipeline.handle(listOf(spy), setOf(DetectorId.Stalkerware))
         assertFalse(withAllow.allow(spy.key))
@@ -99,7 +116,7 @@ class FindingActionsTest {
     }
 
     @Test fun warnMeAgainEndsTheQuietWeekSoTheNextAdsWarnAtOnce() = runTest { // finding #93
-        val withAllow = FindingActions(findings, history, owner, baselines, { phone }, pipeline, AlertGate(), allowList = allowList) { now }
+        val withAllow = actionsWith(allowList)
         pipeline.handle(listOf(noisy), setOf(DetectorId.NoisyApp))
         withAllow.allow(noisy.key)
         withAllow.stopAllowing(Problem.NoisyApp, "com.example.pdf")
@@ -109,7 +126,7 @@ class FindingActionsTest {
     }
 
     @Test fun theAllowNoteIsQueuedWhenOfflineAsItsOwnKindAndHistorySaysWhatSheDid() = runTest { // finding #93
-        val withAllow = FindingActions(findings, history, owner, baselines, { phone }, pipeline, AlertGate(), allowList = allowList) { now }
+        val withAllow = actionsWith(allowList)
         pipeline.handle(listOf(noisy), setOf(DetectorId.NoisyApp))
         http.result = com.aegida.core.net.HttpResult.Failed(null, com.aegida.core.net.FailureReason.Offline)
         assertTrue(withAllow.allow(noisy.key))
@@ -120,7 +137,7 @@ class FindingActionsTest {
     }
 
     @Test fun takingAnAppOffTheListLetsItBeWarnedAboutAgain() = runTest {
-        val withAllow = FindingActions(findings, history, owner, baselines, { phone }, pipeline, AlertGate(), allowList = allowList) { now }
+        val withAllow = actionsWith(allowList)
         pipeline.handle(listOf(noisy), setOf(DetectorId.NoisyApp))
         withAllow.allow(noisy.key)
         withAllow.stopAllowing(Problem.NoisyApp, "com.example.pdf")
@@ -187,7 +204,8 @@ class FindingActionsTest {
 
     @Test fun aNewWebsiteIsToldToTheGuardianAsAQuestionAndHidden() = runTest { // Kevin, Oct 9
         val f = aNewWebsite()
-        assertEquals(listOf("A website that was not there before started sending notifications on Ruth's phone. Aegida asked Ruth: “Was that you?”"), http.bodies)
+        val told = "A website that was not there before started sending notifications on Ruth's phone. Aegida asked Ruth: “Was that you?”"
+        assertEquals(listOf(told), http.bodies)
         assertEquals(listOf(f.key), owner.shown)
     }
 

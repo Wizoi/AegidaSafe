@@ -36,7 +36,7 @@ class AlertPipelineTest {
     private val http = Http()
     private val outbox = FakeOutbox()
     private val settings = FakeGuardians(Guardians(alertsOn = true, ownerName = "Ruth", firstTopic = topic))
-    private val pipeline = AlertPipeline(findings, owner, history, settings, NtfySender(http), outbox) { now }
+    private val pipeline = AlertPipeline(findings, owner, history, GuardianLine(settings, NtfySender(http), outbox)) { now }
 
     private fun finding(problem: Problem, subject: String, detector: DetectorId) =
         Finding(FindingKey(detector, problem, subject), emptyMap(), now.minus(Duration.ofSeconds(1)), now)
@@ -53,9 +53,11 @@ class AlertPipelineTest {
     }
 
     @Test fun theGuardianIsToldWhichAppAScamMessageCameFromWhenItIsKnown() = runTest { // Kevin, Oct 10
-        val named = scamLink.copy(evidence = mapOf(com.aegida.core.model.Evidence.APP_LABEL to "Messages", com.aegida.core.model.Evidence.HOST to "evil.example"))
+        val e = com.aegida.core.model.Evidence
+        val named = scamLink.copy(evidence = mapOf(e.APP_LABEL to "Messages", e.HOST to "evil.example"))
         pipeline.handle(listOf(named), setOf(DetectorId.Link))
-        assertEquals(listOf("A message with a scam link arrived on Ruth's phone, from the “Messages” app, with a link to ev*****.example. Aegida warned Ruth."), http.bodies)
+        val told = "A message with a scam link arrived on Ruth's phone, from the “Messages” app, with a link to ev*****.example. Aegida warned Ruth."
+        assertEquals(listOf(told), http.bodies)
     }
 
     @Test fun historyKeepsWhatItWasForTheWarningAndTheGuardianNote() = runTest { // Kevin, Oct 10
@@ -82,13 +84,14 @@ class AlertPipelineTest {
         assertEquals(1, owner.shown.size)
         assertEquals(emptyList<String>(), http.bodies)
 
-        val later = AlertPipeline(findings, owner, history, settings, NtfySender(http), outbox) { now.plus(Duration.ofDays(8)) }
+        val later = AlertPipeline(findings, owner, history, GuardianLine(settings, NtfySender(http), outbox)) { now.plus(Duration.ofDays(8)) }
         later.handle(listOf(noisy), setOf(DetectorId.NoisyApp)) // eight days on: raised again
         assertEquals(2, owner.shown.size)
     }
 
     @Test fun thePipelineSaysWhichWarningsItKeptQuietAndWhichHaveWaitedADay() = runTest { // finding #94
-        val site = Finding(FindingKey(DetectorId.PopupSpam, Problem.NewWebsiteNotifications, "https://new.example"), emptyMap(), now.minus(Duration.ofHours(30)), now)
+        val key = FindingKey(DetectorId.PopupSpam, Problem.NewWebsiteNotifications, "https://new.example")
+        val site = Finding(key, emptyMap(), now.minus(Duration.ofHours(30)), now)
         pipeline.handle(listOf(site), setOf(DetectorId.PopupSpam))
         assertEquals("open for 30 hours", setOf(site.key), pipeline.handle(listOf(site), setOf(DetectorId.PopupSpam)).openLong)
         findings.put(findings.get(site.key)!!.copy(state = FindingState.Acknowledged, lastSeen = now)) // she said No
@@ -97,11 +100,12 @@ class AlertPipelineTest {
 
     @Test fun aQuestionFirstSeenUnderAClockThatWasAheadIsTreatedAsSeenNowAndDeletedADayLater() = runTest { // findings #98, #99
         settings.value = settings.value.copy(alertsOn = false)
-        val site = Finding(FindingKey(DetectorId.PopupSpam, Problem.NewWebsiteNotifications, "https://new.example"), emptyMap(), now.plus(Duration.ofDays(3)), now)
+        val key = FindingKey(DetectorId.PopupSpam, Problem.NewWebsiteNotifications, "https://new.example")
+        val site = Finding(key, emptyMap(), now.plus(Duration.ofDays(3)), now)
         pipeline.handle(listOf(site), setOf(DetectorId.PopupSpam))
         pipeline.handle(listOf(site), setOf(DetectorId.PopupSpam))
         assertEquals("one owner puts the time right", now, findings.get(site.key)!!.firstSeen)
-        val dayLater = AlertPipeline(findings, owner, history, settings, NtfySender(http), outbox) { now.plus(Duration.ofHours(25)) }
+        val dayLater = AlertPipeline(findings, owner, history, GuardianLine(settings, NtfySender(http), outbox)) { now.plus(Duration.ofHours(25)) }
         assertEquals(setOf(site.key), dayLater.handle(listOf(site), setOf(DetectorId.PopupSpam)).openLong)
     }
 
@@ -121,12 +125,12 @@ class AlertPipelineTest {
         val dying = object : HttpClient by http {
             var die = true
             override suspend fun post(endpoint: Endpoint, body: String, headers: Map<String, String>): HttpResult {
-                if (die) { die = false; throw IllegalStateException("process killed") }
+                if (die) { die = false; error("process killed") }
                 return http.post(endpoint, body, headers)
             }
         }
-        val killable = AlertPipeline(findings, owner, history, settings, NtfySender(dying), outbox) { now }
-        try { killable.handle(listOf(scamLink), setOf(DetectorId.Link)) } catch (e: IllegalStateException) { /* the process died here */ }
+        val killable = AlertPipeline(findings, owner, history, GuardianLine(settings, NtfySender(dying), outbox)) { now }
+        try { killable.handle(listOf(scamLink), setOf(DetectorId.Link)) } catch (expected: IllegalStateException) { /* the process died here */ }
         val result = killable.handle(listOf(scamLink), setOf(DetectorId.Link))
         assertEquals(1, result.alerted)
         assertEquals(1, http.bodies.size)

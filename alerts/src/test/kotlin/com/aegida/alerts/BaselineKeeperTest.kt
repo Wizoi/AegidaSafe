@@ -15,7 +15,10 @@ import org.junit.Test
 import java.time.Instant
 
 class BaselineKeeperTest {
-    private val phone = Snapshot(Instant.now(), PrivateDns.Automatic, "com.android.chrome", true, true, Reading.NotPresent, Reading.NotPresent, accessibilityApps = setOf("app.screen"))
+    private val phone = Snapshot(
+        Instant.now(), PrivateDns.Automatic, "com.android.chrome", true, true, Reading.NotPresent, Reading.NotPresent,
+        accessibilityApps = setOf("app.screen"),
+    )
     private val setup = FakeSetupStore()
     private val baselines = FakeBaselines()
     private val keeper = BaselineKeeper(setup, baselines)

@@ -8,6 +8,11 @@ import java.time.Duration
 import java.util.Base64
 import javax.inject.Inject
 
+/** Space to tilde: what an HTTP header can carry as it is. */
+private val PRINTABLE_ASCII = 0x20..0x7e
+
+private const val HTTP_NOT_FOUND = 404
+
 /**
  * The only code that sends to ntfy (NtfySingleOwnerTest). Called only by the alert classes in this module,
  * which build the message from a Problem or a fixed guardian text: coarse, in the owner's name, no URLs and no
@@ -34,7 +39,7 @@ class NtfySender @Inject constructor(private val http: HttpClient) {
      */
     private fun headerSafe(text: String): String {
         val clean = text.trim()
-        if (clean.all { it.code in 0x20..0x7e }) return clean
+        if (clean.all { it.code in PRINTABLE_ASCII }) return clean
         return "=?UTF-8?B?" + Base64.getEncoder().encodeToString(clean.toByteArray(Charsets.UTF_8)) + "?="
     }
 
@@ -42,7 +47,7 @@ class NtfySender @Inject constructor(private val http: HttpClient) {
     suspend fun cancel(topic: NtfyTopic, sequenceId: String): SendResult =
         when (val result = http.delete(Endpoint.Ntfy(topic, sequenceId))) {
             is HttpResult.Ok -> SendResult.Delivered
-            is HttpResult.Failed -> if (result.code == 404) SendResult.Delivered else SendResult.NotDelivered(result)
+            is HttpResult.Failed -> if (result.code == HTTP_NOT_FOUND) SendResult.Delivered else SendResult.NotDelivered(result)
         }
 }
 

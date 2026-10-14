@@ -41,16 +41,18 @@ class DeadMansSwitch @Inject constructor(
      */
     suspend fun keepInStep(): SendResult? {
         val current = guardians.current()
-        if (current.alertsOn) return arm()
-        if (current.heartbeatCancelled) return null
-        return disarm()
+        return when {
+            current.alertsOn -> arm()
+            current.heartbeatCancelled -> null
+            else -> disarm()
+        }
     }
 
     /** Null when there is nobody to tell (alerts off or no guardian paired). */
     suspend fun arm(): SendResult? {
         val settings = guardians.current()
-        val topic = settings.firstTopic ?: return null
-        if (!settings.alertsOn) return null
+        val topic = settings.firstTopic
+        if (topic == null || !settings.alertsOn) return null
         val owner = settings.ownerName.ifBlank { Texts.APP_NAME }
         spaceFromLastRequest()
         if (settings.heartbeatCancelled) guardians.save(settings.copy(heartbeatCancelled = false))

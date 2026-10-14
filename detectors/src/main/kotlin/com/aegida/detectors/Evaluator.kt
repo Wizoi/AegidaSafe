@@ -10,6 +10,7 @@ import com.aegida.core.model.NotificationEvent
 import com.aegida.core.model.Snapshot
 import com.aegida.core.notice.AllowList
 import com.aegida.core.notice.NoticeLog
+import com.aegida.core.notice.NoticeRow
 import com.aegida.core.notice.NoticeRules
 import com.aegida.core.text.Problem
 import com.aegida.core.store.BaselineStore
@@ -18,6 +19,7 @@ import com.aegida.core.store.SetupStore
 import com.aegida.core.time.Clock
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import java.time.Instant
 import javax.inject.Inject
 
 /**
@@ -28,11 +30,7 @@ import javax.inject.Inject
 class Evaluator @Inject constructor(
     private val detectors: Set<@JvmSuppressWildcards Detector>,
     private val clock: Clock,
-    private val setupStore: SetupStore,
-    private val feedStore: FeedStore,
-    private val checkLog: CheckLog,
-    private val outbox: Outbox,
-    private val baselines: BaselineStore,
+    private val memory: EvaluatorMemory,
     private val notices: NoticeLog = NoticeLog.None,
     private val allowList: AllowList = AllowList.None,
 ) {
@@ -53,12 +51,26 @@ class Evaluator @Inject constructor(
             emptyList()
         }
         val allowedApps = allowList.all().filter { it.problem == Problem.NoisyApp }.map { it.subject }.toSet()
-        val input = Inputs(
+        val input = memory.inputs(snapshot, started, event, recent, allowedApps)
+        val findings = detectors.sortedBy { it.id }.flatMap { it.evaluate(input) }.distinctBy { it.key }
+        memory.record(CheckRun(trigger, started, clock.now()))
+        findings
+    }
+}
+
+/** What the phone remembers between runs (setup, lists, the check log, the outbox, the baseline), read into one [Inputs] and the run written back. */
+class EvaluatorMemory @Inject constructor(
+    private val setupStore: SetupStore,
+    private val feedStore: FeedStore,
+    private val checkLog: CheckLog,
+    private val outbox: Outbox,
+    private val baselines: BaselineStore,
+) {
+    suspend fun inputs(snapshot: Snapshot, started: Instant, event: NotificationEvent?, recent: List<NoticeRow>, allowedApps: Set<String>): Inputs =
+        Inputs(
             snapshot, started, setupStore.setup(), feedStore.current(), event, checkLog.latest(Trigger.Daily), outbox.all().minOfOrNull { it.queuedAt },
             baselines.baseline(), recent, allowedApps,
         )
-        val findings = detectors.sortedBy { it.id }.flatMap { it.evaluate(input) }.distinctBy { it.key }
-        checkLog.record(CheckRun(trigger, started, clock.now()))
-        findings
-    }
+
+    suspend fun record(run: CheckRun) = checkLog.record(run)
 }
