@@ -1,4 +1,4 @@
-﻿# Scenarios: scam texts
+# Scenarios: scam texts
 
 A text message or chat arrives with a link in it. Aegida reads the link on the phone, and never opens it.
 Each row names the test that covers it. `GAP` means nothing covers it yet. `scripts/ScenarioTablesTest` (guards) fails the build

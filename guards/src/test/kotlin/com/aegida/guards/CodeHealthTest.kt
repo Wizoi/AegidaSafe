@@ -118,3 +118,11 @@ class DuplicationTest {
         assertEquals(16, duplicatedLines(mapOf("a.kt" to block, "b.kt" to "import a.b\n\n// note\n" + block)))
     }
 }
+
+class NoByteOrderMarkTest {
+    /** A BOM from a Windows editor makes a table first line not a table to ScenarioTablesTest and shows in diffs (finding #125). */
+    @Test fun noTextFileInTheRepoStartsWithAByteOrderMark() {
+        val marked = ShippedSources.allText.filter { it.text.startsWith('\uFEFF') }.map { it.path }
+        assertTrue("these files start with a UTF-8 byte-order mark; save them without one: $marked", marked.isEmpty())
+    }
+}
