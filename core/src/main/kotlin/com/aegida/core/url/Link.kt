@@ -21,6 +21,7 @@ data class Link(val raw: String, val host: String, val path: String) {
 }
 
 object Links {
+    private const val MAX_LABEL_CHARS = 63 // the DNS limit for one label
     private const val TRAILING = ".,;:!?)]}'\"*"
 
     /**
@@ -35,7 +36,7 @@ object Links {
     /** Every link in the first [MAX_PART_CHARS] characters of [text], in order, without duplicates. Unparseable candidates are dropped. */
     fun extract(text: String): List<Link> {
         val found = LinkedHashSet<Link>()
-        scan(if (text.length > MAX_PART_CHARS) text.substring(0, MAX_PART_CHARS) else text) { candidate ->
+        LinkScanner.scan(if (text.length > MAX_PART_CHARS) text.substring(0, MAX_PART_CHARS) else text) { candidate ->
             parse(candidate.trimEnd { c -> c in TRAILING })?.let(found::add)
         }
         return found.toList()
@@ -49,7 +50,7 @@ object Links {
     fun findThorough(text: String): List<Link> {
         val found = LinkedHashSet<Link>()
         val cut = if (text.length > MAX_PART_CHARS) text.substring(0, MAX_PART_CHARS) else text
-        scan(cut) { candidate -> parseOrInner(candidate.trimEnd { c -> c in TRAILING })?.let(found::add) }
+        LinkScanner.scan(cut) { candidate -> parseOrInner(candidate.trimEnd { c -> c in TRAILING })?.let(found::add) }
         return found.toList()
     }
 
@@ -66,66 +67,6 @@ object Links {
         return null
     }
 
-    // A scheme URL, or a bare domain with a letters-only top-level label (so "e.g." and "3.14" are not links).
-    // Scanned by hand in one pass: the regex this replaced recursed once per label and overflowed the stack
-    // on a long "a.a.a.a" run (R11). It finds the same candidates (LinksTest, LinksLongTextTest).
-    private fun scan(t: String, onCandidate: (String) -> Unit) {
-        val n = t.length
-        var i = 0
-        while (i < n) {
-            if (!isAlnum(t[i]) || (i > 0 && isWord(t[i - 1]))) { i++; continue }
-            val schemeEnd = schemeUrlEnd(t, i)
-            if (schemeEnd > 0) { onCandidate(t.substring(i, schemeEnd)); i = schemeEnd; continue }
-            // Labels "name." one after another; dotEnds[k] is where the text after the (k+1)th dot starts.
-            val dotEnds = ArrayList<Int>()
-            var j = i
-            while (j < n && isAlnum(t[j])) {
-                var e = j
-                while (e < n && (isAlnum(t[e]) || t[e] == '-')) e++
-                if (!isAlnum(t[e - 1]) || e >= n || t[e] != '.') break
-                dotEnds.add(e + 1)
-                j = e + 1
-            }
-            var end = -1
-            for (m in dotEnds.indices.reversed()) {
-                var k = dotEnds[m]
-                while (k < n && Character.isLetter(t[k])) k++
-                if (k - dotEnds[m] >= 2) { end = k; break }
-            }
-            // No top-level label anywhere in this run of labels, so no later start inside it can match either.
-            if (end < 0) { i = maxOf(i + 1, j); continue }
-            if (end + 1 < n && t[end] == ':' && t[end + 1] in '0'..'9') {
-                end++
-                while (end < n && t[end] in '0'..'9') end++
-            }
-            if (end < n && t[end] == '/') while (end < n && !isUrlBreak(t[end])) end++
-            onCandidate(t.substring(i, end))
-            i = end
-        }
-    }
-
-    /** End of an http(s):// URL starting at [i] (with at least one character after the scheme), or -1. */
-    private fun schemeUrlEnd(t: String, i: Int): Int {
-        val prefix = when {
-            t.regionMatches(i, "https://", 0, 8, ignoreCase = true) -> 8
-            t.regionMatches(i, "http://", 0, 7, ignoreCase = true) -> 7
-            else -> return -1
-        }
-        var e = i + prefix
-        while (e < t.length && !isUrlBreak(t[e])) e++
-        return if (e > i + prefix) e else -1
-    }
-
-    private fun isUrlBreak(c: Char) = c == ' ' || c == '\t' || c == '\n' || c == '\u000B' || c == '\u000C' || c == '\r' ||
-        c == '<' || c == '>' || c == '"' || c == '\'' || c == '`'
-
-    private fun isAlnum(c: Char): Boolean = when (Character.getType(c).toByte()) {
-        Character.DECIMAL_DIGIT_NUMBER, Character.LETTER_NUMBER, Character.OTHER_NUMBER -> true
-        else -> Character.isLetter(c)
-    }
-
-    private fun isWord(c: Char) = c == '_' || Character.isLetterOrDigit(c)
-
     /** Parses one URL or bare domain. Returns null if there is no usable host. */
     fun parse(raw: String): Link? {
         val noScheme = raw.replace(Regex("""^(?i)https?://"""), "")
@@ -141,14 +82,14 @@ object Links {
     /** Lower-case ASCII host without trailing dots, or null if it is not a plausible domain name. */
     fun normalizeHost(host: String): String? {
         val trimmed = host.trim().trimEnd('.')
-        if (trimmed.isEmpty() || '.' !in trimmed) return null
-        val ascii = try {
-            IDN.toASCII(trimmed, IDN.ALLOW_UNASSIGNED)
-        } catch (e: IllegalArgumentException) {
-            return null
-        }.lowercase()
-        if (ascii.split('.').any { it.isEmpty() || it.length > 63 }) return null
-        return ascii
+        val ascii = if (trimmed.isEmpty() || '.' !in trimmed) null else toAscii(trimmed)
+        return ascii?.takeIf { name -> name.split('.').none { it.isEmpty() || it.length > MAX_LABEL_CHARS } }
+    }
+
+    private fun toAscii(name: String): String? = try {
+        IDN.toASCII(name, IDN.ALLOW_UNASSIGNED).lowercase()
+    } catch (ignored: IllegalArgumentException) {
+        null // a name IDN cannot encode (bad label, mixed directions) is not a plausible host; the caller treats null as "no host"
     }
 
     /** Host plus path without a trailing slash; the feed builder uses this same function. */

@@ -43,12 +43,13 @@ sealed class Endpoint(val host: String, val path: String) {
 @JvmInline
 value class NtfyTopic(val value: String) {
     init {
-        require(value.length >= 32 && value.all { it.isLetterOrDigit() || it == '_' || it == '-' }) {
+        require(value.length >= MIN_LENGTH && value.all { it.isLetterOrDigit() || it == '_' || it == '-' }) {
             "topic must be at least 32 letters, digits, _ or -"
         }
     }
 
     companion object {
+        private const val MIN_LENGTH = 32
         private const val ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
         private const val RANDOM_LENGTH = 40
 
