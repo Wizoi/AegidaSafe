@@ -28,12 +28,11 @@ internal class FileFeedStore(private val dir: File) : FeedStore {
         cached
     }
 
-    override suspend fun save(verifiedFeed: ByteArray) = mutex.withLock {
-        val feed = FeedCodec.decode(verifiedFeed)
+    override suspend fun save(feed: ThreatFeed, verifiedBytes: ByteArray) = mutex.withLock {
         withContext(Dispatchers.IO) {
             dir.mkdirs()
             val temp = File(dir, "feed.bin.tmp")
-            temp.writeBytes(verifiedFeed)
+            temp.writeBytes(verifiedBytes)
             if (!temp.renameTo(file)) {
                 file.delete()
                 check(temp.renameTo(file)) { "could not replace feed file" }

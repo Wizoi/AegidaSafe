@@ -46,7 +46,7 @@ class PopupSpamDetector @Inject constructor() : Detector {
         val words = notice.event.title + " " + notice.event.text
         val anyScareWord = com.aegida.core.model.ScareWords.REGEX.containsMatchIn(words)
         // A site she said Yes to or had at setup may report news ("Retailer hacked"); it is fake only when it talks about her phone.
-        val scary = anyScareWord && ABOUT_HER_PHONE.containsMatchIn(words)
+        val scary = anyScareWord && com.aegida.core.model.ScareWords.ABOUT_HER_PHONE.containsMatchIn(words)
         val recorded = input.baseline?.websites
         return when {
             recorded == null -> if (site in input.setup.allowedSites && !scary) null else Problem.SiteNotifications
@@ -78,11 +78,5 @@ class PopupSpamDetector @Inject constructor() : Detector {
     companion object {
         const val SITE_CHANNEL_PREFIX = "web:"
         private const val EXAMPLE_CHARS = 200
-
-        /** Scare wording aimed at her own phone, not a news story about someone else (findings #109). */
-        private val ABOUT_HER_PHONE = Regex(
-            """(?i)\byour (phone|device|mobile|android|battery)\b|\bthis (phone|device)\b|battery (is )?damaged|clean (your|now|it)|""" +
-                """\b(virus(es)?|malware|trojan|spyware) (detected|found on)\b|\byou('re| are| have been|'ve been) (infected|hacked)\b""",
-        )
     }
 }

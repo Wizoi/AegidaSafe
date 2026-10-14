@@ -1,6 +1,5 @@
 package com.aegida.testkit
 
-import com.aegida.core.feed.FeedCodec
 import com.aegida.core.feed.ThreatFeed
 import com.aegida.core.health.CheckLog
 import com.aegida.core.health.CheckRun
@@ -23,7 +22,7 @@ class FakeFeedStore(var value: ThreatFeed? = null) : FeedStore {
     var saves = 0
     var savedBytes: ByteArray? = null
     override suspend fun current() = value
-    override suspend fun save(verifiedFeed: ByteArray) { value = FeedCodec.decode(verifiedFeed); savedBytes = verifiedFeed; saves++ }
+    override suspend fun save(feed: ThreatFeed, verifiedBytes: ByteArray) { value = feed; savedBytes = verifiedBytes; saves++ }
 }
 
 /** Behaves like the Room log: appends, and latest means most recently started. */

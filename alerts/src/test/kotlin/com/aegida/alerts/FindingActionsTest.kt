@@ -8,6 +8,7 @@ import com.aegida.core.alert.HistoryRows
 import com.aegida.core.alert.Outcome
 import com.aegida.core.model.Baseline
 import com.aegida.core.model.DetectorId
+import com.aegida.core.model.Evidence
 import com.aegida.core.model.PrivateDns
 import com.aegida.core.model.Snapshot
 import com.aegida.core.oem.Reading
@@ -340,5 +341,26 @@ class FindingActionsTest {
         http.posts.clear(); http.bodies.clear()
         assertTrue(actions.acceptChange(f.key))
         assertEquals(0, http.bodies.size)
+    }
+
+    @Test fun twoNewAppsAtOnceSheConfirmsTheOneTheGuardianWasNeverToldAboutAndTheyHearNothing() = runTest { // findings #115, GN16
+        baselines.value = Baseline.of(phone)
+        phone = phone.copy(
+            apps = listOf(
+                com.aegida.core.model.InstalledApp("org.first.app", "First", null, false),
+                com.aegida.core.model.InstalledApp("org.second.app", "Second", null, false),
+            ),
+        )
+        fun finding(pkg: String, label: String) =
+            Finding(FindingKey(DetectorId.NewApp, Problem.NewAppOutsidePlay, pkg), mapOf(Evidence.APP_LABEL to label), now, now)
+        val first = finding("org.first.app", "First")
+        val second = finding("org.second.app", "Second")
+        // Told about the first; the second, found in the same minute, is held back by the repeat back-off.
+        pipeline.handle(listOf(first, second), setOf(DetectorId.NewApp))
+        http.posts.clear(); http.bodies.clear()
+        assertTrue(actions.acceptChange(second.key))
+        assertEquals(0, http.bodies.size) // the guardian never heard of "Second"
+        assertTrue(actions.acceptChange(first.key))
+        assertEquals(1, http.bodies.size) // and still hears about "First"
     }
 }

@@ -14,8 +14,8 @@ interface SetupStore {
 interface FeedStore {
     suspend fun current(): ThreatFeed?
 
-    /** Replaces the feed with bytes that already passed signature and sanity checks (FeedUpdater). */
-    suspend fun save(verifiedFeed: ByteArray)
+    /** Replaces the feed with bytes that already passed signature and sanity checks (FeedUpdater); [feed] is those bytes, decoded once. */
+    suspend fun save(feed: ThreatFeed, verifiedBytes: ByteArray)
 }
 
 /** The baseline taken when setup finished, or null before then. Implemented by :store. */

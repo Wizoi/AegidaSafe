@@ -200,12 +200,11 @@ class RoomStoresTest {
         assertEquals(emptySet<String>(), settings.baseline()!!.apps)
     }
 
-    private fun feedBytes(at: Instant) =
-        FeedCodec.encode(ThreatFeed.of(at, listOf(FeedSource("test", "test", 1)), listOf("evil.example"), emptyList()))
+    private fun feedAt(at: Instant) = ThreatFeed.of(at, listOf(FeedSource("test", "test", 1)), listOf("evil.example"), emptyList())
 
     @Test fun feedSurvivesARestartAndADamagedFileReadsAsNoFeed() = runTest {
         val dir = temp.newFolder("feed")
-        FileFeedStore(dir).save(feedBytes(now))
+        feedAt(now).let { FileFeedStore(dir).save(it, FeedCodec.encode(it)) }
         assertEquals(now.truncatedTo(ChronoUnit.SECONDS), FileFeedStore(dir).current()!!.generatedAt) // new instance = restart
         File(dir, "feed.bin").writeBytes(byteArrayOf(1, 2, 3))
         assertNull(FileFeedStore(dir).current())
