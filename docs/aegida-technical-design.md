@@ -114,7 +114,7 @@ Pure, deterministic, given `Inputs(snapshot, baseline, feeds, linkEvent?, now)`.
 | `HealthDetector` | "Is Aegida itself still able to look out?" (listener enabled, banners allowed, daily check ran, feed fresh) | 1 |
 | `DeliveryDetector` | "Can Aegida still reach the guardian?" (a message held for a day) | 1 |
 | `DriftDetector` | Differences between baseline and snapshot (default apps, special access). Auto Blocker only if a real reading exists | 2 |
-| `NewAppDetector` | An app installed after setup from outside Play; no manual approval | 2 |
+| `NewAppDetector` | An app installed after setup from outside Play; no manual approval. Not raised: Play apps, apps from setup, system apps, and on a Samsung apps the Galaxy Store installed and asked for (`Snapshot.makerStores`, system apps only; findings #106) | 2 |
 | `RemoteControlDetector` | Known remote-access packages, by package name | 2 |
 | `StalkerwareDetector` | Echap indicator list, by package name and signing certificate (CC BY 4.0 credit in My settings) | 3 |
 | `NoisyAppDetector` | An app that keeps posting ad-like notices (`notification-ad-spam-design.md`) | after 3 |
@@ -134,7 +134,7 @@ Every step returns a `Result`; a failed send is retried with backoff and shown i
 
 | Situation | Behavior |
 |---|---|
-| Phone offline at check time | Detector uses cached feeds, marks verdict `Unknown` if the cache is older than 3 days; Home says it couldn't check (not "looks good") |
+| Phone offline at check time | Detectors use the cached lists. `HealthDetector` raises `Problem.ListsOld` ("Aegida couldn't update its scam lists for a few days") once the lists are older than 3 days (`LISTS_OLD`), so Home does not say "no known problems found" without it. No `Verdict.Unknown` is produced by any detector today |
 | ntfy unreachable | Queue, retry with backoff, History line; the owner is told only if it persists over 24 h |
 | Process killed mid-check | Evaluator is idempotent; WorkManager retries |
 | Feed download fails or is malformed | Keep last good copy; checksum + size sanity check before swapping |
