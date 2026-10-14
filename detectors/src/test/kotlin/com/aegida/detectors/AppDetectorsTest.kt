@@ -78,7 +78,9 @@ class AppDetectorsTest {
     @Test fun aKnownSpyingAppIsOneWarningNotAlsoANewAppQuestion() {
         val feed = com.aegida.core.feed.ThreatFeed.of(
             Fixtures.now, emptyList(), emptyList(), emptyList(),
-            packageNames = listOf("com.thetruth"), certificateSha1s = listOf("31a6ececd97cf39bc4126b8745cd94a7c30bf81c"),
+            apps = com.aegida.core.feed.AppKeys(
+                packageNames = listOf("com.thetruth"), certificateSha1s = listOf("31a6ececd97cf39bc4126b8745cd94a7c30bf81c"),
+            ),
         )
         val renamed = anAppOpenedFromAFile("org.renamed").copy(certSha1s = setOf("31a6ececd97cf39bc4126b8745cd94a7c30bf81c"))
         val phone = atSetup + anAppOpenedFromAFile("com.thetruth") + renamed + anAppOpenedFromAFile("org.plain.sideload")

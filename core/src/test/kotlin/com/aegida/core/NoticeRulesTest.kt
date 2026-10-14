@@ -14,12 +14,18 @@ import java.time.Instant
 /** Kevin, Oct 11 (finding #92): tell an app that spams ads as notices from a real one. Numbers are the first guesses, kept as written in the design. */
 class NoticeRulesTest {
     private val now = Instant.parse("2026-10-11T16:00:00Z")
+    private val pkg = "com.example.pdf"
+
+    /** A notice from the PDF app; the rarer differences (ongoing, a chat, another app, a summary) are made with `.copy(...)`. */
     private fun event(
-        category: String? = null, channelName: String? = null, importance: Int = 3, ongoing: Boolean = false, conversation: Boolean = false,
-        title: String = "Your files", text: String = "Open the app", pkg: String = "com.example.pdf", channelId: String? = "ch", negative: Boolean = false, summary: Boolean = false,
+        category: String? = null,
+        channelName: String? = null,
+        importance: Int = 3,
+        title: String = "Your files",
+        text: String = "Open the app",
     ) = NotificationEvent(
-        "0|$pkg|1|null|1", pkg, channelId, title, text, now,
-        category = category, channelName = channelName, importance = importance, ongoing = ongoing, conversation = conversation, sentimentNegative = negative, groupSummary = summary,
+        "0|$pkg|1|null|1", pkg, "ch", title, text, now,
+        category = category, channelName = channelName, importance = importance,
     )
     private val tool = InstalledApp("com.example.pdf", "Image to PDF", "com.android.vending", false, category = 3) // CATEGORY_IMAGE
 
@@ -29,16 +35,19 @@ class NoticeRulesTest {
         for (kind in listOf("msg", "call", "email", "alarm", "navigation", "progress", "service", "status", "transport", "reminder", "event", "social")) {
             assertFalse(kind, NoticeRules.counted(event(category = kind), listOf(tool), emptySet()))
         }
-        assertFalse("a conversation", NoticeRules.counted(event(conversation = true), listOf(tool), emptySet()))
-        assertFalse("an ongoing notice (a music player, a download)", NoticeRules.counted(event(ongoing = true), listOf(tool), emptySet()))
+        assertFalse("a conversation", NoticeRules.counted(event().copy(conversation = true), listOf(tool), emptySet()))
+        assertFalse("an ongoing notice (a music player, a download)", NoticeRules.counted(event().copy(ongoing = true), listOf(tool), emptySet()))
     }
 
     @Test fun systemAppsTheDefaultMessagesAndPhoneAppsAndAegidaAreNeverCounted() {
         val system = tool.copy(isSystem = true)
         assertFalse(NoticeRules.counted(event(), listOf(system), emptySet()))
-        assertFalse("the default messages app", NoticeRules.counted(event(pkg = "org.sms"), emptyList(), setOf("org.sms")))
-        assertFalse("a website channel is the pop-up check's", NoticeRules.counted(event(channelId = "web:http://x.example;1"), listOf(tool), emptySet()))
-        assertFalse("Aegida's own notices", NoticeRules.counted(event(pkg = "com.aegida.app"), listOf(tool), emptySet()))
+        assertFalse("the default messages app", NoticeRules.counted(event().copy(packageName = "org.sms"), emptyList(), setOf("org.sms")))
+        assertFalse(
+            "a website channel is the pop-up check's",
+            NoticeRules.counted(event().copy(channelId = "web:http://x.example;1"), listOf(tool), emptySet()),
+        )
+        assertFalse("Aegida's own notices", NoticeRules.counted(event().copy(packageName = "com.aegida.app"), listOf(tool), emptySet()))
     }
 
     @Test fun anOrdinaryNoticeFromAnOrdinaryAppIsCounted() {
@@ -49,7 +58,7 @@ class NoticeRulesTest {
     // the six signals
 
     @Test fun aGroupSummaryIsNotANotice() { // finding #93: the app's own summary and the system's autogroup one
-        assertFalse(NoticeRules.counted(event(summary = true), listOf(tool), emptySet()))
+        assertFalse(NoticeRules.counted(event().copy(groupSummary = true), listOf(tool), emptySet()))
     }
 
     /**
@@ -59,7 +68,7 @@ class NoticeRulesTest {
      */
     @Test fun aNoticeScoresOnlyWithASignOfAnAdInItselfAndThenContextAdds() {
         assertEquals(0, NoticeRules.signals(event(), null))
-        assertEquals("context alone is not an ad", 0, NoticeRules.signals(event(importance = 4, negative = true), 3))
+        assertEquals("context alone is not an ad", 0, NoticeRules.signals(event(importance = 4).copy(sentimentNegative = true), 3))
         assertEquals(1, NoticeRules.signals(event(category = "promo"), null))
         assertEquals(1, NoticeRules.signals(event(category = "recommendation"), null))
         assertEquals(1, NoticeRules.signals(event(channelName = "Special offers"), null))
@@ -67,19 +76,45 @@ class NoticeRulesTest {
         assertEquals(1, NoticeRules.signals(event(title = "Warning", text = "Your phone is infected"), null)) // a fake-virus word (finding #96)
         assertEquals(2, NoticeRules.signals(event(category = "promo", importance = 4), null))
         assertEquals(2, NoticeRules.signals(event(category = "promo"), 3))
-        assertEquals(2, NoticeRules.signals(event(category = "promo", negative = true), null))
+        assertEquals(2, NoticeRules.signals(event(category = "promo").copy(sentimentNegative = true), null))
         assertEquals("the notice in the screenshot", 3, NoticeRules.signals(event(title = "File converter is ready!", text = "Convert", importance = 4), 3))
     }
 
     @Test fun realAppsWithPopUpChannelsScoreNothing() {
-        assertEquals("a bank", 0, NoticeRules.signals(event(title = "Card purchase", text = "\$42.10 at Grocer. Free ATM withdrawals this month", channelName = "Transactions", importance = 4), 7))
-        assertEquals("breaking news", 0, NoticeRules.signals(event(title = "Breaking news", text = "Storm warning tonight", channelName = "Breaking news", importance = 4), 5))
+        assertEquals(
+            "a bank",
+            0,
+            NoticeRules.signals(
+                event(title = "Card purchase", text = "\$42.10 at Grocer. Free ATM withdrawals this month", channelName = "Transactions", importance = 4),
+                7,
+            ),
+        )
+        assertEquals(
+            "breaking news",
+            0,
+            NoticeRules.signals(event(title = "Breaking news", text = "Storm warning tonight", channelName = "Breaking news", importance = 4), 5),
+        )
         assertEquals("a sports score", 0, NoticeRules.signals(event(title = "Final", text = "Home team win 3-1", channelName = "Scores", importance = 4), null))
-        assertEquals("a bank's sign-in alert", 0, NoticeRules.signals(event(title = "Security alert", text = "New sign-in to your account", channelName = "Security", importance = 4), 7))
+        assertEquals(
+            "a bank's sign-in alert",
+            0,
+            NoticeRules.signals(event(title = "Security alert", text = "New sign-in to your account", channelName = "Security", importance = 4), 7),
+        )
         assertEquals("a watch", 0, NoticeRules.signals(event(title = "Watch", text = "Your device is connected", importance = 4), null))
-        assertEquals("a news story", 0, NoticeRules.signals(event(title = "Retailer hacked", text = "Card data stolen", channelName = "Top stories", importance = 4), 5))
+        assertEquals(
+            "a news story",
+            0,
+            NoticeRules.signals(event(title = "Retailer hacked", text = "Card data stolen", channelName = "Top stories", importance = 4), 5),
+        )
         assertEquals("a pharmacy", 0, NoticeRules.signals(event(title = "Pharmacy", text = "Your prescription is ready!", importance = 4), null))
-        assertEquals("a delivery", 0, NoticeRules.signals(event(title = "Your order", text = "Arriving today. Install the app update for tracking", channelName = "Orders", importance = 4), null))
+        assertEquals(
+            "a delivery",
+            0,
+            NoticeRules.signals(
+                event(title = "Your order", text = "Arriving today. Install the app update for tracking", channelName = "Orders", importance = 4),
+                null,
+            ),
+        )
     }
 
     /** Findings #107: Uber's promo channel on Kevin's Pixel is called "Discounts and News"; "discount" is an ad word. */
@@ -127,7 +162,7 @@ class NoticeRulesTest {
     }
 
     @Test fun noticesStampedInTheFutureDoNotCount() { // finding #93: a clock set ahead, then corrected
-        val ahead = listOf(NoticeRow(now.plus(Duration.ofHours(5)), 3), NoticeRow(now.plus(Duration.ofHours(6)), 3), NoticeRow(now.plus(Duration.ofHours(7)), 3))
+        val ahead = listOf(5L, 6L, 7L).map { hours -> NoticeRow(now.plus(Duration.ofHours(hours)), 3) }
         assertFalse(NoticeRules.flagged(ahead, now))
     }
 

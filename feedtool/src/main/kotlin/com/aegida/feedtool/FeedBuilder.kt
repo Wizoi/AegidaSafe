@@ -1,5 +1,6 @@
 package com.aegida.feedtool
 
+import com.aegida.core.feed.AppKeys
 import com.aegida.core.feed.FeedSource
 import com.aegida.core.feed.ThreatFeed
 import com.aegida.core.url.Links
@@ -76,7 +77,7 @@ object FeedBuilder {
         )
         val feed = ThreatFeed.of(
             generatedAt, sources, hosts, urls,
-            packageNames = echap?.packages.orEmpty(), certificateSha1s = echap?.certificates.orEmpty(),
+            apps = AppKeys(packageNames = echap?.packages.orEmpty(), certificateSha1s = echap?.certificates.orEmpty()),
         )
         return feed to BuildReport(feed.hostCount, feed.urlCount, dropped.toList(), unparseable, feed.packageCount, feed.certificateCount)
     }
@@ -85,7 +86,8 @@ object FeedBuilder {
     const val PHISHING_DATABASE_LICENCE = "MIT, Mitchell Krog, Nissar Chababy and Phishing.Database contributors"
 
     /** The repository README states CC BY (Oct 8); credit and a note that the feed holds hashes of the indicators must travel with it. */
-    const val ECHAP_LICENCE = "CC BY 4.0, Echap (Stalkerware Indicators of Compromise, https://github.com/AssoEchap/stalkerware-indicators), changed: stored as hashes"
+    const val ECHAP_LICENCE = "CC BY 4.0, Echap (Stalkerware Indicators of Compromise, " +
+        "https://github.com/AssoEchap/stalkerware-indicators), changed: stored as hashes"
 
     /** abuse.ch publishes no licence for URLhaus data (findings #27). */
     const val LICENCE_TO_VERIFY = "licence to verify"

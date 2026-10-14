@@ -26,7 +26,8 @@ object HistoryRows {
                     detail = outcomes.joinToString(" ") { it.forMom },
                     // A hidden fake warning needs nothing, but a hidden "Was that you?" still does (findings #94); an Info line never needs her.
                     handled = Outcome.Fixed in outcomes || Outcome.Acknowledged in outcomes || Outcome.NoLongerAConcern in outcomes ||
-                        (problem.hidesNotification && problem.fix != com.aegida.core.text.Fix.ConfirmEvent) || problem.severity == com.aegida.core.model.Severity.Info,
+                        (problem.hidesNotification && problem.fix != com.aegida.core.text.Fix.ConfirmEvent) ||
+                        problem.severity == com.aegida.core.model.Severity.Info,
                     facts = group.firstNotNullOfOrNull { it.detail },
                 )
             }

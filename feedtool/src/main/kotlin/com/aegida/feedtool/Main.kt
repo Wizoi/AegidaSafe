@@ -30,7 +30,7 @@ fun main(args: Array<String>) {
         "verify" -> verify(options)
         "keygen" -> keygen(File(options.getValue("out")))
         else -> {
-            System.err.println("usage: build --domains F --links F [--urlhaus F] [--echap F] --out DIR | verify --feed F --sig F --public F [--previous F] | keygen --out DIR")
+            System.err.println(USAGE)
             exitProcess(2)
         }
     }
@@ -64,11 +64,17 @@ private fun verify(options: Map<String, String>) {
     if (!FeedVerifier(publicKey).verify(bytes, signature)) fail("signature does not match the public key")
     val feed = try { FeedCodec.decode(bytes) } catch (e: FeedFormatException) { fail("feed is malformed: ${e.message}") }
     val previous = options["previous"]?.let(::File)?.takeIf { it.isFile }?.let {
-        try { FeedCodec.decode(it.readBytes()) } catch (e: FeedFormatException) { null }
+        try { FeedCodec.decode(it.readBytes()) } catch (ignored: FeedFormatException) { null } // no usable previous feed: the check runs without one
     }
     FeedSanity.check(feed, previous, Instant.now())?.let { fail("sanity check failed: $it") }
-    println("ok: ${feed.hostCount} hosts, ${feed.urlCount} urls, ${feed.packageCount} packages, ${feed.certificateCount} certificates, generated ${feed.generatedAt}, previous=${previous?.generatedAt}")
+    println(
+        "ok: ${feed.hostCount} hosts, ${feed.urlCount} urls, ${feed.packageCount} packages, ${feed.certificateCount} certificates, " +
+            "generated ${feed.generatedAt}, previous=${previous?.generatedAt}",
+    )
 }
+
+private const val USAGE = "usage: build --domains F --links F [--urlhaus F] [--echap F] --out DIR | " +
+    "verify --feed F --sig F --public F [--previous F] | keygen --out DIR"
 
 private fun fail(message: String): Nothing {
     System.err.println("FEED REJECTED: $message")

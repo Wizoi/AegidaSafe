@@ -26,8 +26,17 @@ object LinkText {
 
     /** Default-ignorable code points a browser drops from an address (Unicode's list, beyond the format characters). */
     private fun isIgnoredByBrowsers(cp: Int): Boolean =
-        cp == 0x034F || cp in 0x115F..0x1160 || cp in 0x17B4..0x17B5 || cp in 0x180B..0x180F || cp == 0x3164 ||
-            cp in 0xFE00..0xFE0F || cp == 0xFFA0 || cp in 0xE0000..0xE0FFF
+        cp == COMBINING_GRAPHEME_JOINER || cp in HANGUL_FILLERS || cp in KHMER_INHERENT_VOWELS || cp in MONGOLIAN_SELECTORS ||
+            cp == HANGUL_FILLER || cp in VARIATION_SELECTORS || cp == HALFWIDTH_HANGUL_FILLER || cp in TAG_CHARACTERS
+
+    private const val COMBINING_GRAPHEME_JOINER = 0x034F
+    private const val HANGUL_FILLER = 0x3164
+    private const val HALFWIDTH_HANGUL_FILLER = 0xFFA0
+    private val HANGUL_FILLERS = 0x115F..0x1160
+    private val KHMER_INHERENT_VOWELS = 0x17B4..0x17B5
+    private val MONGOLIAN_SELECTORS = 0x180B..0x180F
+    private val VARIATION_SELECTORS = 0xFE00..0xFE0F
+    private val TAG_CHARACTERS = 0xE0000..0xE0FFF
 
     private val DOT_LOOK_ALIKES = setOf(
         0x2024, 0xFE52, 0xFE12, 0xFF0E, 0x3002, 0xFF61, 0x00B7, 0x0701, 0x2E3C, 0x2219, 0x22C5, 0x30FB,

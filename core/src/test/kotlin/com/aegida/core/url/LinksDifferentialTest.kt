@@ -12,7 +12,9 @@ class LinksDifferentialTest {
     private val trailing = ".,;:!?)]}'\"*"
 
     @Test fun sameLinksAsTheOldPatternOnRandomShortText() {
-        val alphabet = listOf("a", "b", "c", "1", "9", ".", ".", "-", "/", ":", "@", " ", "h", "t", "p", "s", "://", "http://", "HTTPS://", "_", "'","\n", "?", "com", "x")
+        val alphabet = listOf(
+            "a", "b", "c", "1", "9", ".", ".", "-", "/", ":", "@", " ", "h", "t", "p", "s", "://", "http://", "HTTPS://", "_", "'", "\n", "?", "com", "x",
+        )
         val random = Random(7)
         repeat(60_000) {
             val text = (0 until random.nextInt(1, 14)).joinToString("") { alphabet[random.nextInt(alphabet.size)] }

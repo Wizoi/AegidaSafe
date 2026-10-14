@@ -22,6 +22,7 @@ object FeedCodec {
     private const val MAGIC = 0x41454746 // "AEGF"
     private const val VERSION = 2
     private const val MAX_ENTRIES = 5_000_000
+    private const val MAX_SOURCES = 16
 
     fun encode(feed: ThreatFeed): ByteArray = ByteArrayOutputStream().also { bytes ->
         DataOutputStream(bytes).use { out ->
@@ -44,7 +45,7 @@ object FeedCodec {
             val version = input.readUnsignedByte()
             if (version != 1 && version != VERSION) throw FeedFormatException("unsupported feed version $version")
             val generatedAt = Instant.ofEpochSecond(input.readLong())
-            val sources = List(input.readInt().checked(16)) { FeedSource(input.readUTF(), input.readUTF(), input.readInt()) }
+            val sources = List(input.readInt().checked(MAX_SOURCES)) { FeedSource(input.readUTF(), input.readUTF(), input.readInt()) }
             val hosts = LongArray(input.readInt().checked(MAX_ENTRIES)) { input.readLong() }
             val urls = LongArray(input.readInt().checked(MAX_ENTRIES)) { input.readLong() }
             val packages = if (version >= 2) LongArray(input.readInt().checked(MAX_ENTRIES)) { input.readLong() } else LongArray(0)
@@ -52,7 +53,8 @@ object FeedCodec {
             if (input.read() != -1) throw FeedFormatException("trailing bytes")
             ThreatFeed(generatedAt, sources, hosts, urls, packages, certificates)
         }
-    } catch (e: IOException) {
+    } catch (ignored: IOException) {
+        // DataInputStream signals a feed that ends early with an IOException; the caller needs only "malformed", not the stack.
         throw FeedFormatException("truncated feed")
     }
 
@@ -71,8 +73,8 @@ class FeedVerifier(publicKeyX509: ByteArray) {
             update(feedBytes)
             verify(signature)
         }
-    } catch (e: java.security.SignatureException) {
-        false
+    } catch (ignored: java.security.SignatureException) {
+        false // a signature that is not even well-formed does not match
     }
 
     companion object {

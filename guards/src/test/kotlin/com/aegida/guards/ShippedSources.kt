@@ -54,8 +54,8 @@ object ShippedSources {
             .directory(root).redirectError(ProcessBuilder.Redirect.DISCARD).start()
         val names = process.inputStream.bufferedReader().readText().split('\u0000').filter { it.isNotEmpty() }
         if (process.waitFor() == 0 && names.isNotEmpty()) names.map { File(root, it) } else null
-    } catch (e: java.io.IOException) {
-        null
+    } catch (ignored: java.io.IOException) {
+        null // git is not installed or not runnable here: the caller then walks the folders instead
     }
 
     private val TEXT_EXTENSIONS = setOf("kt", "kts", "java", "xml", "json", "properties", "pro", "toml", "md", "sh", "py", "html", "yml", "yaml", "txt", "svg")

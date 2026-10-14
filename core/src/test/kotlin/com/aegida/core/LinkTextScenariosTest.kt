@@ -90,7 +90,10 @@ class LinkTextScenariosTest {
     }
 
     @Test fun onThePhoneOrdinaryWordsWithADotStayWords() {
-        assertEquals("Mr.Smith says your parcel is held.Please call St.Louis", Texts.Home.withoutLinks("Mr.Smith says your parcel is held.Please call St.Louis"))
+        assertEquals(
+            "Mr.Smith says your parcel is held.Please call St.Louis",
+            Texts.Home.withoutLinks("Mr.Smith says your parcel is held.Please call St.Louis"),
+        )
         assertEquals("Dr.Lee e.g. v2.1 3.14", Texts.Home.withoutLinks("Dr.Lee e.g. v2.1 3.14"))
     }
 
@@ -124,7 +127,10 @@ class LinkTextScenariosTest {
     }
 
     @Test fun ordinaryWordsWithADotAreNotTakenForLinks() { // finding #98
-        assertEquals("Mr.Smith says your parcel is held.Please call St.Louis", Texts.Home.withoutLinks("Mr.Smith says your parcel is held.Please call St.Louis"))
+        assertEquals(
+            "Mr.Smith says your parcel is held.Please call St.Louis",
+            Texts.Home.withoutLinks("Mr.Smith says your parcel is held.Please call St.Louis"),
+        )
     }
 
     @Test fun aLongLabelEndingInAnAddressIsMaskedBeforeItIsCut() { // finding #98

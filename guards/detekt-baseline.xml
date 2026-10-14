@@ -1,17 +1,5 @@
 <?xml version="1.0" ?>
 <SmellBaseline>
   <ManuallySuppressedIssues/>
-  <CurrentIssues>
-    <ID>LoopWithTooManyJumpStatements:ScenarioTablesTest.kt$ScenarioTablesTest$for</ID>
-    <ID>MaxLineLength:Guards.kt$Guards$Regex("""(?i)"[^"\n]*\b(safe|safely|safest|unsafe|secure|secured|protected from)\b[^"\n]*"|&gt;[^&lt;]*\b(safe|safely|safest|unsafe|secure|secured|protected from)\b[^&lt;]*&lt;""")</ID>
-    <ID>MaxLineLength:Guards.kt$Guards$Regex("""(?i)\b(licen[c]es?|optimis\w+|serialis\w+|recognis\w+|organis\w+|colour\w*|behaviour\w*|centre\w*|favour\w*|catalogue|programme|analyse\w*|defence|authoris\w+|whilst|grey|summaris\w+|realis\w+|minimis\w+|customis\w+|personalis\w+)\b""")</ID>
-    <ID>MaxLineLength:Guards.kt$Guards$Regex("""AccessibilityService|VpnService|TYPE_APPLICATION_OVERLAY|setFullScreenIntent|ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS|MediaRecorder|AudioRecord|Telephony\.Sms|SmsManager|BIND_ACCESSIBILITY_SERVICE|BIND_VPN_SERVICE|READ_SMS|RECEIVE_SMS|RECORD_AUDIO|SYSTEM_ALERT_WINDOW|USE_FULL_SCREEN_INTENT|REQUEST_IGNORE_BATTERY_OPTIMIZATIONS""")</ID>
-    <ID>MaxLineLength:Guards.kt$Guards$Regex("""System\.currentTimeMillis|System\.nanoTime|Instant\.now\(|(LocalDate|LocalDateTime|ZonedDateTime|OffsetDateTime)\.now\(|java\.time\.Clock|SystemClock\.(elapsedRealtime|uptimeMillis)|\bDate\(\)""")</ID>
-    <ID>MaxLineLength:Guards.kt$Guards$Regex("""okhttp3|HttpURLConnection|openConnection\(|\bjava\.net\.(URL|Socket)\b|\bURL\(|retrofit2|io\.ktor|android\.webkit|\bWebView\b|DownloadManager""")</ID>
-    <ID>MaxLineLength:Guards.kt$Guards$allowedPrefixes = listOf("alerts/$KT/alerts/NtfySender.kt", "alerts/$KT/alerts/AlertPipeline.kt", "alerts/$KT/alerts/DeadMansSwitch.kt", "alerts/$KT/alerts/GuardianAlerts.kt", "alerts/$KT/alerts/OutboxFlusher.kt")</ID>
-    <ID>NestedBlockDepth:ScenarioTablesTest.kt$ScenarioTablesTest$@Test fun everyEmulatorScriptNamedInAScenarioRowExists()</ID>
-    <ID>NestedBlockDepth:ScenarioTablesTest.kt$ScenarioTablesTest$@Test fun everyMutationCheckNamedInAScenarioRowExists()</ID>
-    <ID>NestedBlockDepth:ScenarioTablesTest.kt$ScenarioTablesTest$@Test fun everyTestNamedInAScenarioRowExists()</ID>
-    <ID>SwallowedException:ShippedSources.kt$ShippedSources$e: java.io.IOException</ID>
-  </CurrentIssues>
+  <CurrentIssues/>
 </SmellBaseline>

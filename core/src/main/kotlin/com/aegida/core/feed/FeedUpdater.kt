@@ -38,27 +38,32 @@ class FeedUpdater(
     private val store: FeedStore,
     private val clock: Clock,
 ) {
-    suspend fun update(): FeedUpdate {
-        val signature = when (val result = http.get(Endpoint.Feed.SIGNATURE, MAX_SIGNATURE_BYTES)) {
-            is BytesResult.Ok -> result.bytes
-            is BytesResult.Failed -> return FeedUpdate.NoConnection(result.reason)
+    suspend fun update(): FeedUpdate = when (val signature = http.get(Endpoint.Feed.SIGNATURE, MAX_SIGNATURE_BYTES)) {
+        is BytesResult.Failed -> FeedUpdate.NoConnection(signature.reason)
+        is BytesResult.Ok -> when (val feed = http.get(Endpoint.Feed.LIST, MAX_FEED_BYTES)) {
+            is BytesResult.Failed -> FeedUpdate.NoConnection(feed.reason)
+            is BytesResult.Ok -> accept(feed.bytes, signature.bytes)
         }
-        val bytes = when (val result = http.get(Endpoint.Feed.LIST, MAX_FEED_BYTES)) {
-            is BytesResult.Ok -> result.bytes
-            is BytesResult.Failed -> return FeedUpdate.NoConnection(result.reason)
-        }
-        // Signature before parsing, so unsigned bytes never reach the decoder.
-        if (!verifier.verify(bytes, signature)) return FeedUpdate.Rejected(FeedRejection.BadSignature)
-        val candidate = try {
-            FeedCodec.decode(bytes)
-        } catch (e: FeedFormatException) {
-            return FeedUpdate.Rejected(FeedRejection.Malformed)
-        }
+    }
+
+    // Signature before parsing, so unsigned bytes never reach the decoder.
+    private suspend fun accept(bytes: ByteArray, signature: ByteArray): FeedUpdate =
+        if (!verifier.verify(bytes, signature)) FeedUpdate.Rejected(FeedRejection.BadSignature)
+        else decodeOrNull(bytes)?.let { saveIfNew(it, bytes) } ?: FeedUpdate.Rejected(FeedRejection.Malformed)
+
+    private fun decodeOrNull(bytes: ByteArray): ThreatFeed? = try {
+        FeedCodec.decode(bytes)
+    } catch (ignored: FeedFormatException) {
+        null // the reason is not shown to anyone; the caller reports it as Malformed
+    }
+
+    private suspend fun saveIfNew(candidate: ThreatFeed, bytes: ByteArray): FeedUpdate {
         val current = store.current()
         if (current != null && candidate.generatedAt == current.generatedAt) return FeedUpdate.Unchanged
-        FeedSanity.check(candidate, current, clock.now())?.let { return FeedUpdate.Rejected(it) }
-        store.save(bytes)
-        return FeedUpdate.Updated(candidate.generatedAt)
+        return FeedSanity.check(candidate, current, clock.now())?.let { FeedUpdate.Rejected(it) } ?: run {
+            store.save(bytes)
+            FeedUpdate.Updated(candidate.generatedAt)
+        }
     }
 
     companion object {

@@ -1,5 +1,6 @@
 package com.aegida.detectors
 
+import com.aegida.core.feed.AppKeys
 import com.aegida.core.feed.FeedSource
 import com.aegida.core.feed.ThreatFeed
 import com.aegida.core.model.InstalledApp
@@ -13,7 +14,7 @@ import org.junit.Test
 class StalkerwareDetectorTest {
     private val feed = ThreatFeed.of(
         now, listOf(FeedSource("Echap", "CC BY 4.0", 3)), emptyList(), emptyList(),
-        packageNames = listOf("com.thetruth"), certificateSha1s = listOf("31a6ececd97cf39bc4126b8745cd94a7c30bf81c"),
+        apps = AppKeys(packageNames = listOf("com.thetruth"), certificateSha1s = listOf("31a6ececd97cf39bc4126b8745cd94a7c30bf81c")),
     )
 
     private fun app(pkg: String, certs: Set<String> = emptySet(), system: Boolean = false, installer: String? = null) =

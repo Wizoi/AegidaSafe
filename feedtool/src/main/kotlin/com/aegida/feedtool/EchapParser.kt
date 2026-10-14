@@ -21,26 +21,43 @@ object EchapParser {
     private const val MIN_PACKAGES = 100
     private const val MIN_CERTIFICATES = 100
 
-    fun parse(text: String): EchapIndicators {
+    private val FIELD = Regex("^  ([a-z_0-9]+):.*$")
+
+    /** What has been read so far, line by line. */
+    private class Reading {
         var families = 0
-        var field: String? = null
+        var skipped = 0
         val packages = linkedSetOf<String>()
         val certificates = linkedSetOf<String>()
-        var skipped = 0
-        text.lineSequence().forEach { raw ->
-            val line = raw.trimEnd()
+        private var field: String? = null
+
+        fun read(line: String) {
             when {
                 line.startsWith("- name:") -> { families++; field = null }
-                Regex("^  ([a-z_0-9]+):.*$").matches(line) -> field = line.trim().substringBefore(':')
-                line.startsWith("  - ") -> {
-                    val value = line.removePrefix("  - ").trim().trim('"', '\'')
-                    when (field) {
-                        "packages" -> if (PACKAGE.matches(value)) packages += value.lowercase() else skipped++
-                        "certificates" -> if (CERTIFICATE.matches(value)) certificates += value.lowercase() else skipped++
-                    }
-                }
+                FIELD.matches(line) -> field = line.trim().substringBefore(':')
+                line.startsWith("  - ") -> readValue(line.removePrefix("  - ").trim().trim('"', '\''))
             }
         }
+
+        private fun readValue(value: String) {
+            when (field) {
+                "packages" -> add(value, PACKAGE, packages)
+                "certificates" -> add(value, CERTIFICATE, certificates)
+            }
+        }
+
+        private fun add(value: String, shape: Regex, into: MutableSet<String>) {
+            if (shape.matches(value)) into += value.lowercase() else skipped++
+        }
+    }
+
+    fun parse(text: String): EchapIndicators {
+        val reading = Reading()
+        text.lineSequence().forEach { reading.read(it.trimEnd()) }
+        val families = reading.families
+        val skipped = reading.skipped
+        val packages = reading.packages
+        val certificates = reading.certificates
         require(packages.size >= MIN_PACKAGES && certificates.size >= MIN_CERTIFICATES) {
             "Echap list looks wrong: ${packages.size} packages, ${certificates.size} certificates in $families entries ($skipped lines skipped)"
         }
