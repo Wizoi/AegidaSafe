@@ -16,6 +16,12 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions { jvmTarget = "17" }
+    // Lint (code-health item 6): only issues not in lint-baseline.xml fail the build.
+    lint {
+        baseline = file("lint-baseline.xml")
+        abortOnError = true
+        checkReleaseBuilds = false // `lint` already checks; skips a second pass in assembleRelease
+    }
     testOptions { unitTests.isIncludeAndroidResources = true }
     // MigrationTestHelper reads the exported schema JSONs as assets.
     sourceSets.getByName("test").assets.srcDir("$projectDir/schemas")
