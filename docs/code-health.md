@@ -49,3 +49,27 @@ fresh context, and deleting what a change makes unused.
 
 Track weekly: Kotlin deletion ratio (6.6% now), duplicated fakes (7), unused texts (4), largest main file (345 lines), suite time
 (about 133 s) and slowest class (30 s), detekt baseline count, mutation-check pass rate.
+
+## Done (Oct 14, items 6-7 without new tools)
+
+No dependency or plugin was added (Android Lint is part of AGP; the rest is Gradle, Kotlin and Python standard library).
+
+- **Android Lint with a baseline** for `:app`, `:platform`, `:store` (`lint { baseline = lint-baseline.xml; abortOnError = true }`).
+  `./gradlew lint` (part of `build`) fails only on issues not in the baseline. Baseline today: 11 entries (UseKtx 5, ModifierParameter 1,
+  MonochromeLauncherIcon 1 in `:app`; 4 UseKtx in `:platform`; 1 in `:store`). Regenerate with `./gradlew updateLintBaseline` only when an
+  entry is fixed, never to hide a new one.
+- **File-size guard** (`FileSizeTest` in `:guards`): main Kotlin over 350 lines and test Kotlin over 450 fail, with an allow list that holds each
+  offender's exact size (grow or shrink-without-updating both fail). Today one row: `ScreensTest.kt` 547. Largest main file is 345.
+- **Duplication report** (`python scripts/duplication-report.py`, stdlib only) and a guard (`DuplicationTest`) with the same rules in Kotlin:
+  windows of 8 normalized lines repeated in main Kotlin. Today: 18 duplicated lines, 2 repeated windows, all in `OkHttpHttpClient.kt`. The
+  guard fails if the number grows and also if it falls (so the allowed number is lowered). The Kotlin and Python numbers must match.
+- **Test-time budget** (`./gradlew testTimeBudget`, runs in the root `check`/`build` after the tests): reads the JUnit XML. It warns at the
+  CLAUDE.md numbers (suite 5 min of summed class time, one class 60 s) and fails only at twice that (10 min, 120 s), because a cold machine
+  (first Robolectric load, empty Gradle cache) must not fail a build by itself. Today: 111 s summed over 89 classes (Debug and Release counted
+  separately, so it is not wall time), slowest `ScreensTest` 36 s.
+- **CI** `.github/workflows/ci.yml`: `./gradlew build` on JDK 17 (the project's Java and Kotlin targets), official actions only
+  (`actions/checkout`, `actions/setup-java`, `gradle/actions/setup-gradle`, `actions/upload-artifact` for failure reports), no secrets, no
+  publishing. It has never run: it starts on Kevin's first push.
+
+Still open (Kevin's decision): detekt (a new Gradle plugin; the lint baseline covers the Android rules only), PMD CPD or jscpd (the stdlib
+report above covers repeated lines, not near-copies), item 8 (the weekly cleanup run and archiving closed `findings.md` rows).
