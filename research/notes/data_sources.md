@@ -1,3 +1,5 @@
+> Research from the design phase (October 2026, when the app was called Phone Angel). Nothing here is built or promised; what is built is in [docs/product-brief.md](../docs/product-brief.md) and ideas are in [docs/ideas.md](../docs/ideas.md).
+
 # Free scam/fraud/threat data sources for Phone Angel (Android, Play, non-commercial, 2026-10-07)
 
 Research note: ~25 fetches/searches. Several pages 404'd or were robots-blocked; those are listed under Gaps rather than guessed. Licence quotes are as relayed by the fetch tool's summaries of the primary pages, not always verbatim page text.

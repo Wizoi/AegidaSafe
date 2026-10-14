@@ -40,7 +40,7 @@ New code goes where design section 2 puts it. Modules (compile-time layering, im
 - Every string a user sees lives in `Problem`/`Texts`. No raw exception text.
 - No `AccessibilityService`, SMS permissions, call recording, VPN service, overlays, full-screen intents, or
   the direct battery-exemption permission.
-- No secrets in source or the APK. Feed keys live on the sync proxy only.
+- No secrets in source or the APK. Aegida's lists need no keys; any future feed key stays off the phone and out of the repo.
 
 ## Before changing behaviour
 

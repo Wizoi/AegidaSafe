@@ -1,3 +1,5 @@
+> Research from the design phase (October 2026, when the app was called Phone Angel). Nothing here is built or promised; what is built is in [docs/product-brief.md](../docs/product-brief.md) and ideas are in [docs/ideas.md](../docs/ideas.md).
+
 # On-device app/account scam protections: Play policy, feasibility, free data sources (Android 16 / Galaxy S23+, as of 2026-10-07)
 
 Note on method: ~25 tool calls; several fetches returned summarized (not verbatim) policy text. Items marked UNVERIFIED are from background knowledge, not fetched sources. Not legal advice; Play policy pages say the full policy overrides summaries.

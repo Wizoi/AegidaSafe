@@ -1,3 +1,5 @@
+> Research from the design phase (October 2026, when the app was called Phone Angel). Nothing here is built or promised; what is built is in [docs/product-brief.md](../docs/product-brief.md) and ideas are in [docs/ideas.md](../docs/ideas.md).
+
 # Phone-call scam protection a Play-distributed Android app can offer (80+ user, Galaxy S23+, Android 16 / One UI 8.x) — researched 2026-10-07
 
 ## 1. Call Screening role: what an app can do, Play policy, conflict with existing Samsung/Google protection, and "don't change defaults" drift detection

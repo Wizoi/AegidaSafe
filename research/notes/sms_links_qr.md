@@ -1,3 +1,5 @@
+> Research from the design phase (October 2026, when the app was called Phone Angel). Nothing here is built or promised; what is built is in [docs/product-brief.md](../docs/product-brief.md) and ideas are in [docs/ideas.md](../docs/ideas.md).
+
 # Scam/phishing text, link and QR protection for a non-default-SMS Play app (Galaxy S23+, Android 16 / One UI 8.x, 80+ user), as of 2026-10-07
 
 Method note: findings come from WebFetch summaries (small-model extractions) of primary pages; items marked [training knowledge] were NOT verified in this session. Several Google help pages 404'd or returned index pages.
