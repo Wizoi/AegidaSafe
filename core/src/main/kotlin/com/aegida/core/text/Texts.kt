@@ -17,6 +17,15 @@ object Texts {
     const val CHANNEL_STATUS = "Aegida is looking out for you"
     const val CHANNEL_NEEDS_TAP = "Needs a tap"
 
+    /**
+     * Not shown to anyone: the names of phones and phone makers that tell "your Motorola is infected" from "your pharmacy was hacked"
+     * on a website's notice (ScareWords, findings #133). Kept here because a maker's name may appear only in this file (OemSingleOwner).
+     */
+    val PHONE_NAMES: Set<String> = setOf(
+        "system", "samsung", "galaxy", "motorola", "moto", "xiaomi", "redmi", "oneplus", "huawei", "nokia", "oppo", "pixel", "iphone",
+        "android",
+    )
+
     /** What a guardian reads on their phone. Written in the owner's name; no links, no message text, no "safe". */
     object Guardian {
         const val SET_UP = "Aegida is set up on %s's phone. You will get a message here if it needs help."

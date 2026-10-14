@@ -56,6 +56,19 @@ enum class Problem(
         whatHappened = "A website sent fake warnings",
         fix = Fix.SettingsThenAcknowledge,
     ),
+    /**
+     * A website she had or said Yes to sent real news that speaks to the reader ("Check your phone for this spyware"): hidden, so it
+     * cannot frighten her, but not called fake, and the guardian is not told (Kevin, Oct 14; findings #133).
+     */
+    SiteScaryNews(
+        Severity.NeedsTap,
+        "A website you allowed sent a scary news story about phones. Aegida hid it. Tap to stop that website.",
+        null,
+        whatHappened = "A website sent a scary news story",
+        fix = Fix.SettingsThenAcknowledge,
+        // A news site may send such a story every day; she is told once a week at most (each one is still hidden).
+        quietAfterSeen = ONE_WEEK,
+    ),
     NewWebsiteNotifications(
         Severity.NeedsTap,
         "A website you have not used before wants to send you notifications. Was that you?",
@@ -187,7 +200,7 @@ enum class Problem(
      * Aegida hides the notification that caused it. Only website notifications: they are the fake virus
      * pop-ups. A message with a scam link is left in place (it may be from family) and the owner gets a warning.
      */
-    val hidesNotification: Boolean get() = this == SiteNotifications || this == NewWebsiteNotifications
+    val hidesNotification: Boolean get() = this == SiteNotifications || this == SiteScaryNews || this == NewWebsiteNotifications
 
     /**
      * The guardian is not told when it starts (it has no note of its own), only by the reminder for a warning still waiting after

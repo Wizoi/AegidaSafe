@@ -95,6 +95,10 @@ class LinkSignsTest {
             "U13" to "http://set-ups-redelivery.example/", "U14" to "http://www.check-ups-parcel.example/",
             "U15" to "http://upstracking-center.com/", "U16" to "http://upsparcel-redeliver.com/", "U17" to "http://up5-redelivery.top/",
             "U18" to "http://pick-ups-parce1.top/", "U19" to "http://ups-tracking.help-center.top/",
+            // Findings #133: "ups" joined at either end of a word in a name about parcels, or to a number.
+            "U20" to "http://myups-redelivery.com/", "U21" to "http://upsmychoice-update.com/", "U22" to "http://upsglobal-track.com/",
+            "U23" to "http://upsexpress-help.com/", "U24" to "http://upsdeliveries.com/", "U25" to "http://ups24.top/",
+            "U26" to "http://pushups-tracking.com/",
         )
         assertEquals("no UPS sign, but a parcel scam", emptyList<String>(), upsSignWrongFor(scams, expected = true))
     }
@@ -107,6 +111,11 @@ class LinkSignsTest {
             "O11" to "https://sign-ups.example/", "O12" to "https://check-ups.example/", "O13" to "https://upstairs-furniture.com/",
             "O14" to "https://upset-stomach-help.com/", "O15" to "https://backups-online.com/", "O16" to "https://follow-ups-reminder.com/",
             "O17" to "https://www.ups.com/track", "O18" to "https://wwwapps.ups.com/", "O19" to "https://pop-ups.check-ups.example/",
+            // Findings #133 (Kevin, Oct 14: UPS's own ups-scs.com and theupsstore.com; a parcel word counts only in the same label).
+            "O20" to "https://ups-and-downs-therapy.com/", "O21" to "https://touch-ups-paint.com/", "O22" to "https://track.check-ups-clinic.com/",
+            "O23" to "https://ups-scs.com/", "O24" to "https://www.theupsstore.com/", "O25" to "https://upstate-shipping.com/",
+            "O26" to "https://groups-tracking.com/", "O27" to "https://cups-delivery.com/", "O28" to "https://lineups.com/",
+            "O29" to "https://mash-ups.com/",
         )
         assertEquals("a UPS sign on an ordinary name", emptyList<String>(), upsSignWrongFor(ordinary, expected = false))
     }

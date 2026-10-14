@@ -20,7 +20,7 @@ object FixActions {
 
     /** The Android screen that fixes [finding], or null when the fix is in Aegida's own screens. */
     fun settingsIntentFor(finding: Finding, ownPackage: String): Intent? = when (finding.key.problem) {
-        Problem.SiteNotifications, Problem.NewWebsiteNotifications -> {
+        Problem.SiteNotifications, Problem.SiteScaryNews, Problem.NewWebsiteNotifications -> {
             val pkg = finding.evidence[Evidence.PACKAGE]
             val channel = finding.evidence[Evidence.CHANNEL_ID]
             if (pkg != null && channel != null) {

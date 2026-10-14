@@ -206,8 +206,35 @@ class PopupSpamDetectorTest {
             Triple("S31", "Zika virus found in local mosquitoes; spraying set for Tuesday", "Stay indoors at dusk, officials say"),
             Triple("S32", "Bank's app hit by trojan; customers told to change passwords", "The bank says no money was taken"),
             Triple("S33", "Clean-up continues after malware attack on port", "Ships are moving again"),
+            // Findings #133: a noun that is also an order word, and "your" + a name that is not a phone.
+            Triple("S34", "Click fraud malware found in 60 apps", "Researchers say the apps made fake ad taps"),
+            Triple("S35", "Tap water tested for virus", "The city says the water is fine to drink"),
+            Triple("S36", "Clean energy firm hacked", "Customer records may have been taken"),
+            Triple("S37", "Press freedom group says reporters' phones hacked", "The group asks for an inquiry"),
+            Triple("S38", "Retailer hacked", "Tap to read the full story"),
+            Triple("S39", "Your pharmacy was hacked", "What customers should know"),
+            Triple("S40", "Fix for Android malware released by Google", "The update reaches phones this month"),
+            Triple("S41", "Scan of sewage finds polio virus", "Health officials ask parents to check vaccinations"),
+            Triple("S42", "Your bank was hacked: what to do next", "Experts explain"),
+            Triple("S43", "Experts tell users to remove the apps now", "The malware hides in fake games"),
         )
         assertEquals("hidden as fake, but news", emptyList<String>(), onAKnownSite(news, expected = null))
+    }
+
+    /** WP17 A rows (Kevin, Oct 14; findings #133): real news that speaks to the reader is hidden, but the guardian is not told. */
+    @Test fun newsThatSpeaksToTheReaderFromASiteSheSaidYesToIsHiddenWithoutTellingTheGuardian() {
+        val advice = listOf(
+            Triple("A1", "Is your phone infected? Here's how to check", ""),
+            Triple("A2", "Have you been hacked? Here's how to check", ""),
+            Triple("A3", "Delete these apps now: malware found on Google Play", ""),
+            Triple("A4", "Check your phone for this spyware", "Researchers found it in 12 apps"),
+            Triple("A5", "Malware can take over your Android", "Here is how it spreads"),
+            Triple("A6", "How to tell if your phone is hacked", "Five signs to look for"),
+            Triple("A7", "New spyware found that can infect your phone", "Researchers say it hides in fake games"),
+        )
+        assertEquals("not hidden as news to the reader", emptyList<String>(), onAKnownSite(advice, expected = Problem.SiteScaryNews))
+        assertEquals(null, Problem.SiteScaryNews.forGuardian("Mom", host = site))
+        assertEquals("hidden from the shade, as a fake warning is", true, Problem.SiteScaryNews.hidesNotification)
     }
 
     @Test fun aFakeVirusWarningFromASiteSheSaidYesToIsHidden() {
@@ -231,8 +258,7 @@ class PopupSpamDetectorTest {
             Triple("H17", "Security warning", "Battery damaged by virus. Clean now"),
             Triple("H18", "Alert", "Trojan detected on this phone"),
             Triple("H19", "Warning", "You are infected"),
-            Triple("H20", "Is your phone infected? Here's how to check", ""),
-            Triple("H21", "Have you been hacked? Here's how to check", ""),
+            // H20 and H21 are now A1 and A2 (Kevin, Oct 14).
             Triple("H22", "Your Android is infected with 4 viruses", "Clean now"),
             Triple("H23", "(2) viruses detected", "Your phone may be damaged"),
             Triple("H24", "Your phone is infected with (5) viruses", "Scan now to remove them"),
@@ -249,7 +275,24 @@ class PopupSpamDetectorTest {
             Triple("H35", "WARNING: VIRUS FOUND!", "Clean up your phone now"),
             Triple("H36", "Your phone has been hacked!", "Press OK to clean it"),
             Triple("H37", "2 viruses detected", "Please remove them now"),
-            Triple("H38", "Delete these apps now: malware found on Google Play", ""),
+            // H38 is now A3 (Kevin, Oct 14). Findings #133:
+            Triple("H39", "Your system is heavily damaged by four viruses", ""),
+            Triple("H40", "Your Samsung needs cleaning", ""),
+            Triple("H41", "Your Motorola has 3 viruses", ""),
+            Triple("H42", "Android infected with 13 viruses!", ""),
+            Triple("H43", "You may have a virus", ""),
+            Triple("H44", "You've got a virus", ""),
+            Triple("H45", "Your battery is 87% damaged", ""),
+            Triple("H46", "Your phone will be damaged", ""),
+            Triple("H47", "Vіrus found", "Tap to remove"), // a Cyrillic і
+            Triple("H48", "𝐕𝐢𝐫𝐮𝐬 found", "Tap to remove"), // maths-bold "Virus"
+            Triple("H49", "V1rus found", "Tap to remove"),
+            Triple("H50", "Your phone has 3 v1ruses", ""),
+            Triple("H51", "Virus found (tap to remove)", ""),
+            Triple("H52", "Your Xiaomi got hacked", ""),
+            Triple("H53", "Your system is infected", "Clean it now"),
+            Triple("H54", "Your new Pixel 9 is infected", ""),
+            Triple("H55", "Your Motorola is infected", ""),
         )
         assertEquals("left alone, but a fake warning", emptyList<String>(), onAKnownSite(fake, expected = Problem.SiteNotifications))
     }
