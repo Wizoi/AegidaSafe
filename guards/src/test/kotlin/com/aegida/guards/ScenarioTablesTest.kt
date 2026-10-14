@@ -24,27 +24,54 @@ class ScenarioTablesTest {
         Regex(""""name"\s*:\s*"([^"]+)"""").findAll(File(root, "scripts/mutants.json").readText()).map { it.groupValues[1] }.toSet()
     }
 
+    /** One cell of a scenario table: the file it is in, the row's id (first column) and the cell's text. */
+    private class Cell(val table: String, val id: String, val text: String)
+
+    /** One name written in a cell (cells list several, separated by ";"); "GAP" says nothing covers the row yet and is not a name. */
+    private class Name(val table: String, val id: String, val token: String)
+
     /** The cells of one table row under the column called [column], or empty for a line that is not a row of that table. */
     private fun cells(lines: List<String>, column: String): List<Pair<String, String>> {
         var index = -1
         val found = mutableListOf<Pair<String, String>>()
         for (line in lines) {
-            if (!line.startsWith("|")) { index = -1; continue }
-            val parts = line.trim().trim('|').split('|').map { it.trim() }
-            if (index < 0) {
-                index = parts.indexOf(column)
-                continue
+            if (!line.startsWith("|")) {
+                index = -1
+            } else {
+                val parts = line.trim().trim('|').split('|').map { it.trim() }
+                if (index < 0) {
+                    index = parts.indexOf(column)
+                } else if (!parts.all { it.matches(Regex("-+")) } && index < parts.size) {
+                    found += parts[0] to parts[index]
+                }
             }
-            if (parts.all { it.matches(Regex("-+")) }) continue
-            if (index < parts.size) found += parts[0] to parts[index]
         }
         return found
+    }
+
+    private fun cellsUnder(column: String): List<Cell> =
+        tables.flatMap { table -> cells(table.readLines(), column).map { (id, text) -> Cell(table.name, id, text) } }
+
+    private fun namesUnder(column: String): List<Name> = cellsUnder(column).flatMap { cell ->
+        cell.text.split(';').map { it.trim() }.filter { it.isNotEmpty() && it != "GAP" }.map { Name(cell.table, cell.id, it) }
     }
 
     private fun methodExists(cls: String, method: String): Boolean = testFiles.any { file ->
         val text = file.readText()
         (file.nameWithoutExtension == cls || Regex("""\bclass\s+$cls\b""").containsMatchIn(text)) &&
             (Regex("""\bfun\s+$method\s*\(""").containsMatchIn(text) || text.contains("`$method`"))
+    }
+
+    private val classAndMethod = Regex("""^([A-Z]\w*)[#.](\w+)$""")
+
+    /** What is wrong with a test named in a row, or null when it exists. */
+    private fun testProblem(name: Name): String? {
+        val match = classAndMethod.find(name.token)
+        return when {
+            match == null -> "${name.table} ${name.id}: '${name.token}' is not Class#method or GAP"
+            !methodExists(match.groupValues[1], match.groupValues[2]) -> "${name.table} ${name.id}: no test ${name.token}"
+            else -> null
+        }
     }
 
     @Test fun thereIsOneTableForEachOfTheHighRiskAreas() {
@@ -55,46 +82,23 @@ class ScenarioTablesTest {
     }
 
     @Test fun everyTestNamedInAScenarioRowExists() {
-        val missing = mutableListOf<String>()
-        var named = 0
-        for (table in tables) {
-            for ((id, cell) in cells(table.readLines(), "Test")) {
-                for (token in cell.split(';').map { it.trim() }.filter { it.isNotEmpty() && it != "GAP" }) {
-                    val match = Regex("""^([A-Z]\w*)[#.](\w+)$""").find(token)
-                    if (match == null) {
-                        missing += "${table.name} $id: '$token' is not Class#method or GAP"
-                        continue
-                    }
-                    named++
-                    if (!methodExists(match.groupValues[1], match.groupValues[2])) missing += "${table.name} $id: no test $token"
-                }
-            }
-        }
-        assertTrue("no test is named in any row, so the check is not reading the tables", named > 0)
+        val names = namesUnder("Test")
+        val missing = names.mapNotNull { testProblem(it) }
+        assertTrue("no test is named in any row, so the check is not reading the tables", names.any { classAndMethod.containsMatchIn(it.token) })
         assertTrue("rows name tests that do not exist:\n" + missing.joinToString("\n"), missing.isEmpty())
     }
 
     @Test fun everyMutationCheckNamedInAScenarioRowExists() {
-        val missing = mutableListOf<String>()
-        for (table in tables) {
-            for ((id, cell) in cells(table.readLines(), "Mutant")) {
-                for (token in cell.split(';').map { it.trim() }.filter { it.isNotEmpty() && it != "GAP" }) {
-                    if (token !in mutantNames) missing += "${table.name} $id: no mutation check '$token' in scripts/mutants.json"
-                }
-            }
-        }
+        val missing = namesUnder("Mutant").filter { it.token !in mutantNames }
+            .map { "${it.table} ${it.id}: no mutation check '${it.token}' in scripts/mutants.json" }
         assertTrue("rows name mutation checks that do not exist:\n" + missing.joinToString("\n"), missing.isEmpty())
     }
 
     @Test fun everyEmulatorScriptNamedInAScenarioRowExists() {
-        val missing = mutableListOf<String>()
-        for (table in tables) {
-            for ((id, cell) in cells(table.readLines(), "Emulator")) {
-                for (script in Regex("""emulator[_-][a-z_-]+\.(?:py|sh)""").findAll(cell).map { it.value }) {
-                    if (!File(root, "scripts/$script").isFile) missing += "${table.name} $id: no scripts/$script"
-                }
-            }
-        }
+        val script = Regex("""emulator[_-][a-z_-]+\.(?:py|sh)""")
+        val missing = cellsUnder("Emulator").flatMap { cell -> script.findAll(cell.text).map { cell to it.value } }
+            .filter { (_, name) -> !File(root, "scripts/$name").isFile }
+            .map { (cell, name) -> "${cell.table} ${cell.id}: no scripts/$name" }
         assertTrue("rows name emulator scripts that do not exist:\n" + missing.joinToString("\n"), missing.isEmpty())
     }
 }

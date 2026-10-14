@@ -38,14 +38,21 @@ private fun inModules(vararg modules: String): (SourceFile) -> Boolean = { it.mo
 object Guards {
     val clock = Rule(
         "ClockSingleOwner",
-        Regex("""System\.currentTimeMillis|System\.nanoTime|Instant\.now\(|(LocalDate|LocalDateTime|ZonedDateTime|OffsetDateTime)\.now\(|java\.time\.Clock|SystemClock\.(elapsedRealtime|uptimeMillis)|\bDate\(\)"""),
+        Regex(
+            """System\.currentTimeMillis|System\.nanoTime|Instant\.now\(|""" +
+                """(LocalDate|LocalDateTime|ZonedDateTime|OffsetDateTime)\.now\(|java\.time\.Clock|""" +
+                """SystemClock\.(elapsedRealtime|uptimeMillis)|\bDate\(\)""",
+        ),
         "read time only through com.aegida.core.time.Clock; the real clock is platform/time/SystemClock",
         allowedPrefixes = listOf("platform/$KT/platform/time/"),
     )
 
     val network = Rule(
         "NetworkSingleOwner",
-        Regex("""okhttp3|HttpURLConnection|openConnection\(|\bjava\.net\.(URL|Socket)\b|\bURL\(|retrofit2|io\.ktor|android\.webkit|\bWebView\b|DownloadManager"""),
+        Regex(
+            """okhttp3|HttpURLConnection|openConnection\(|\bjava\.net\.(URL|Socket)\b|\bURL\(|""" +
+                """retrofit2|io\.ktor|android\.webkit|\bWebView\b|DownloadManager""",
+        ),
         "all network goes through HttpClient with an Endpoint; never fetch a URL from a message or notification",
         allowedPrefixes = listOf("platform/$KT/platform/net/"),
     )
@@ -61,7 +68,13 @@ object Guards {
         "NtfySingleOwner (callers)",
         Regex("""\bNtfySender\b"""),
         "only the alert classes send to guardians (AlertPipeline builds the message from a Finding; the others send fixed texts or retry queued ones)",
-        allowedPrefixes = listOf("alerts/$KT/alerts/NtfySender.kt", "alerts/$KT/alerts/AlertPipeline.kt", "alerts/$KT/alerts/DeadMansSwitch.kt", "alerts/$KT/alerts/GuardianAlerts.kt", "alerts/$KT/alerts/OutboxFlusher.kt"),
+        allowedPrefixes = listOf(
+            "alerts/$KT/alerts/NtfySender.kt",
+            "alerts/$KT/alerts/AlertPipeline.kt",
+            "alerts/$KT/alerts/DeadMansSwitch.kt",
+            "alerts/$KT/alerts/GuardianAlerts.kt",
+            "alerts/$KT/alerts/OutboxFlusher.kt",
+        ),
     )
 
     val sql = Rule(
@@ -124,14 +137,21 @@ object Guards {
 
     val bannedApis = Rule(
         "Banned capabilities",
-        Regex("""AccessibilityService|VpnService|TYPE_APPLICATION_OVERLAY|setFullScreenIntent|ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS|MediaRecorder|AudioRecord|Telephony\.Sms|SmsManager|BIND_ACCESSIBILITY_SERVICE|BIND_VPN_SERVICE|READ_SMS|RECEIVE_SMS|RECORD_AUDIO|SYSTEM_ALERT_WINDOW|USE_FULL_SCREEN_INTENT|REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"""),
+        Regex(
+            """AccessibilityService|VpnService|TYPE_APPLICATION_OVERLAY|setFullScreenIntent|ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS|""" +
+                """MediaRecorder|AudioRecord|Telephony\.Sms|SmsManager|BIND_ACCESSIBILITY_SERVICE|BIND_VPN_SERVICE|READ_SMS|RECEIVE_SMS|""" +
+                """RECORD_AUDIO|SYSTEM_ALERT_WINDOW|USE_FULL_SCREEN_INTENT|REQUEST_IGNORE_BATTERY_OPTIMIZATIONS""",
+        ),
         "no accessibility service, SMS, call recording, VPN, overlays, full-screen intents or direct battery-exemption request",
     )
 
     /** Any string literal (Kotlin) or element text (XML) with a word Aegida must never say. */
     val bannedWords = Rule(
         "CopyRules",
-        Regex("""(?i)"[^"\n]*\b(safe|safely|safest|unsafe|secure|secured|protected from)\b[^"\n]*"|>[^<]*\b(safe|safely|safest|unsafe|secure|secured|protected from)\b[^<]*<"""),
+        Regex(
+            """(?i)"[^"\n]*\b(safe|safely|safest|unsafe|secure|secured|protected from)\b[^"\n]*"""" +
+                """|>[^<]*\b(safe|safely|safest|unsafe|secure|secured|protected from)\b[^<]*<""",
+        ),
         "never say \"safe\" (or \"secure\", \"protected from\"); say \"no known problems found\"",
     )
 
@@ -155,7 +175,10 @@ object Guards {
      */
     val usSpelling = Rule(
         "CopyRules: US spelling",
-        Regex("""(?i)\b(licen[c]es?|optimis\w+|serialis\w+|recognis\w+|organis\w+|colour\w*|behaviour\w*|centre\w*|favour\w*|catalogue|programme|analyse\w*|defence|authoris\w+|whilst|grey|summaris\w+|realis\w+|minimis\w+|customis\w+|personalis\w+)\b"""),
+        Regex(
+            """(?i)\b(licen[c]es?|optimis\w+|serialis\w+|recognis\w+|organis\w+|colour\w*|behaviour\w*|centre\w*|favour\w*|catalogue|""" +
+                """programme|analyse\w*|defence|authoris\w+|whilst|grey|summaris\w+|realis\w+|minimis\w+|customis\w+|personalis\w+)\b""",
+        ),
         "write US English (license, color, recognized, optimization)",
         onlyIn = { it.path.contains("/core/text/") },
     )

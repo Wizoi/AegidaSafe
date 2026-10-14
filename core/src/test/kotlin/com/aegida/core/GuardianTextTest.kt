@@ -35,29 +35,53 @@ class GuardianTextTest {
 
     /** Kevin, Oct 10: the note names the app and a masked web address, and nothing else about the message. */
     @Test fun aScamLinkNoteNamesTheAppAndAMaskedAddress() {
-        assertEquals("A message with a scam link arrived on Ruth's phone, from the “Messages” app, with a link to pa*****.example. Aegida warned Ruth.", Problem.ScamLink.forGuardian(owner, "Messages", "paypa1-help.example"))
-        assertEquals("A message pretending to be a well-known company arrived on Ruth's phone, from the “Messages” app. Aegida warned Ruth.", Problem.LookalikeLink.forGuardian(owner, "Messages"))
+        assertEquals(
+            "A message with a scam link arrived on Ruth's phone, from the “Messages” app, with a link to pa*****.example. Aegida warned Ruth.",
+            Problem.ScamLink.forGuardian(owner, "Messages", "paypa1-help.example"),
+        )
+        assertEquals(
+            "A message pretending to be a well-known company arrived on Ruth's phone, from the “Messages” app. Aegida warned Ruth.",
+            Problem.LookalikeLink.forGuardian(owner, "Messages"),
+        )
         assertEquals(Problem.ScamLink.forGuardian(owner), Problem.ScamLink.forGuardian(owner, null, null))
         assertEquals(Problem.ScamLink.forGuardian(owner), Problem.ScamLink.forGuardian(owner, "   ", ""))
-        assertEquals("other problems do not mention an app", Problem.ListenerOff.forGuardian(owner), Problem.ListenerOff.forGuardian(owner, "Messages", "x.example"))
-        assertEquals("an app picks its own label, so it is cut short and cleaned", false, Problem.ScamLink.forGuardian(owner, "Call me\nnow " + "x".repeat(100))!!.contains("\n"))
+        assertEquals(
+            "other problems do not mention an app",
+            Problem.ListenerOff.forGuardian(owner),
+            Problem.ListenerOff.forGuardian(owner, "Messages", "x.example"),
+        )
+        assertEquals(
+            "an app picks its own label, so it is cut short and cleaned",
+            false,
+            Problem.ScamLink.forGuardian(owner, "Call me\nnow " + "x".repeat(100))!!.contains("\n"),
+        )
     }
 
     @Test fun aWebsiteNoteNamesTheSiteMasked() {
-        assertEquals("A website (ne*****.example) was sending fake warnings to Ruth's phone. Aegida hid them.", Problem.SiteNotifications.forGuardian(owner, null, "https://news.example"))
-        assertEquals("A website (re*****.example) that was not there before started sending notifications on Ruth's phone. Aegida asked Ruth: “Was that you?”", Problem.NewWebsiteNotifications.forGuardian(owner, null, "https://recipes.example"))
+        assertEquals(
+            "A website (ne*****.example) was sending fake warnings to Ruth's phone. Aegida hid them.",
+            Problem.SiteNotifications.forGuardian(owner, null, "https://news.example"),
+        )
+        assertEquals(
+            "A website (re*****.example) that was not there before started sending notifications on Ruth's phone. Aegida asked Ruth: “Was that you?”",
+            Problem.NewWebsiteNotifications.forGuardian(owner, null, "https://recipes.example"),
+        )
         assertEquals(false, Problem.SiteNotifications.forGuardian(owner, null, "https://news.example")!!.contains("news"))
     }
 
     /** Kevin, Oct 11 (finding #92): a note about an app that keeps sending ads as notices, and one when the owner says an app is fine. */
     @Test fun theNoisyAppNoteNamesTheAppAndSaysWhatAegidaDid() {
         assertEquals("An app keeps showing Ruth ads as notices. Aegida told Ruth how to turn them off.", Problem.NoisyApp.forGuardian(owner))
-        assertEquals("An app (“Image to PDF”) keeps showing Ruth ads as notices. Aegida told Ruth how to turn them off.", Problem.NoisyApp.forGuardian(owner, "Image to PDF"))
+        assertEquals(
+            "An app (“Image to PDF”) keeps showing Ruth ads as notices. Aegida told Ruth how to turn them off.",
+            Problem.NoisyApp.forGuardian(owner, "Image to PDF"),
+        )
     }
 
     @Test fun theAllowedNoteNamesTheAppAndLeavesTheCallToTheGuardian() {
         assertEquals(
-            "Ruth told Aegida that an app (“Image to PDF”) is fine, so Aegida will stop warning about it. If that surprises you, it may be a good time to ask Ruth.",
+            "Ruth told Aegida that an app (“Image to PDF”) is fine, so Aegida will stop warning about it. " +
+                "If that surprises you, it may be a good time to ask Ruth.",
             Texts.Guardian.ALLOWED.format(owner, "Image to PDF"),
         )
     }
@@ -79,7 +103,9 @@ class GuardianTextTest {
 
     @Test fun theAskedAboutSentencesQuoteWhatTheOwnerWasAsked() {
         // "Aegida asked her if that was her" became a quote of what she saw on screen: no pronoun needed.
-        val asked = Problem.entries.filter { it.fix == com.aegida.core.text.Fix.ConfirmChange || it.fix == com.aegida.core.text.Fix.ConfirmEvent }.mapNotNull { it.forGuardian(owner) }
+        val asked = Problem.entries
+            .filter { it.fix == com.aegida.core.text.Fix.ConfirmChange || it.fix == com.aegida.core.text.Fix.ConfirmEvent }
+            .mapNotNull { it.forGuardian(owner) }
         assertTrue(asked.isNotEmpty())
         asked.forEach { assertTrue(it, it.contains("Was that you?")) }
     }

@@ -1,11 +1,5 @@
 <?xml version="1.0" ?>
 <SmellBaseline>
   <ManuallySuppressedIssues/>
-  <CurrentIssues>
-    <ID>MaxLineLength:FeedBuilder.kt$FeedBuilder$const</ID>
-    <ID>MaxLineLength:Main.kt$System.err.println("usage: build --domains F --links F [--urlhaus F] [--echap F] --out DIR | verify --feed F --sig F --public F [--previous F] | keygen --out DIR")</ID>
-    <ID>MaxLineLength:Main.kt$println("ok: ${feed.hostCount} hosts, ${feed.urlCount} urls, ${feed.packageCount} packages, ${feed.certificateCount} certificates, generated ${feed.generatedAt}, previous=${previous?.generatedAt}")</ID>
-    <ID>NestedBlockDepth:EchapParser.kt$EchapParser$fun parse(text: String): EchapIndicators</ID>
-    <ID>SwallowedException:Main.kt$e: FeedFormatException</ID>
-  </CurrentIssues>
+  <CurrentIssues/>
 </SmellBaseline>
