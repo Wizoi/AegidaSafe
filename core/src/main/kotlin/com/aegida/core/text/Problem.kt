@@ -79,6 +79,17 @@ enum class Problem(
         whatHappened = "Aegida could not see your notifications",
         fix = Fix.Settings,
     ),
+    /**
+     * Notification access is on, but the phone has not let Aegida listen for over an hour (finding #112). The fix opens the notification
+     * access screen: switching Aegida off and on there makes Android bind it again; opening Aegida alone does not.
+     */
+    ListenerNotConnected(
+        Severity.NeedsTap,
+        "Aegida can't see your notices right now. Tap, then turn Aegida off and on again.",
+        null,
+        whatHappened = "Aegida could not see your notices for a while",
+        fix = Fix.Settings,
+    ),
     NotificationsBlocked(
         Severity.NeedsTap,
         "Aegida can't show you warnings. Tap to fix it.",
@@ -177,6 +188,12 @@ enum class Problem(
      * pop-ups. A message with a scam link is left in place (it may be from family) and the owner gets a warning.
      */
     val hidesNotification: Boolean get() = this == SiteNotifications || this == NewWebsiteNotifications
+
+    /**
+     * The guardian is not told when it starts (it has no note of its own), only by the reminder for a warning still waiting after
+     * a day: a listener the phone unbound is often bound again within the day (finding #112).
+     */
+    val remindsGuardianOnly: Boolean get() = this == ListenerNotConnected
 
     /**
      * The note for the guardian. For a scam link or a look-alike it also names the app the message came from and a masked

@@ -7,6 +7,7 @@ import com.aegida.core.feed.FeedSource
 import com.aegida.core.feed.ThreatFeed
 import com.aegida.core.health.Trigger
 import com.aegida.core.model.Baseline
+import com.aegida.core.model.FindingState
 import com.aegida.core.model.HomeState
 import com.aegida.core.model.NotificationEvent
 import com.aegida.core.model.PrivateDns
@@ -16,6 +17,8 @@ import com.aegida.core.model.Snapshot
 import com.aegida.core.net.NtfyTopic
 import com.aegida.core.oem.Reading
 import com.aegida.core.text.Problem
+import com.aegida.core.text.Texts
+import com.aegida.core.time.Clock
 import com.aegida.detectors.DnsDetector
 import com.aegida.detectors.Evaluator
 import com.aegida.detectors.EvaluatorMemory
@@ -25,11 +28,13 @@ import com.aegida.detectors.PopupSpamDetector
 import com.aegida.testkit.FakeBaselines
 import com.aegida.testkit.FakeCheckLog
 import com.aegida.testkit.FakeFeedStore
+import com.aegida.testkit.FakeListenerTimes
 import com.aegida.testkit.FakeNotificationShade
 import com.aegida.testkit.FakeOutbox
 import com.aegida.testkit.FakeSetupStore
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Duration
@@ -39,8 +44,7 @@ import java.time.temporal.ChronoUnit
 /**
  * docs/scenarios/health.md: what Android itself does to the listener (snooze returning, unbinding, binding again) and what
  * Home says then. The listener here does what AegidaListenerService does (that class needs Hilt, so it is not run on the
- * JVM): connected runs an app-start check, a posted notice runs a check and hides or snoozes what the check names.
- * Rows marked "today" pin today's behaviour where it leaves Mom with a wrong picture (findings #111, #112): Kevin decides.
+ * JVM): binding and unbinding go to ListenerLink, a posted notice runs a check and hides or snoozes what the check names.
  */
 class HealthScenariosTest {
     private var now = Instant.now().truncatedTo(ChronoUnit.SECONDS)
@@ -60,10 +64,16 @@ class HealthScenariosTest {
         Baseline("com.android.chrome", null, null, emptySet(), emptySet(), emptySet(), websites = setOf("https://news.example")),
     )
     private var listenerEnabled = true
+    private var bootedAt: Instant? = now.minus(Duration.ofDays(2))
+    private val clock = object : Clock {
+        override fun now() = now
+        override fun bootedAt() = this@HealthScenariosTest.bootedAt
+    }
+    private val listenerTimes = FakeListenerTimes()
 
     private val evaluator = Evaluator(
-        setOf(LinkDetector(), PopupSpamDetector(), DnsDetector(), HealthDetector()), { now },
-        EvaluatorMemory(setupStore, feedStore, checkLog, outbox, baselines),
+        setOf(LinkDetector(), PopupSpamDetector(), DnsDetector(), HealthDetector()), clock,
+        EvaluatorMemory(setupStore, feedStore, checkLog, outbox, baselines, listenerTimes),
     )
     private val pipeline = AlertPipeline(findings, owner, history, GuardianLine(guardians, NtfySender(http), outbox)) { now }
     private val runner = CheckRunner(
@@ -76,10 +86,16 @@ class HealthScenariosTest {
         evaluator, pipeline, BaselineKeeper(setupStore, baselines), OutboxFlusher(outbox, NtfySender(http), history, guardians, { now }), AlertGate(),
     )
     private val shade = FakeNotificationShade(now)
+    private val link = ListenerLink(runner, listenerTimes, clock)
 
     /** What AegidaListenerService does with each callback. */
     private val listener = object : FakeNotificationShade.Listener {
-        override suspend fun onConnected() { runner.run(Trigger.AppStart) }
+        override suspend fun onConnected() {
+            val actions = link.connected(shade.active(), OWN_PACKAGE)
+            actions.hide.forEach(shade::cancel)
+            actions.snooze.forEach { shade.snooze(it, Duration.ofHours(1)) }
+        }
+        override suspend fun onDisconnected() { link.disconnected() }
         override suspend fun onPosted(event: NotificationEvent) {
             val outcome = runner.run(Trigger.NotificationPosted, event)
             outcome.notificationsToHide.forEach(shade::cancel)
@@ -119,32 +135,173 @@ class HealthScenariosTest {
         assertEquals("notices are heard again once it is bound", listOf(Problem.ScamLink), owner.shown.map { it.problem })
     }
 
-    /** Today: Android does not replay what was posted while unbound and Aegida never asks for it (finding #111). */
-    @Test fun todayAScamTextThatArrivedWhileAegidaWasNotListeningIsNeverChecked() = runTest {
+    // H3 (finding #111): what came while Aegida was not listening is checked once, late, when it is bound again.
+
+    @Test fun aScamTextThatArrivedWhileAegidaWasNotListeningIsCheckedOnceWhenItIsBoundAgain() = runTest {
         shade.connect(listener)
         shade.disconnect()
-        shade.post(scamText)
+        advance(Duration.ofMinutes(1))
+        shade.post(scamText.copy(postedAt = now))
         advance(Duration.ofMinutes(10))
         shade.connect(listener)
-        assertTrue("the text is still on her screen", shade.active().any { it.key == scamText.key })
-        assertEquals("never checked: no warning", emptyList<Any>(), owner.shown)
-        assertEquals("the guardian hears nothing", 0, http.posts.size)
-        assertTrue("and Home says no known problems", home() is HomeState.NoKnownProblems)
+        assertEquals("the usual warning, late", listOf(Problem.ScamLink), owner.shown.map { it.problem })
+        assertEquals("the guardian gets the usual note", 1, http.posts.size)
+        assertTrue("the text is left on her screen, as for any message", shade.isShown(scamText.key))
+        assertTrue(home() is HomeState.NeedsTaps)
     }
 
-    /**
-     * Today: notification access is on in Settings, so the snapshot says the listener is enabled, but the system has unbound it.
-     * The daily job runs, no notice is heard, and Home says no known problems (finding #112).
-     */
-    @Test fun todayWhenTheListenerIsOnButUnboundDuringTheDailyCheckHomeStillSaysNoKnownProblems() = runTest {
+    @Test fun aFullShadeHasOnlyItsNewestTwentyNoticesCheckedWhenAegidaIsBoundAgain() = runTest {
         shade.connect(listener)
         shade.disconnect()
-        shade.post(scamText)
-        advance(Duration.ofHours(20))
+        // The five oldest are scam texts; the newest twenty are not. Only the newest twenty are checked.
+        repeat(25) { n ->
+            advance(Duration.ofSeconds(30))
+            val words = if (n < 5) scamText.text else "See you at lunch"
+            shade.post(aScamText(now, text = words, id = 100 + n))
+        }
+        shade.connect(listener)
+        assertEquals(ListenerLink.MAX_CHECKED, latePosts())
+        assertEquals("the older ones are left unchecked", emptyList<Any>(), owner.shown)
+    }
+
+    @Test fun aScamTextSheAlreadyDealtWithIsNotWarnedAboutAgainWhenAegidaIsBoundAgain() = runTest {
+        shade.connect(listener)
+        shade.post(scamText.copy(postedAt = now))
+        findings.rows.replaceAll { _, f -> f.copy(state = FindingState.Acknowledged) }
+        advance(Duration.ofMinutes(5))
+        shade.disconnect()
+        advance(Duration.ofMinutes(5))
+        shade.connect(listener)
+        assertEquals("one warning, not a second", 1, owner.shown.size)
+        assertEquals("one note to the guardian", 1, http.posts.size)
+    }
+
+    @Test fun aegidasOwnNoticeIsNotCheckedWhenAegidaIsBoundAgain() = runTest {
+        shade.connect(listener)
+        shade.disconnect()
+        advance(Duration.ofMinutes(1))
+        shade.post(scamText.copy(key = "0|$OWN_PACKAGE|1|null|10200", packageName = OWN_PACKAGE, postedAt = now))
+        shade.connect(listener)
+        assertEquals(0, latePosts())
+        assertEquals(emptyList<Any>(), owner.shown)
+    }
+
+    @Test fun aNewWebsitesNoticeThatCameWhileAegidaWasNotListeningIsPutAsideWhenItIsBoundAgain() = runTest {
+        shade.connect(listener)
+        shade.disconnect()
+        advance(Duration.ofMinutes(1))
+        shade.post(aChromePopup(now, site = "https://shop.example/", title = "Spring sale", text = "Our new collection is here"))
+        shade.connect(listener)
+        assertTrue("asked about late, so put aside like a new one", shade.isSnoozed(newSite().key))
+        assertEquals(listOf(Problem.NewWebsiteNotifications), owner.shown.map { it.problem })
+    }
+
+    @Test fun whenThePhoneBindsAegidaSeveralTimesInAMinuteEachMissedNoticeIsCheckedOnce() = runTest {
+        shade.connect(listener)
+        shade.disconnect()
+        advance(Duration.ofSeconds(5))
+        shade.post(scamText.copy(postedAt = now))
+        repeat(3) {
+            advance(Duration.ofSeconds(10))
+            shade.connect(listener)
+            advance(Duration.ofSeconds(5))
+            shade.disconnect()
+        }
+        shade.connect(listener)
+        assertEquals("checked once", 1, latePosts())
+        assertEquals(1, owner.shown.size)
+        assertEquals(1, http.posts.size)
+    }
+
+    /** Gap kept on purpose: with no unbind recorded Aegida cannot tell which notices she has already seen (health H3f). */
+    @Test fun whenAegidaWasStoppedWithoutBeingToldNothingInTheShadeIsCheckedLate() = runTest {
+        shade.connect(listener)
+        shade.lose()
+        advance(Duration.ofMinutes(1))
+        shade.post(scamText.copy(postedAt = now))
+        shade.connect(listener)
+        assertEquals(0, latePosts())
+    }
+
+    // H4 (finding #112): notification access is on, but the phone has stopped letting Aegida listen.
+
+    @Test fun whenAccessIsOnButAegidaHasNotBeenListeningForOverAnHourHomeSaysItCannotSeeHerNotices() = runTest {
+        lostForOverAnHour()
+        assertEquals(listOf(Problem.ListenerNotConnected), findings.open().map { it.key.problem })
+        assertTrue("never shown as fine", home() is HomeState.NeedsTaps)
+        assertEquals(listOf(Problem.ListenerNotConnected), owner.shown.map { it.problem })
+        assertEquals("the guardian is not told in the first day", 0, http.posts.size)
+    }
+
+    @Test fun whenAegidaHasNotBeenListeningForMoreThanADayTheGuardianIsToldOnce() = runTest {
+        lostForOverAnHour()
+        advance(Duration.ofHours(23))
         runner.run(Trigger.Daily)
-        assertEquals("nothing says Aegida cannot hear notices", emptyList<Any>(), findings.open())
+        assertEquals("not yet a day since it was raised", 0, http.posts.size)
+        advance(Duration.ofHours(2))
+        runner.run(Trigger.Daily)
+        advance(Duration.ofHours(1))
+        runner.run(Trigger.AppStart)
+        assertEquals(1, http.posts.size)
+        assertTrue(http.posts.single().second.contains(Texts.Guardian.STILL_OPEN.format("Ruth").substringBefore("It has been")))
+    }
+
+    @Test fun theProblemIsClearedAsSoonAsAegidaIsListeningAgain() = runTest {
+        lostForOverAnHour()
+        shade.connect(listener)
+        assertEquals(emptyList<Any>(), findings.open())
+        assertEquals(listOf(Problem.ListenerNotConnected), owner.cleared.map { it.problem })
         assertTrue(home() is HomeState.NoKnownProblems)
-        assertEquals(0, http.posts.size)
+    }
+
+    @Test fun aegidaNotListeningIsNotRaisedBeforeSetupEnds() = runTest {
+        setupStore.value = setupStore.value.copy(stepsDone = 2)
+        lostForOverAnHour()
+        assertFalse(findings.open().any { it.key.problem == Problem.ListenerNotConnected })
+    }
+
+    @Test fun aegidaNotListeningIsNotRaisedInTheFirstHour() = runTest {
+        shade.connect(listener)
+        shade.disconnect()
+        advance(Duration.ofMinutes(59))
+        runner.run(Trigger.Daily)
+        assertEquals(emptyList<Any>(), findings.open())
+    }
+
+    @Test fun afterARestartAegidaNotListeningIsRaisedOnlyAnHourAfterThePhoneStarted() = runTest {
+        shade.connect(listener)
+        advance(Duration.ofHours(8))
+        shade.restart()
+        bootedAt = now
+        advance(Duration.ofMinutes(59))
+        runner.run(Trigger.Daily)
+        assertEquals("not in the first hour after the restart", emptyList<Any>(), findings.open())
+        advance(Duration.ofMinutes(2))
+        runner.run(Trigger.Daily)
+        assertEquals("never bound since the restart", listOf(Problem.ListenerNotConnected), findings.open().map { it.key.problem })
+    }
+
+    @Test fun whileNotificationAccessIsOffOnlyTheStepToTurnItBackOnIsShown() = runTest {
+        shade.connect(listener)
+        shade.disconnect()
+        listenerEnabled = false
+        advance(Duration.ofHours(2))
+        runner.run(Trigger.Daily)
+        assertEquals(listOf(Problem.ListenerOff), findings.open().map { it.key.problem })
+    }
+
+    @Test fun aegidaNotListeningIsNotRaisedWhenNothingWasRecordedYet() = runTest {
+        advance(Duration.ofHours(5))
+        runner.run(Trigger.Daily)
+        assertEquals("a new install, or an update from a version that did not record it", emptyList<Any>(), findings.open())
+    }
+
+    @Test fun aegidaNotListeningIsNotRaisedWhenTheClockWasSetBack() = runTest {
+        shade.connect(listener)
+        shade.disconnect()
+        now = now.minus(Duration.ofHours(3))
+        runner.run(Trigger.Daily)
+        assertEquals(emptyList<Any>(), findings.open())
     }
 
     @Test fun whenNotificationAccessIsTurnedOffHomeAsksHerToTurnItBackOn() = runTest {
@@ -152,5 +309,18 @@ class HealthScenariosTest {
         runner.run(Trigger.Daily)
         assertEquals(listOf(Problem.ListenerOff), findings.open().map { it.key.problem })
         assertTrue(home() is HomeState.NeedsTaps)
+    }
+
+    private fun latePosts() = checkLog.runs.count { it.trigger == Trigger.NotificationPosted }
+
+    private suspend fun lostForOverAnHour() {
+        shade.connect(listener)
+        shade.disconnect()
+        advance(Duration.ofMinutes(61))
+        runner.run(Trigger.Daily)
+    }
+
+    private companion object {
+        const val OWN_PACKAGE = "com.aegida"
     }
 }

@@ -7,6 +7,7 @@ import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
 import com.aegida.alerts.CheckRunner
+import com.aegida.alerts.ListenerLink
 import com.aegida.core.health.Trigger
 import com.aegida.platform.notify.NotificationMapper
 import com.aegida.platform.notify.RankingFacts
@@ -28,6 +29,8 @@ class AegidaListenerService : NotificationListenerService() {
 
     @Inject lateinit var checks: CheckRunner
 
+    @Inject lateinit var link: ListenerLink
+
     // A failed check must never crash the process the owner's protection runs in; it is logged only in debug builds.
     private val scope = CoroutineScope(
         SupervisorJob() + Dispatchers.Default + CoroutineExceptionHandler { _, error ->
@@ -35,24 +38,37 @@ class AegidaListenerService : NotificationListenerService() {
         },
     )
 
+    /** Checks the phone, then the notices that came while Aegida was not listening (Android does not deliver those again). */
     override fun onListenerConnected() {
-        scope.launch { checks.run(Trigger.AppStart) }
+        // Read now, on the binder thread: the shade can change while the checks run.
+        val inShade = runCatching { activeNotifications.orEmpty().toList() }.getOrDefault(emptyList())
+        val ranking = runCatching { currentRanking }.getOrNull()
+        val events = inShade.map { eventOf(it, ranking) }
+        scope.launch {
+            val actions = link.connected(events, packageName)
+            actions.hide.forEach(::cancelNotification)
+            actions.snooze.forEach { snoozeNotification(it, SNOOZE_MILLIS) }
+        }
     }
 
-    /** The system can drop the connection (for example after an update); ask to be bound again. */
+    /** The system can drop the connection (for example after an update); record when, and ask to be bound again. */
     override fun onListenerDisconnected() {
+        scope.launch { link.disconnected() }
         requestRebind(ComponentName(this, AegidaListenerService::class.java))
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification, rankingMap: RankingMap) {
         if (sbn.packageName == packageName) return
-        val event = NotificationMapper.toEvent(sbn.key, sbn.packageName, sbn.notification, sbn.postTime, rankingFactsOf(sbn.key, rankingMap))
+        val event = eventOf(sbn, rankingMap)
         scope.launch {
             val outcome = checks.run(Trigger.NotificationPosted, event)
             outcome.notificationsToHide.forEach(::cancelNotification)
             outcome.notificationsToSnooze.forEach { snoozeNotification(it, SNOOZE_MILLIS) }
         }
     }
+
+    private fun eventOf(sbn: StatusBarNotification, rankingMap: RankingMap?) =
+        NotificationMapper.toEvent(sbn.key, sbn.packageName, sbn.notification, sbn.postTime, rankingMap?.let { rankingFactsOf(sbn.key, it) })
 
     /** What the phone's ranking knows about this notice: its channel's name, how it is shown, and whether the owner tends to dismiss it. */
     private fun rankingFactsOf(key: String, rankingMap: RankingMap): RankingFacts? {

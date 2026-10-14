@@ -32,7 +32,7 @@ object FixActions {
             }
         }
         Problem.NoisyApp -> appNotificationSettings(finding.key.subject)
-        Problem.ListenerOff, Problem.ListenerAdded -> notificationAccess()
+        Problem.ListenerOff, Problem.ListenerNotConnected, Problem.ListenerAdded -> notificationAccess()
         Problem.BrowserChanged, Problem.SmsAppChanged, Problem.DialerChanged, Problem.AssistantChanged -> Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS)
         Problem.AccessibilityAdded -> Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
         Problem.AdminAdded -> Intent(Settings.ACTION_SECURITY_SETTINGS)

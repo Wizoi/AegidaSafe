@@ -83,3 +83,11 @@ class FakeAllowList : com.aegida.core.notice.AllowList {
     override suspend fun remove(problem: com.aegida.core.text.Problem, subject: String) { items.removeAll { it.problem == problem && it.subject == subject } }
     override suspend fun all() = items.toList()
 }
+
+/** Like the real store: two named values, each write replacing the one before. */
+class FakeListenerTimes(var value: com.aegida.core.health.ListenerTimes = com.aegida.core.health.ListenerTimes()) :
+    com.aegida.core.health.ListenerTimesStore {
+    override suspend fun times() = value
+    override suspend fun connected(at: Instant) { value = value.copy(connectedAt = at) }
+    override suspend fun disconnected(at: Instant) { value = value.copy(disconnectedAt = at) }
+}
