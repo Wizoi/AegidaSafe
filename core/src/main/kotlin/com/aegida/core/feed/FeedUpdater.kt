@@ -61,7 +61,7 @@ class FeedUpdater(
         val current = store.current()
         if (current != null && candidate.generatedAt == current.generatedAt) return FeedUpdate.Unchanged
         return FeedSanity.check(candidate, current, clock.now())?.let { FeedUpdate.Rejected(it) } ?: run {
-            store.save(bytes)
+            store.save(candidate, bytes)
             FeedUpdate.Updated(candidate.generatedAt)
         }
     }
