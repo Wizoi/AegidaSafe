@@ -32,9 +32,9 @@ import java.time.temporal.ChronoUnit
 
 /**
  * docs/scenarios/phone-changes.md PC12: a phone that has used Aegida on database version 1 (the first Play build) is upgraded straight
- * to today's version 3. The rows are written by today's stores into a database of today's shape and copied, column for column, into
+ * to today's version 4. The rows are written by today's stores into a database of today's shape and copied, column for column, into
  * a version-1 database built from store/schemas/1.json (every table version 1 had is unchanged in shape except history). After the
- * 1-to-2-to-3 migrations the real stores read back the same settings, guardian, baseline, findings, history, outbox and check log.
+ * 1-to-2-to-3-to-4 migrations the real stores read back the same settings, guardian, baseline, findings, history, outbox and check log.
  * The second test starts from a real version-1 file (finding #113), see store/src/test/resources/upgrade/README.txt.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -104,10 +104,10 @@ class UpgradeWithDataTest {
             for ((table, list) in rows) for (values in list) insert(table, SQLiteDatabase.CONFLICT_ABORT, values)
             close()
         }
-        migrations.runMigrationsAndValidate(NAME, 3, true, AegidaDatabase.MIGRATION_1_2, AegidaDatabase.MIGRATION_2_3).close()
+        migrations.runMigrationsAndValidate(NAME, 4, true, *ALL_MIGRATIONS).close()
 
         val db = Room.databaseBuilder(ApplicationProvider.getApplicationContext(), AegidaDatabase::class.java, NAME)
-            .addMigrations(AegidaDatabase.MIGRATION_1_2, AegidaDatabase.MIGRATION_2_3).allowMainThreadQueries().build()
+            .addMigrations(*ALL_MIGRATIONS).allowMainThreadQueries().build()
         val settings = RoomSettings(db.settings())
         assertEquals(setup, settings.setup())
         assertEquals(guardians, settings.current())
@@ -120,15 +120,15 @@ class UpgradeWithDataTest {
         db.close()
     }
 
-    @Test fun aDatabaseFileWrittenByTheRealVersionOneBuildOnTheEmulatorIsUpgradedToVersionThreeAndReadBackThroughTheRealStores() = runTest {
+    @Test fun aDatabaseFileWrittenByTheRealVersionOneBuildOnTheEmulatorIsUpgradedToVersionFourAndReadBackThroughTheRealStores() = runTest {
         val target = ApplicationProvider.getApplicationContext<android.content.Context>().getDatabasePath(NAME_REAL)
         target.parentFile!!.mkdirs()
         val file = checkNotNull(javaClass.getResourceAsStream("/upgrade/aegida-v1-emulator.db")) { "missing resource" }
         file.use { input -> target.outputStream().use { input.copyTo(it) } }
-        migrations.runMigrationsAndValidate(NAME_REAL, 3, true, AegidaDatabase.MIGRATION_1_2, AegidaDatabase.MIGRATION_2_3).close()
+        migrations.runMigrationsAndValidate(NAME_REAL, 4, true, *ALL_MIGRATIONS).close()
 
         val db = Room.databaseBuilder(ApplicationProvider.getApplicationContext(), AegidaDatabase::class.java, NAME_REAL)
-            .addMigrations(AegidaDatabase.MIGRATION_1_2, AegidaDatabase.MIGRATION_2_3).allowMainThreadQueries().build()
+            .addMigrations(*ALL_MIGRATIONS).allowMainThreadQueries().build()
         val settings = RoomSettings(db.settings())
         val setup = settings.setup()
         assertEquals(8, setup.stepsDone)
@@ -153,6 +153,7 @@ class UpgradeWithDataTest {
     }
 
     private companion object {
+        val ALL_MIGRATIONS = arrayOf(AegidaDatabase.MIGRATION_1_2, AegidaDatabase.MIGRATION_2_3, AegidaDatabase.MIGRATION_3_4)
         const val NAME = "upgrade-with-data"
         const val NAME_REAL = "upgrade-real-v1"
     }

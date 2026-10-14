@@ -72,7 +72,8 @@ class OutboxFlusher @Inject constructor(
         val sent = ntfy.send(NtfyTopic(message.topic), GuardianMessage(message.title, message.body, message.urgent))
         if (sent == SendResult.Delivered) {
             outbox.remove(message.id)
-            history.add(HistoryEntry(now, message.problem, Outcome.GuardianTold))
+            history.add(HistoryEntry(now, message.problem, Outcome.GuardianTold, message.detail))
+            message.alsoCovers.forEach { history.add(HistoryEntry(now, it.problem, Outcome.GuardianTold, it.detail)) }
             return true
         }
         outbox.failedAgain(message.id, now)
@@ -85,7 +86,8 @@ class OutboxFlusher @Inject constructor(
      * resolved (and so not written as "Fixed.") just because the outbox went empty.
      */
     private suspend fun giveUp(message: QueuedMessage, now: Instant) {
-        history.add(HistoryEntry(now, message.problem, Outcome.GuardianNeverReached))
+        history.add(HistoryEntry(now, message.problem, Outcome.GuardianNeverReached, message.detail))
+        message.alsoCovers.forEach { history.add(HistoryEntry(now, it.problem, Outcome.GuardianNeverReached, it.detail)) }
         outbox.remove(message.id)
         outbox.add(message.copy(id = 0, attempts = GAVE_UP))
     }

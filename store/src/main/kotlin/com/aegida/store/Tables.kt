@@ -81,6 +81,8 @@ data class OutboxEntity(
     val queuedAtMillis: Long,
     val attempts: Int,
     val lastTriedMillis: Long,
+    /** The History detail, then any further warnings a reminder covers (see [OutboxCodec]); null before version 4. */
+    val outboxDetail: String? = null,
 )
 
 @Dao

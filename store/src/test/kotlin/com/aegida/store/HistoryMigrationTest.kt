@@ -46,4 +46,29 @@ class HistoryMigrationTest {
             assertEquals("It came from the app.", c.getString(0))
         }
     }
+
+    /** Version 4 gives the outbox a place for the History detail (findings #116, Kevin approved Oct 14). Notes already waiting are kept, with no detail. */
+    @Test fun versionThreeKeepsItsWaitingNotesAndTheyHaveNoDetail() {
+        migrations.createDatabase("outbox-migration", 3).apply {
+            execSQL(
+                "INSERT INTO outbox (rowId, topic, title, body, urgent, outboxProblem, queuedAtMillis, attempts, lastTriedMillis) " +
+                    "VALUES (7, 'aegida_x', 'Ruth', 'A note', 0, 'NewAppOutsidePlay', 5000, 2, 6000)",
+            )
+            close()
+        }
+        val db = migrations.runMigrationsAndValidate("outbox-migration", 4, true, AegidaDatabase.MIGRATION_3_4)
+        db.query("SELECT rowId, topic, title, body, urgent, outboxProblem, queuedAtMillis, attempts, lastTriedMillis, outboxDetail FROM outbox").use { c ->
+            assertEquals(true, c.moveToFirst())
+            assertEquals(7L, c.getLong(0))
+            assertEquals("aegida_x", c.getString(1))
+            assertEquals("A note", c.getString(3))
+            assertEquals("NewAppOutsidePlay", c.getString(5))
+            assertEquals(2, c.getInt(7))
+            assertNull(c.getString(9))
+        }
+        db.execSQL(
+            "INSERT INTO outbox (topic, title, body, urgent, outboxProblem, queuedAtMillis, attempts, lastTriedMillis, outboxDetail) " +
+                "VALUES ('t', 'T', 'B', 0, 'ScamLink', 1, 1, 1, 'The app.')",
+        )
+    }
 }
