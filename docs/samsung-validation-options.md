@@ -29,6 +29,13 @@ First session checklist (15–30 min):
 - **The lab phone is managed by Knox Guard and has Auto Blocker disabled**, so the lab cannot answer the Auto Blocker questions (findings #10–#12). The Never-sleeping deep link works (#13).
 - Still useful for: One UI screens, deep links, `dumpsys`/`settings` captures, Samsung Internet notifications with a public fixture page.
 
+### Second session result (Oct 14)
+- Galaxy S25 (SM-S931B, EUX) on Android 16 / One UI 8.0. RDB on a new port each session; a session that would not connect had to be restarted.
+- Galaxy Store installs record installer and initiating installer `com.sec.android.app.samsungapps` (3 of 3); Galaxy Store is a SYSTEM, PRIVILEGED, updated system app. Aegida asked about each as "from outside the Play Store" (findings #106).
+- The lab's `com.samsung.rtlassistant` disables Auto Blocker and blocks every App info page ("not available"), so uninstall paths cannot be checked here.
+- Git Bash rewrites `/data/local/tmp` in adb arguments; set `MSYS_NO_PATHCONV=1` and use `C:/` paths for local files.
+- Captured (in `build/samsung-rtl/`, not committed): props, `pm list packages -i` before and after, `dumpsys package` for the three apps and Galaxy Store, `dumpsys notification`.
+
 ## Option B: paid device farms
 BrowserStack, TestingBot and similar list real Galaxy phones; pricing and exact models not checked.
 
