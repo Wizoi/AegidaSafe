@@ -16,6 +16,7 @@ problem, see [SECURITY.md](SECURITY.md).
 - How it is built: [docs/aegida-technical-design.md](docs/aegida-technical-design.md)
 - Why decisions were made: [docs/decisions.md](docs/decisions.md)
 - Build plan and status: [docs/build-plan.md](docs/build-plan.md)
+- Ideas that are not built (and not promised): [docs/ideas.md](docs/ideas.md)
 - Working rules: [CLAUDE.md](CLAUDE.md)
 - Findings log: [docs/findings.md](docs/findings.md)
 - Emulator versus device gaps: [docs/emulator-vs-device.md](docs/emulator-vs-device.md)
