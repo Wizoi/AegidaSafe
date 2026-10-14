@@ -10,4 +10,16 @@
     <issue id="AndroidGradlePluginVersion" severity="informational" />
     <issue id="OldTargetApi" severity="informational" />
     <issue id="NewerVersionAvailable" severity="informational" />
+    <!-- Published data, not our code: Google's SDK index and library release lists change daily (finding #132). -->
+    <issue id="OutdatedLibrary" severity="informational" />
+    <issue id="RiskyLibrary" severity="informational" />
+    <issue id="PlaySdkIndexNonCompliant" severity="informational" />
+    <issue id="PlaySdkIndexVulnerability" severity="informational" />
+    <issue id="PlaySdkIndexGenericIssues" severity="informational" />
+    <issue id="PlaySdkIndexDeprecated" severity="informational" />
+    <!--
+      ExpiringTargetSdkVersion stays an error ON PURPOSE (no entry here): Play rejects an upload whose targetSdk is more than a
+      year behind the latest Android (CLAUDE.md, "Before committing or shipping"), and a rejected upload can burn its versionCode.
+      It is the one date-driven check that is a real deadline, so it should stop the build.
+    -->
 </lint>
