@@ -42,19 +42,16 @@ object Links {
     }
 
     /**
-     * For hiding and masking only (never for detection, which [extract] owns): every address in [text], also one that [extract]
-     * drops because its candidate does not parse, and ideographic or fullwidth dots ("paypal。com") taken as dots (findings #100).
-     * Erring towards finding too much is right here: a found address is only hidden or masked.
+     * Every address in [text], also one that [extract] drops because its candidate does not parse (findings #100). Used on text
+     * prepared by [LinkText.prepare] (which turns odd dots into dots), by the detector and by hiding and masking
+     * (findings #104); [extract] stays the plain finder pinned by LinksDifferentialTest.
      */
-    fun findForMasking(text: String): List<Link> {
+    fun findThorough(text: String): List<Link> {
         val found = LinkedHashSet<Link>()
         val cut = if (text.length > MAX_PART_CHARS) text.substring(0, MAX_PART_CHARS) else text
-        scan(withPlainDots(cut)) { candidate -> parseOrInner(candidate.trimEnd { c -> c in TRAILING })?.let(found::add) }
+        scan(cut) { candidate -> parseOrInner(candidate.trimEnd { c -> c in TRAILING })?.let(found::add) }
         return found.toList()
     }
-
-    /** Ideographic and fullwidth dots ("paypal。com") are dots to a browser, so they are dots here too (findings #100). Same length. */
-    private fun withPlainDots(text: String): String = text.replace('。', '.').replace('．', '.').replace('｡', '.')
 
     /**
      * A candidate that does not parse (a label too long, mixed writing directions) may still hold an address after its first dot:

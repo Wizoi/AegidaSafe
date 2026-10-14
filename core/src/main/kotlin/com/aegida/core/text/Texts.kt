@@ -106,7 +106,7 @@ object Texts {
          * like an address at all (see [looksLikeAddress]) shows as "(link)" whole. Only an ordinary word with a dot stays (findings #99-#101).
          */
         fun withoutLinks(text: String): String =
-            prepared(text).split(WORD_GAPS).joinToString(" ") { word -> if (looksLikeAddress(word) && !isOrdinaryWord(word)) LINK_REMOVED else word }
+            com.aegida.core.url.LinkText.prepare(text).split(WORD_GAPS).joinToString(" ") { word -> if (looksLikeAddress(word) && !isOrdinaryWord(word)) LINK_REMOVED else word }
 
         /**
          * An app's label as it may be sent off the phone. After the same preparation, a word that looks like an address is sent as the
@@ -114,37 +114,18 @@ object Texts {
          */
         fun guardianLabel(raw: String): String =
             cleanLabel(
-                cleanLabel(prepared(raw), Int.MAX_VALUE).split(WORD_GAPS).joinToString(" ") { word ->
+                cleanLabel(com.aegida.core.url.LinkText.prepare(raw), Int.MAX_VALUE).split(WORD_GAPS).joinToString(" ") { word ->
                     if (!looksLikeAddress(word)) {
                         word
                     } else {
-                        Links.findForMasking(word).map { HostMask.of(it.host) }.ifEmpty { listOf(HostMask.of("")) }.joinToString(" ")
+                        Links.findThorough(word).map { HostMask.of(it.host) }.ifEmpty { listOf(HostMask.of("")) }.joinToString(" ")
                     }
                 },
             )
 
-        /**
-         * Removes invisible and format characters (zero-width ones, soft hyphen, direction marks: an address split by one is still the
-         * address to a browser) and turns every dot look-alike into "." (findings #101).
-         */
-        private fun prepared(text: String): String {
-            val out = StringBuilder(text.length)
-            var i = 0
-            while (i < text.length) {
-                val cp = text.codePointAt(i)
-                i += Character.charCount(cp)
-                when {
-                    Character.getType(cp) == Character.FORMAT.toInt() || isIgnoredByBrowsers(cp) -> Unit
-                    cp in DOT_LOOK_ALIKES -> out.append('.')
-                    else -> out.appendCodePoint(cp)
-                }
-            }
-            return out.toString()
-        }
-
         /** Fails closed: a scheme, a dot followed by two letters, an IPv4 address, or anything the link finder sees. */
         private fun looksLikeAddress(word: String): Boolean =
-            word.contains("://") || DOT_LETTERS.containsMatchIn(word) || IPV4.containsMatchIn(word) || Links.findForMasking(word).isNotEmpty()
+            word.contains("://") || DOT_LETTERS.containsMatchIn(word) || IPV4.containsMatchIn(word) || Links.findThorough(word).isNotEmpty()
 
         /**
          * "Mr.Smith", "St.Louis", "held.Please" (no space after a full stop): plain ASCII, two parts, no scheme, path or @, the first a
@@ -162,19 +143,11 @@ object Texts {
         }
 
         private val WORD_GAPS = Regex("""[\s\p{Z}]+""")
+
         /** A dot and two letters, with any marks between them ("evil.ćom" too, findings #102). */
         private val DOT_LETTERS = Regex("""\.\p{M}*\p{L}(\p{M}*\p{L})+""")
-
-        /** Default-ignorable code points a browser drops from an address (Unicode's list, beyond the format characters). */
-        private fun isIgnoredByBrowsers(cp: Int): Boolean =
-            cp == 0x034F || cp in 0x115F..0x1160 || cp in 0x17B4..0x17B5 || cp in 0x180B..0x180F || cp == 0x3164 ||
-                cp in 0xFE00..0xFE0F || cp == 0xFFA0 || cp in 0xE0000..0xE0FFF
         private val IPV4 = Regex("""\d{1,3}(\.\d{1,3}){3}""")
         private val TITLES = setOf("Mr", "Mrs", "Ms", "Dr", "St", "Mt", "Jr", "Sr", "Ft")
-        private val DOT_LOOK_ALIKES = setOf(
-            0x2024, 0xFE52, 0xFE12, 0xFF0E, 0x3002, 0xFF61, 0x00B7, 0x0701, 0x2E3C, 0x2219, 0x22C5, 0x30FB,
-            0x2027, 0x0387, 0x16EB, 0x2E31, 0xFF65, 0xA78F, 0x1427, // findings #102
-        )
 
         /** "It said: “…”" for what a website's notification said (its title), cleaned and cut short. */
         fun saidLine(title: String?): String? {

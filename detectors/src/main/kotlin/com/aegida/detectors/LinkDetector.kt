@@ -8,6 +8,7 @@ import com.aegida.core.model.FindingKey
 import com.aegida.core.text.Problem
 import com.aegida.core.url.LinkSign
 import com.aegida.core.url.LinkSigns
+import com.aegida.core.url.LinkText
 import com.aegida.core.url.Links
 import javax.inject.Inject
 
@@ -23,7 +24,10 @@ class LinkDetector @Inject constructor() : Detector {
         val event = input.event ?: return emptyList()
         if (event.packageName == Aegida.PACKAGE) return emptyList()
         if (event.channelId?.startsWith(PopupSpamDetector.SITE_CHANNEL_PREFIX) == true) return emptyList()
-        return Links.extractParts(event.title, event.text).mapNotNull { link ->
+        // Prepared like the screens prepare it, and searched thoroughly: odd dots, invisible characters and broken fragments
+        // do not hide a link from the check (findings #104).
+        val links = listOf(event.title, event.text).flatMap { Links.findThorough(LinkText.prepare(it)) }.distinct()
+        return links.mapNotNull { link ->
             val signs = LinkSigns.of(link)
             val problem = when {
                 input.feed?.match(link) != null -> Problem.ScamLink
