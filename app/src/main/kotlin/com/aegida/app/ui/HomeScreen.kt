@@ -15,9 +15,6 @@ import androidx.compose.ui.unit.dp
 import com.aegida.core.model.Finding
 import com.aegida.core.model.HomeState
 import com.aegida.core.text.Texts
-import java.time.Instant
-import java.time.ZoneId
-import java.util.Locale
 
 /**
  * What the owner sees when she opens Aegida: one mark, one sentence, one big button. HomeState decides which;
@@ -27,9 +24,7 @@ import java.util.Locale
 fun HomeScreen(
     home: HomeState,
     pictureId: String?,
-    now: Instant,
-    zone: ZoneId,
-    locale: Locale,
+    shown: ShownAt,
     onFix: (Finding) -> Unit,
     onCall: () -> Unit,
 ) {
@@ -39,7 +34,7 @@ fun HomeScreen(
                 is HomeState.NoKnownProblems -> {
                     StatusMark(Mark.Good)
                     Headline(Texts.Home.ALL_GOOD)
-                    Body(TimeText.checkedLine(home.checkedAt, now, zone, locale))
+                    Body(TimeText.checkedLine(home.checkedAt, shown.now, shown.zone, shown.locale))
                     Body(Texts.Home.NO_KNOWN_PROBLEMS)
                     QuietButton(Texts.Home.CALL_A_GUARDIAN, onCall)
                 }
@@ -59,7 +54,7 @@ fun HomeScreen(
                     } else {
                         Headline(Texts.Home.COULDNT_CHECK)
                         Body(Texts.Home.COULDNT_CHECK_WHY)
-                        Body(TimeText.lastCheckedLine(home.lastCheckedAt!!, now, zone, locale))
+                        Body(TimeText.lastCheckedLine(home.lastCheckedAt!!, shown.now, shown.zone, shown.locale))
                     }
                     QuietButton(Texts.Home.CALL_A_GUARDIAN, onCall)
                 }

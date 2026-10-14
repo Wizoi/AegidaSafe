@@ -74,7 +74,8 @@ abstract class ScreenTestBase(private val dark: Boolean, private val fontScale: 
         FindingKey(DetectorId.NoisyApp, Problem.NoisyApp, "com.example.pdf"),
         mapOf(
             com.aegida.core.model.Evidence.APP_LABEL to "Image to PDF", com.aegida.core.model.Evidence.NOTICES to "8",
-            com.aegida.core.model.Evidence.MESSAGE_TITLE to "File converter is ready!", com.aegida.core.model.Evidence.MESSAGE_AT to now.minus(Duration.ofMinutes(5)).toEpochMilli().toString(),
+            com.aegida.core.model.Evidence.MESSAGE_TITLE to "File converter is ready!",
+            com.aegida.core.model.Evidence.MESSAGE_AT to now.minus(Duration.ofMinutes(5)).toEpochMilli().toString(),
         ),
         now.minus(Duration.ofMinutes(5)), now,
     )
@@ -82,7 +83,7 @@ abstract class ScreenTestBase(private val dark: Boolean, private val fontScale: 
     protected fun androidx.compose.ui.test.SemanticsNodeInteraction.assertDoesNotExistOrFail() {
         try {
             assertExists()
-        } catch (e: AssertionError) {
+        } catch (ignored: AssertionError) {
             return
         }
         throw AssertionError("expected no such node")

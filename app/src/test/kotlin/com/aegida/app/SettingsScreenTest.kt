@@ -7,6 +7,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
+import com.aegida.app.ui.SettingsActions
+import com.aegida.app.ui.SettingsContent
 import com.aegida.app.ui.SettingsScreen
 import com.aegida.app.ui.setup.ChangeGuardianScreen
 import com.aegida.core.alert.Guardians
@@ -30,10 +32,15 @@ class SettingsScreenTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark,
         val item = com.aegida.core.notice.AllowedItem(Problem.NoisyApp, "com.example.pdf", "Image to PDF", now)
         show {
             SettingsScreen(
-                Setup(null, emptySet(), pictureId = picture),
-                Guardians(alertsOn = false, ownerName = "Ruth", firstTopic = null, firstGuardianName = "Kevin"),
-                filterOn = true, onChangePicture = {}, onChangeGuardian = {}, onResendInvite = {}, onAlerts = {}, onFilterHelp = {}, onHowItWorks = {},
-                listsUpdatedAt = null, zone = zone, locale = locale, allowed = listOf(item), onStopAllowing = { removed = it },
+                SettingsContent(
+                    Setup(null, emptySet(), pictureId = picture),
+                    Guardians(alertsOn = false, ownerName = "Ruth", firstTopic = null, firstGuardianName = "Kevin"),
+                    filterOn = true, listsUpdatedAt = null, zone = zone, locale = locale, allowed = listOf(item),
+                ),
+                SettingsActions(
+                    onChangePicture = {}, onChangeGuardian = {}, onResendInvite = {}, onAlerts = {}, onFilterHelp = {}, onHowItWorks = {},
+                    onStopAllowing = { removed = it },
+                ),
             )
         }
         reachable(Texts.Settings.ALLOWED_TITLE)
@@ -45,10 +52,14 @@ class SettingsScreenTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark,
     @Test fun settingsHasNoAllowedListWhenNothingWasAllowed() {
         show {
             SettingsScreen(
-                Setup(null, emptySet(), pictureId = picture),
-                Guardians(alertsOn = false, ownerName = "Ruth", firstTopic = null, firstGuardianName = "Kevin"),
-                filterOn = true, onChangePicture = {}, onChangeGuardian = {}, onResendInvite = {}, onAlerts = {}, onFilterHelp = {}, onHowItWorks = {},
-                listsUpdatedAt = null, zone = zone, locale = locale,
+                SettingsContent(
+                    Setup(null, emptySet(), pictureId = picture),
+                    Guardians(alertsOn = false, ownerName = "Ruth", firstTopic = null, firstGuardianName = "Kevin"),
+                    filterOn = true, listsUpdatedAt = null, zone = zone, locale = locale,
+                ),
+                SettingsActions(
+                    onChangePicture = {}, onChangeGuardian = {}, onResendInvite = {}, onAlerts = {}, onFilterHelp = {}, onHowItWorks = {},
+                ),
             )
         }
         compose.onNodeWithText(Texts.Settings.ALLOWED_TITLE).assertDoesNotExistOrFail()
@@ -58,10 +69,14 @@ class SettingsScreenTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark,
         val item = com.aegida.core.notice.AllowedItem(Problem.NoisyApp, "com.example.pdf", "Image\u2028to PDF", now)
         show {
             SettingsScreen(
-                Setup(null, emptySet(), pictureId = picture),
-                Guardians(alertsOn = false, ownerName = "Ruth", firstTopic = null, firstGuardianName = "Kevin"),
-                filterOn = true, onChangePicture = {}, onChangeGuardian = {}, onResendInvite = {}, onAlerts = {}, onFilterHelp = {}, onHowItWorks = {},
-                listsUpdatedAt = null, zone = zone, locale = locale, allowed = listOf(item),
+                SettingsContent(
+                    Setup(null, emptySet(), pictureId = picture),
+                    Guardians(alertsOn = false, ownerName = "Ruth", firstTopic = null, firstGuardianName = "Kevin"),
+                    filterOn = true, listsUpdatedAt = null, zone = zone, locale = locale, allowed = listOf(item),
+                ),
+                SettingsActions(
+                    onChangePicture = {}, onChangeGuardian = {}, onResendInvite = {}, onAlerts = {}, onFilterHelp = {}, onHowItWorks = {},
+                ),
             )
         }
         reachable("Image to PDF")
@@ -72,10 +87,15 @@ class SettingsScreenTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark,
         var opened = 0
         show {
             SettingsScreen(
-                Setup(null, emptySet(), pictureId = picture),
-                Guardians(alertsOn = false, ownerName = "Ruth", firstTopic = null, firstGuardianName = "Kevin"),
-                filterOn = false, onChangePicture = {}, onChangeGuardian = {}, onResendInvite = {}, onAlerts = { alerts = it }, onFilterHelp = {}, onHowItWorks = { opened++ },
-                listsUpdatedAt = now.minus(Duration.ofDays(2)), zone = zone, locale = locale,
+                SettingsContent(
+                    Setup(null, emptySet(), pictureId = picture),
+                    Guardians(alertsOn = false, ownerName = "Ruth", firstTopic = null, firstGuardianName = "Kevin"),
+                    filterOn = false, listsUpdatedAt = now.minus(Duration.ofDays(2)), zone = zone, locale = locale,
+                ),
+                SettingsActions(
+                    onChangePicture = {}, onChangeGuardian = {}, onResendInvite = {}, onAlerts = { alerts = it }, onFilterHelp = {},
+                    onHowItWorks = { opened++ },
+                ),
             )
         }
         reachable("Ruth")
@@ -97,10 +117,14 @@ class SettingsScreenTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark,
         var tried = 0
         show {
             SettingsScreen(
-                Setup(null, emptySet(), pictureId = picture),
-                Guardians(alertsOn = false, ownerName = "Ruth", firstTopic = null, firstGuardianName = "Kevin"),
-                filterOn = false, onChangePicture = {}, onChangeGuardian = {}, onResendInvite = {}, onAlerts = {}, onFilterHelp = { tried++ }, onHowItWorks = {},
-                listsUpdatedAt = null, zone = zone, locale = locale,
+                SettingsContent(
+                    Setup(null, emptySet(), pictureId = picture),
+                    Guardians(alertsOn = false, ownerName = "Ruth", firstTopic = null, firstGuardianName = "Kevin"),
+                    filterOn = false, listsUpdatedAt = null, zone = zone, locale = locale,
+                ),
+                SettingsActions(
+                    onChangePicture = {}, onChangeGuardian = {}, onResendInvite = {}, onAlerts = {}, onFilterHelp = { tried++ }, onHowItWorks = {},
+                ),
             )
         }
         compose.onNodeWithText(Texts.Settings.TURN_ON_WEBSITE_PROTECTION).performScrollTo().performClick()
@@ -110,10 +134,14 @@ class SettingsScreenTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark,
     @Test fun websiteProtectionThatIsOnOffersNothingToRedo() {
         show {
             SettingsScreen(
-                Setup(null, emptySet(), pictureId = picture),
-                Guardians(alertsOn = false, ownerName = "Ruth", firstTopic = null, firstGuardianName = "Kevin"),
-                filterOn = true, onChangePicture = {}, onChangeGuardian = {}, onResendInvite = {}, onAlerts = {}, onFilterHelp = {}, onHowItWorks = {},
-                listsUpdatedAt = null, zone = zone, locale = locale,
+                SettingsContent(
+                    Setup(null, emptySet(), pictureId = picture),
+                    Guardians(alertsOn = false, ownerName = "Ruth", firstTopic = null, firstGuardianName = "Kevin"),
+                    filterOn = true, listsUpdatedAt = null, zone = zone, locale = locale,
+                ),
+                SettingsActions(
+                    onChangePicture = {}, onChangeGuardian = {}, onResendInvite = {}, onAlerts = {}, onFilterHelp = {}, onHowItWorks = {},
+                ),
             )
         }
         reachable(Texts.Settings.ON)
@@ -124,15 +152,20 @@ class SettingsScreenTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark,
     @Test fun theHowDoesThisWorkButtonIsAtTheBottomOfMySettings() {
         show {
             SettingsScreen(
-                Setup(null, emptySet(), pictureId = picture),
-                Guardians(alertsOn = false, ownerName = "Ruth", firstTopic = null, firstGuardianName = "Kevin"),
-                filterOn = false, onChangePicture = {}, onChangeGuardian = {}, onResendInvite = {}, onAlerts = {}, onFilterHelp = {}, onHowItWorks = {},
-                listsUpdatedAt = now.minus(Duration.ofDays(2)), zone = zone, locale = locale,
+                SettingsContent(
+                    Setup(null, emptySet(), pictureId = picture),
+                    Guardians(alertsOn = false, ownerName = "Ruth", firstTopic = null, firstGuardianName = "Kevin"),
+                    filterOn = false, listsUpdatedAt = now.minus(Duration.ofDays(2)), zone = zone, locale = locale,
+                ),
+                SettingsActions(
+                    onChangePicture = {}, onChangeGuardian = {}, onResendInvite = {}, onAlerts = {}, onFilterHelp = {}, onHowItWorks = {},
+                ),
             )
         }
         fun y(text: String) = compose.onNodeWithText(text).fetchSemanticsNode().positionInRoot.y
         val button = y(Texts.Settings.HOW_IT_WORKS)
-        for (above in listOf(Texts.Settings.NAME, Texts.Settings.GUARDIAN, Texts.Settings.PICTURE, Texts.Settings.TELL_GUARDIANS, Texts.Settings.CREDITS_TITLE)) {
+        for (above in listOf(Texts.Settings.NAME, Texts.Settings.GUARDIAN, Texts.Settings.PICTURE, Texts.Settings.TELL_GUARDIANS,
+            Texts.Settings.CREDITS_TITLE)) {
             assertTrue("the button should be below \"$above\"", button > y(above))
         }
     }

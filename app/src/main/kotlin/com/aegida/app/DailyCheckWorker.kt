@@ -32,7 +32,8 @@ class DailyCheckWorker @AssistedInject constructor(
         Result.success()
     } catch (e: CancellationException) {
         throw e
-    } catch (e: Exception) {
+    } catch (ignored: Exception) {
+        // Any failure is handled the same way: WorkManager is asked to retry, then to give up. The reason is not shown to anyone.
         if (runAttemptCount < MAX_ATTEMPTS) Result.retry() else Result.failure()
     }
 
@@ -41,17 +42,20 @@ class DailyCheckWorker @AssistedInject constructor(
         val manager = applicationContext.getSystemService(ConnectivityManager::class.java)
         val capabilities = manager?.getNetworkCapabilities(manager.activeNetwork)
         capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED) == true
-    } catch (e: SecurityException) {
+    } catch (ignored: SecurityException) {
+        // Not allowed to read the network state: treated as "not on Wi-Fi", which only delays the big download.
         false
     }
 
     companion object {
         private const val NAME = "daily-check"
         private const val MAX_ATTEMPTS = 3
+        private const val REPEAT_HOURS = 24L
+        private const val FLEX_HOURS = 6L
 
         /** Safe to call on every start: an existing schedule is kept. */
         fun schedule(context: Context) {
-            val request = PeriodicWorkRequestBuilder<DailyCheckWorker>(24, TimeUnit.HOURS, 6, TimeUnit.HOURS).build()
+            val request = PeriodicWorkRequestBuilder<DailyCheckWorker>(REPEAT_HOURS, TimeUnit.HOURS, FLEX_HOURS, TimeUnit.HOURS).build()
             WorkManager.getInstance(context).enqueueUniquePeriodicWork(NAME, ExistingPeriodicWorkPolicy.KEEP, request)
         }
     }

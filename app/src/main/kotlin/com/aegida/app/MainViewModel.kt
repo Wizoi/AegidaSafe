@@ -3,46 +3,25 @@ package com.aegida.app
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aegida.alerts.CheckRunner
-import com.aegida.app.ui.PictureBanner
 import com.aegida.alerts.DailyCheck
 import com.aegida.alerts.FindingActions
-import com.aegida.alerts.GuardianAlerts
-import com.aegida.alerts.GuardianChange
-import com.aegida.core.alert.FindingStore
-import com.aegida.core.alert.GuardianSettings
 import com.aegida.core.alert.Guardians
-import com.aegida.core.alert.HistoryLog
 import com.aegida.core.alert.HistoryRow
-import com.aegida.core.alert.HistoryRows
-import com.aegida.core.health.CheckLog
 import com.aegida.core.health.Trigger
-import com.aegida.core.model.AutoBlockerAnswer
 import com.aegida.core.model.Finding
 import com.aegida.core.model.HomeState
 import com.aegida.core.model.PrivateDns
-import com.aegida.core.model.SafetyPicture
 import com.aegida.core.model.Setup
-import com.aegida.core.model.SetupStep
 import com.aegida.core.model.Snapshot
-import com.aegida.core.model.Snapshotter
 import com.aegida.core.model.WebsiteFilter
-import com.aegida.core.net.NtfyTopic
-import com.aegida.core.oem.OemSource
-import com.aegida.core.oem.Reading
-import com.aegida.core.store.FeedStore
-import com.aegida.core.store.SetupStore
-import com.aegida.core.time.Clock
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.time.Duration
 import java.time.Instant
 import javax.inject.Inject
 
@@ -66,27 +45,16 @@ data class MainState(
 }
 
 /**
- * Loads state and performs the owner's actions by calling the tested layers (CheckRunner, FindingActions, the
- * stores). It makes no decisions of its own: what Home says is HomeState.of, what a fix does is Problem.fix.
+ * Loads state and performs the owner's actions by calling the tested layers (CheckRunner, FindingActions, SetupCommands). It makes
+ * no decisions of its own: what Home says is HomeState.of, what a fix does is Problem.fix. Every action runs on [work] and then reloads.
  */
 @HiltViewModel
 class MainViewModel @Inject constructor(
-    private val setupStore: SetupStore,
-    private val guardianSettings: GuardianSettings,
-    private val findings: FindingStore,
-    private val historyLog: HistoryLog,
-    private val checkLog: CheckLog,
-    private val snapshotter: Snapshotter,
+    private val loader: MainStateLoader,
     private val runner: CheckRunner,
     private val dailyCheck: DailyCheck,
-    private val guardianAlerts: GuardianAlerts,
-    private val guardianChange: GuardianChange,
     private val actions: FindingActions,
-    private val oem: OemSource,
-    private val clock: Clock,
-    private val banner: PictureBanner,
-    private val feedStore: FeedStore,
-    private val allowList: com.aegida.core.notice.AllowList,
+    private val setup: SetupCommands,
 ) : ViewModel() {
 
     /**
@@ -113,39 +81,8 @@ class MainViewModel @Inject constructor(
 
     private var firstDailyTried = false
 
-    /** A failed check must not break the screen: it still shows what is stored, and HealthDetector reports a check that keeps failing. */
-    private suspend fun <T> quietly(block: suspend () -> T): T? = try {
-        block()
-    } catch (e: CancellationException) {
-        throw e
-    } catch (e: Exception) {
-        null
-    }
-
     private suspend fun load() {
-        val now = clock.now()
-        val snapshot = snapshotter.take()
-        val setup = setupStore.setup()
-        mutableState.value = MainState(
-            loaded = true,
-            now = now,
-            setup = setup,
-            guardians = guardianSettings.current(),
-            home = HomeState.of(findings.open(), checkLog.latest()),
-            history = HistoryRows.of(historyLog.since(now.minus(HISTORY_SHOWN))),
-            snapshot = snapshot,
-            allowed = allowList.all(),
-            blockerRelevant = oem.installBlocker() != Reading.NotPresent,
-            listsUpdatedAt = feedStore.current()?.generatedAt,
-        )
-    }
-
-    /** "Yes, that was me" to a was-that-you question: the baseline takes the change, and Home stops asking. */
-    fun acceptChange(finding: Finding) {
-        viewModelScope.launch(work) {
-            quietly { actions.acceptChange(finding.key) }
-            load()
-        }
+        mutableState.value = loader.load()
     }
 
     /** Marks a finding seen ("Got it", or after she has been to the screen that fixes it). */
@@ -156,71 +93,20 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    /** "This app is fine": goes on the list in My settings, the warning is marked seen and the guardian is told. */
-    fun allowApp(finding: Finding) {
-        viewModelScope.launch(work) {
-            quietly { actions.allow(finding.key) }
-            load()
-        }
-    }
+    /**
+     * An answer to a question on a finding ("Yes, that was me", "This app is fine", taking an app off the list); a failure
+     * leaves the screen as it was.
+     */
+    fun answer(block: suspend FindingActions.() -> Unit) = change { quietly { actions.block() } }
 
-    /** Takes an app off the list, so Aegida warns about it again. */
-    fun stopAllowing(item: com.aegida.core.notice.AllowedItem) {
-        viewModelScope.launch(work) {
-            quietly { actions.stopAllowing(item.problem, item.subject) }
-            load()
-        }
-    }
+    /** A save in first-run setup or My settings; the block gets the state as it is when it runs. */
+    fun edit(block: suspend SetupCommands.(MainState) -> Unit) = change { setup.block(mutableState.value) }
 
-    // First-run setup and My settings. Each save writes through the store, then reloads.
-
-    fun saveAbout(name: String, guardianName: String, email: String, phone: String) = change {
-        val current = guardianSettings.current()
-        guardianSettings.save(
-            current.copy(ownerName = name.trim(), firstGuardianName = guardianName.trim(), firstGuardianEmail = email.trim(), firstGuardianPhone = phone.trim()),
-        )
-    }
-
-    fun savePicture(picture: SafetyPicture) = change {
-        setupStore.save(setupStore.setup().copy(pictureId = picture.id))
-        banner.set(picture.id) // banners posted from now on carry the new picture, without reading the database
-    }
-
-    /** Makes her private alert topic the first time it is needed and returns the guardian settings to build the email from. */
-    suspend fun prepareInvite(): Guardians = withContext(work) {
-        val current = guardianSettings.current()
-        if (current.firstTopic != null) return@withContext current
-        val made = current.copy(firstTopic = NtfyTopic.generate())
-        guardianSettings.save(made)
+    /** A save that hands something back to build an invitation from (a new guardian, her private topic). */
+    suspend fun <T> editNow(block: suspend SetupCommands.() -> T): T = withContext(work) {
+        val result = setup.block()
         load()
-        made
-    }
-
-    /** Changes the guardian (the owner decides; nothing is sent to the old one). Returns the new settings to build the invite from. */
-    suspend fun changeGuardian(name: String, email: String, phone: String): Guardians = withContext(work) {
-        quietly { guardianChange.change(name, email, phone) }
-        load()
-        guardianSettings.current()
-    }
-
-    fun setAlerts(on: Boolean) = change { quietly { guardianAlerts.setAlertsOn(on) } }
-
-    /** With "Send the invitation again": tell the guardian once more that Aegida is set up (findings #95). */
-    fun resendWelcome() = change { quietly { guardianAlerts.resendWelcome() } }
-
-    fun answerBlocker(answer: AutoBlockerAnswer) = change { setupStore.save(setupStore.setup().copy(autoBlocker = answer)) }
-
-    /** Remembers the filter she set up, but only once Aegida has read it back as on. */
-    fun rememberFilterIfOn() = change {
-        if (mutableState.value.filterOn) setupStore.save(setupStore.setup().copy(websiteFilterHost = WebsiteFilter.HOST))
-    }
-
-    /** Marks [step] finished. The Samsung step is passed over on a phone that cannot have it. */
-    fun finishStep(step: SetupStep) = change {
-        val setup = setupStore.setup()
-        val next = step.next(mutableState.value.blockerRelevant)
-        val stepsDone = if (next == null) SetupStep.entries.size else maxOf(setup.stepsDone, next.ordinal)
-        setupStore.save(setup.copy(stepsDone = stepsDone))
+        result
     }
 
     private fun change(block: suspend () -> Unit) {
@@ -228,9 +114,5 @@ class MainViewModel @Inject constructor(
             block()
             load()
         }
-    }
-
-    private companion object {
-        val HISTORY_SHOWN: Duration = Duration.ofDays(90)
     }
 }

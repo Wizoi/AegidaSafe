@@ -25,7 +25,7 @@ class ProtectionService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         notifications.ensureChannels()
         val notice = notifications.statusNotification()
-        if (Build.VERSION.SDK_INT >= 34) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             startForeground(NOTICE_ID, notice, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
         } else {
             startForeground(NOTICE_ID, notice)
@@ -40,7 +40,7 @@ class ProtectionService : Service() {
         fun start(context: Context) {
             try {
                 context.startForegroundService(Intent(context, ProtectionService::class.java))
-            } catch (e: IllegalStateException) {
+            } catch (ignored: IllegalStateException) {
                 // ForegroundServiceStartNotAllowedException is an IllegalStateException; nothing to do here.
             }
         }

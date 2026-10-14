@@ -50,7 +50,9 @@ private fun dayHeading(day: DayLabel, locale: Locale): String = when (day) {
 private fun HistoryLine(row: HistoryRow, zone: ZoneId, locale: Locale) {
     val state = if (row.handled) Texts.History.HANDLED else Texts.History.NEEDS_YOU
     Surface(
-        modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) { contentDescription = "${row.title}. ${row.facts.orEmpty()} ${row.detail} $state." },
+        modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) {
+            contentDescription = "${row.title}. ${row.facts.orEmpty()} ${row.detail} $state."
+        },
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 1.dp,

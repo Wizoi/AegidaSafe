@@ -1,4 +1,4 @@
-package com.aegida.app
+﻿package com.aegida.app
 
 import android.app.Application
 import android.content.ComponentName
@@ -9,6 +9,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.test.core.app.ApplicationProvider
 import com.aegida.app.ui.setup.PictureStep
+import com.aegida.app.ui.setup.StepPosition
 import com.aegida.app.ui.theme.AegidaTheme
 import com.aegida.core.model.SafetyPicture
 import com.aegida.core.text.Texts
@@ -42,7 +43,7 @@ class SetupLayoutTest {
     private fun y(label: String) = composeRule.onNodeWithContentDescription(label).fetchSemanticsNode().positionInRoot.y
 
     @Test fun theTenPicturesAreThreeAcrossAndTheContinueButtonIsOnTheFirstScreen() {
-        composeRule.setContent { AegidaTheme { PictureStep(null, 2, 6, null, {}, {}) } }
+        composeRule.setContent { AegidaTheme { PictureStep(StepPosition(null, 2, 6), null, {}, {}) } }
         val rows = SafetyPicture.entries.map { y(it.label) }
         assertEquals("the first three pictures share a row", 1, rows.take(3).distinct().size)
         assertEquals("the next three share a row", 1, rows.drop(3).take(3).distinct().size)

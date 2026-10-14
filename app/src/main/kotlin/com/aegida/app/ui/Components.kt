@@ -77,7 +77,7 @@ fun QuietButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier
 /** One of the ten pictures on its own coloured tile. */
 @Composable
 fun PictureTile(picture: SafetyPicture, size: Dp, modifier: Modifier = Modifier, selected: Boolean = false) {
-    val shape = RoundedCornerShape(size / 4)
+    val shape = RoundedCornerShape(size / TILE_CORNER_DIVISOR)
     Box(
         modifier = modifier
             .size(size)
@@ -92,7 +92,7 @@ fun PictureTile(picture: SafetyPicture, size: Dp, modifier: Modifier = Modifier,
         Image(
             painter = painterResource(Pictures.drawable(picture)),
             contentDescription = null, // the tile's own description is set by the caller
-            modifier = Modifier.size(size * 0.72f),
+            modifier = Modifier.size(size * TILE_PICTURE_SHARE),
         )
     }
 }
@@ -123,28 +123,6 @@ fun AegidaScreen(pictureId: String?, modifier: Modifier = Modifier, content: @Co
     }
 }
 
-/** The Aegida shield (a rounded shield with a check), drawn in code in the brand colours. */
-@Composable
-fun AegidaShield(size: Dp, modifier: Modifier = Modifier) {
-    Canvas(modifier.size(size).semantics { contentDescription = Texts.APP_NAME }) {
-        val s = this.size.minDimension
-        val shield = Path().apply {
-            moveTo(s * 0.5f, s * 0.06f)
-            lineTo(s * 0.88f, s * 0.2f)
-            lineTo(s * 0.88f, s * 0.5f)
-            quadraticBezierTo(s * 0.88f, s * 0.82f, s * 0.5f, s * 0.96f)
-            quadraticBezierTo(s * 0.12f, s * 0.82f, s * 0.12f, s * 0.5f)
-            lineTo(s * 0.12f, s * 0.2f)
-            close()
-        }
-        drawPath(shield, Teal)
-        drawPath(
-            Path().apply { moveTo(s * 0.32f, s * 0.5f); lineTo(s * 0.45f, s * 0.63f); lineTo(s * 0.69f, s * 0.35f) },
-            Color.White, style = Stroke(width = s * 0.08f, cap = StrokeCap.Round, join = StrokeJoin.Round),
-        )
-    }
-}
-
 /** A finished step: a green tick and the words, so "done" is never only a colour. */
 @Composable
 fun DoneRow(text: String, modifier: Modifier = Modifier) {
@@ -155,42 +133,8 @@ fun DoneRow(text: String, modifier: Modifier = Modifier) {
         border = BorderStroke(2.dp, goodColor()),
     ) {
         Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            StatusMark(Mark.Good, 40.dp)
+            StatusMark(Mark.Good, size = 40.dp)
             Text(text, style = MaterialTheme.typography.titleMedium)
-        }
-    }
-}
-
-enum class Mark { Good, NeedsTap, Unknown }
-
-/** The big round mark on Home: a check, an exclamation mark, or a dash. Colour is never the only signal. */
-@Composable
-fun StatusMark(mark: Mark, size: Dp = 88.dp, modifier: Modifier = Modifier) {
-    val colour = when (mark) {
-        Mark.Good -> goodColor()
-        Mark.NeedsTap, Mark.Unknown -> amberColor()
-    }
-    val description = when (mark) {
-        Mark.Good -> Texts.Home.ALL_GOOD
-        Mark.NeedsTap -> Texts.Home.NEEDS_ONE
-        Mark.Unknown -> Texts.Home.COULDNT_CHECK
-    }
-    Canvas(modifier = modifier.size(size).semantics { contentDescription = description }) {
-        drawCircle(colour)
-        val s = this.size.minDimension
-        val stroke = Stroke(width = s * 0.09f, cap = StrokeCap.Round, join = StrokeJoin.Round)
-        when (mark) {
-            Mark.Good -> drawPath(
-                Path().apply {
-                    moveTo(s * 0.27f, s * 0.52f); lineTo(s * 0.43f, s * 0.68f); lineTo(s * 0.74f, s * 0.34f)
-                },
-                Color.White, style = stroke,
-            )
-            Mark.NeedsTap -> {
-                drawLine(Color.White, Offset(s * 0.5f, s * 0.25f), Offset(s * 0.5f, s * 0.55f), stroke.width, StrokeCap.Round)
-                drawCircle(Color.White, s * 0.055f, Offset(s * 0.5f, s * 0.72f))
-            }
-            Mark.Unknown -> drawLine(Color.White, Offset(s * 0.3f, s * 0.5f), Offset(s * 0.7f, s * 0.5f), stroke.width, StrokeCap.Round)
         }
     }
 }
@@ -203,3 +147,6 @@ fun HandledDot(handled: Boolean, modifier: Modifier = Modifier) {
 
 @Composable
 fun Gap(width: Dp) = Spacer(Modifier.width(width))
+
+private const val TILE_CORNER_DIVISOR = 4
+private const val TILE_PICTURE_SHARE = 0.72f

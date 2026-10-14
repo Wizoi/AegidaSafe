@@ -33,11 +33,13 @@ class AdviceLineTest {
     @Test fun theAdvicePageSaysTheAppTheTimeWhoItIsFromAndWhatItSaysWithoutTheLink() {
         val e = com.aegida.core.model.Evidence
         val lines = com.aegida.app.ui.AdviceLines.of(
-            finding(e.APP_LABEL to "Messages", e.MESSAGE_TITLE to "Chase Bank", e.MESSAGE_TEXT to "Refund: paypa1-help.example/claim now", e.MESSAGE_AT to now.minusSeconds(3600).toEpochMilli().toString(), e.HOST to "paypa1-help.example"),
+            finding(e.APP_LABEL to "Messages", e.MESSAGE_TITLE to "Chase Bank", e.MESSAGE_TEXT to "Refund: paypa1-help.example/claim now",
+                e.MESSAGE_AT to now.minusSeconds(3600).toEpochMilli().toString(), e.HOST to "paypa1-help.example"),
             now, zone, locale,
         )
         assertEquals(
-            listOf("It came from the “Messages” app.", "It came in today at 11:00 AM.", "From: “Chase Bank”", "It says: “Refund: (link) now”", Texts.Home.SCAM_ADVICE),
+            listOf("It came from the “Messages” app.", "It came in today at 11:00 AM.", "From: “Chase Bank”", "It says: “Refund: (link) now”",
+                Texts.Home.SCAM_ADVICE),
             lines.map { it.replace(' ', ' ') }, // newer Java puts a narrow no-break space before AM/PM
         )
     }
