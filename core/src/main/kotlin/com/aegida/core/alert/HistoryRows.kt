@@ -13,12 +13,13 @@ object HistoryRows {
 
     /**
      * Newest first. Entries the pipeline wrote for the same problem at the same moment (the warning to the owner
-     * and the message to a guardian) become one line, so one event reads as one event.
+     * and the message to a guardian) become one line, so one event reads as one event. Two events of one kind at one moment
+     * about different things (a reminder about two new apps) stay two lines, each with its own detail (finding #130).
      */
     fun of(entries: List<HistoryEntry>): List<HistoryRow> =
-        entries.groupBy { it.at to it.problem }
+        entries.groupBy { Triple(it.at, it.problem, it.detail) }
             .map { (key, group) ->
-                val (at, problem) = key
+                val (at, problem, _) = key
                 val outcomes = group.map { it.outcome }.distinct().sortedBy { OUTCOME_ORDER.indexOf(it) }
                 HistoryRow(
                     at = at,

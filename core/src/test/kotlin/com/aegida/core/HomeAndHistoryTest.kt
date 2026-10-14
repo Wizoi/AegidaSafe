@@ -69,6 +69,16 @@ class HistoryRowsTest {
         assertEquals("You were warned. Your guardian was told.", rows[0].detail)
     }
 
+    @Test fun oneReminderAboutTwoAppsIsOneLinePerApp() {
+        val rows = HistoryRows.of(
+            listOf(
+                HistoryEntry(now, Problem.NewAppOutsidePlay, Outcome.GuardianReminded, "The app is called: “Fun Game”."),
+                HistoryEntry(now, Problem.NewAppOutsidePlay, Outcome.GuardianReminded, "The app is called: “Photo Fixer”."),
+            ),
+        )
+        assertEquals(listOf("The app is called: “Fun Game”.", "The app is called: “Photo Fixer”."), rows.map { it.facts }.sortedBy { it })
+    }
+
     @Test fun newestFirstAndTwoEventsAtDifferentTimesStaySeparate() {
         val earlier = now.minus(Duration.ofHours(2))
         val rows = HistoryRows.of(
