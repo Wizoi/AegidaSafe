@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Lint runs with warningsAsErrors (see each module's lint block), so every warning fails the build. These four checks
+  depend on what the outside world published today, not on our code: a newer library, plugin or SDK release would turn
+  CI red with no code change. They stay visible in the report as informational. The target SDK is guarded by the Play
+  rule in CLAUDE.md (within one year of the latest Android), not by lint. Everything else still fails the build.
+-->
+<lint>
+    <issue id="GradleDependency" severity="informational" />
+    <issue id="AndroidGradlePluginVersion" severity="informational" />
+    <issue id="OldTargetApi" severity="informational" />
+    <issue id="NewerVersionAvailable" severity="informational" />
+</lint>

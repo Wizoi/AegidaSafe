@@ -56,6 +56,7 @@ android {
         abortOnError = true
         warningsAsErrors = true
         checkReleaseBuilds = false // `lint` already checks; skips a second pass in assembleRelease
+        lintConfig = rootProject.file("lint.xml") // only the date-driven checks are relaxed, see lint.xml
     }
     buildFeatures { compose = true }
     packaging { resources { excludes += "/META-INF/{AL2.0,LGPL2.1}" } }
