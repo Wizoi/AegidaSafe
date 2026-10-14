@@ -1,0 +1,20 @@
+# Scenarios: can Aegida still watch?
+
+What Android does to the notification listener (snooze returning, unbinding after an update or restart, binding again), what goes
+over the network compared with the privacy page, and what Home says in each state. Each row names the test that covers it. `GAP`
+means nothing covers it yet. Rows marked **Today / Proposed** pin today's behaviour where it leaves Mom with a wrong picture; the
+proposed design is in the finding named, and Kevin decides. Source: [test-review.md](../test-review.md) gaps 3, 4 and 8.
+
+`HealthScenariosTest` drives the checks through `FakeNotificationShade` (core test fixtures), which follows Android's documented
+listener behaviour; its listener does what `AegidaListenerService` does (that class needs Hilt and is not run on the JVM). The shade
+has not been compared with an emulator trace yet.
+
+| ID | Situation (Mom's words) | Mom sees | Guardian gets | Variants | Data source | Test | Emulator | Mutant |
+|---|---|---|---|---|---|---|---|---|
+| H1 | "A new website's notice came back an hour later" (repeat) | One "Was that you?" question; the notice is put aside again until she answers | One note, not a second | She said No (hidden), or the question waited a day (hidden) | FakeNotificationShade (Android docs) | HealthScenariosTest#aNewWebsitesNoticeThatComesBackFromItsSnoozeIsPutAsideAgainWithoutTellingAnyoneTwice; CheckOutcomeTest#aWebsiteSheSaidNoToIsDeletedWhenItsNoticeComesBackNotPutAsideAgain; CheckOutcomeTest#aQuestionLeftUnansweredForADayStopsBeingPutAsideAndIsDeleted | emulator_websites.py | new-website-is-snoozed-not-deleted |
+| H2 | "My phone restarted" or "Aegida was updated" | Aegida checks the phone again when it is bound; notices are heard again | Nothing new | The system unbinds without a restart | FakeNotificationShade (Android docs) | HealthScenariosTest#afterAPhoneRestartOrAppUpdateTheListenerBindsAgainAndAegidaChecksThePhone | GAP | GAP |
+| H3 | "A scam text came while Aegida was not listening" (failure) | **Today:** never checked; no warning; Home says No known problems found. **Proposed (finding #111):** when bound again, the notices still on the screen are checked once | **Today:** nothing. **Proposed:** a note, as for any scam text | Unbound by an update, a restart, low memory | FakeNotificationShade (Android docs) | HealthScenariosTest#todayAScamTextThatArrivedWhileAegidaWasNotListeningIsNeverChecked | GAP | GAP |
+| H4 | "Notification access is on, but the phone stopped Aegida listening" (failure) | **Today:** the daily check sees access on and Home says No known problems found. **Proposed (finding #112):** Home says Aegida could not check notices, with one step to fix it | **Today:** nothing. **Proposed:** told only if it lasts past a day | Listener bound again before the daily check | FakeNotificationShade (Android docs) | HealthScenariosTest#todayWhenTheListenerIsOnButUnboundDuringTheDailyCheckHomeStillSaysNoKnownProblems | GAP | GAP |
+| H5 | "I turned notification access off" | A step to turn it back on | A note | Not before setup ends | Emulator | HealthScenariosTest#whenNotificationAccessIsTurnedOffHomeAsksHerToTurnItBackOn; DetectorsTest#lostPermissionsAreFindings | emulator_live.py | health-not-before-setup-ends |
+| N1 | "What does Aegida send when Kevin is not told?" (must never send words) | n/a | Nothing; only the two list files from GitHub Pages and one cancel of the waiting message, as the privacy page says | Three days, a scam text, the filter turned off | Privacy page text; HttpClient port | NetworkVsPrivacyPageTest#withMessagesOffOnlyTheTwoListFilesAreFetchedAndOneCancelIsSent; NetworkVsPrivacyPageTest#everyHostTheAppContactsIsNamedOnThePrivacyPage | GAP | list-host-named-on-privacy-page; cancel-once-while-off |
+| N2 | "What does Aegida send when Kevin is told?" (must never send words or whole addresses) | n/a | Short messages through ntfy.sh only, with no message words and no whole web address | Same three days | Privacy page text; HttpClient port | NetworkVsPrivacyPageTest#withMessagesOnOnlyNtfyGetsMessagesAndTheyCarryNoWholeAddressOrMessageWords | GAP | GAP |
