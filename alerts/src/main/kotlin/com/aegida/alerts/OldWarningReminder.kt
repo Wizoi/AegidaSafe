@@ -1,6 +1,7 @@
 package com.aegida.alerts
 
 import com.aegida.core.alert.FindingStore
+import com.aegida.core.alert.HistoryDetail
 import com.aegida.core.alert.HistoryEntry
 import com.aegida.core.alert.HistoryLog
 import com.aegida.core.alert.Outcome
@@ -39,16 +40,19 @@ internal class OldWarningReminder(
         val message = GuardianMessage(title = owner, body = text.format(owner), urgent = false)
         var notReached = 0
         when (line.send(topic, message)) {
-            SendResult.Delivered -> due.forEach { history.add(HistoryEntry(now, it.key.problem, Outcome.GuardianReminded)) }
+            // Each line says which app or site it was about, so her "Yes, that was me" finds it for that one only (findings #117).
+            SendResult.Delivered -> due.forEach { history.add(HistoryEntry(now, it.key.problem, Outcome.GuardianReminded, detailOf(it))) }
             is SendResult.NotDelivered -> {
                 notReached++
                 line.hold(topic, message, due.first().key.problem, now)
-                due.forEach { history.add(HistoryEntry(now, it.key.problem, Outcome.GuardianNotReached)) }
+                due.forEach { history.add(HistoryEntry(now, it.key.problem, Outcome.GuardianNotReached, detailOf(it))) }
             }
         }
         due.forEach { findings.put(it.copy(state = FindingState.Escalated)) }
         return notReached
     }
+
+    private fun detailOf(finding: Finding): String? = HistoryDetail.of(finding.key.problem, finding.evidence)
 
     private suspend fun dueWarnings(owner: String, now: Instant): List<Finding> {
         val candidates = findings.open().filter { it.state == FindingState.Open && it.severity >= Severity.NeedsTap }

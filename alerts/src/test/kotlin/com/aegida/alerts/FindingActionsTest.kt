@@ -20,6 +20,12 @@ import com.aegida.core.net.NtfyTopic
 import com.aegida.core.notice.AllowList
 import com.aegida.core.text.Fix
 import com.aegida.core.text.Problem
+import com.aegida.core.model.Setup
+import com.aegida.detectors.Inputs
+import com.aegida.detectors.NewAppDetector
+import com.aegida.detectors.PopupSpamDetector
+import com.aegida.testkit.aChromePopup
+import com.aegida.testkit.anAppOpenedFromAFile
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -196,21 +202,26 @@ class FindingActionsTest {
     }
 
     private val newSite = "http://localhost:8765"
+
+    /** What the real detector makes of a calm notification from a site she never had: the site and what it said (findings #117). */
     private suspend fun aNewWebsite(): Finding {
         baselines.value = Baseline.of(phone)
-        val f = Finding(FindingKey(DetectorId.PopupSpam, Problem.NewWebsiteNotifications, newSite), emptyMap(), now, now)
+        val popup = aChromePopup(now, site = "$newSite/", title = "Today's recipes", text = "Lentil soup in 20 minutes")
+        val f = PopupSpamDetector().evaluate(Inputs(phone, now, Setup.NotDone, null, popup, null, baseline = baselines.value)).single()
+        assertEquals(Problem.NewWebsiteNotifications, f.key.problem)
+        assertEquals("Today's recipes", f.evidence[Evidence.MESSAGE_TITLE]) // the words seen takes out
         pipeline.handle(listOf(f), setOf(DetectorId.PopupSpam))
         return f
     }
 
     @Test fun aNewWebsiteIsToldToTheGuardianAsAQuestionAndHidden() = runTest { // Kevin, Oct 9
         val f = aNewWebsite()
-        val told = "A website that was not there before started sending notifications on Ruth's phone. Aegida asked Ruth: “Was that you?”"
+        val told = "A website (lo*****) that was not there before started sending notifications on Ruth's phone. Aegida asked Ruth: “Was that you?”"
         assertEquals(listOf(told), http.bodies)
         assertEquals(listOf(f.key), owner.shown)
     }
 
-    @Test fun sayingANewWebsiteWasHersLetsItThroughNextTimeAndTheGuardianHearsIt() = runTest {
+    @Test fun aNewWebsiteSheSaysYesToTheGuardianHearsSheConfirmedIt() = runTest { // findings #117, GN17
         val f = aNewWebsite()
         http.posts.clear(); http.bodies.clear()
         assertTrue(actions.acceptChange(f.key))
@@ -287,13 +298,50 @@ class FindingActionsTest {
         assertEquals(0, http.bodies.size)
     }
 
+    /** What the real detector makes of an app opened from a file after setup: the question, with the app's name. */
+    private fun newAppQuestion(pkg: String = "org.new.app"): Finding {
+        phone = phone.copy(apps = phone.apps + anAppOpenedFromAFile(pkg))
+        return NewAppDetector().evaluate(Inputs(phone, now, Setup.NotDone, null, null, null, baseline = baselines.value)).single { it.key.subject == pkg }
+    }
+
     private suspend fun newAppSideloaded(): Finding {
         baselines.value = Baseline.of(phone)
-        phone = phone.copy(apps = listOf(com.aegida.core.model.InstalledApp("org.new.app", "New", null, false)))
-        val f = Finding(FindingKey(DetectorId.NewApp, Problem.NewAppOutsidePlay, "org.new.app"), emptyMap(), now, now)
+        val f = newAppQuestion()
         pipeline.handle(listOf(f), setOf(DetectorId.NewApp))
         http.posts.clear(); http.bodies.clear()
         return f
+    }
+
+    @Test fun aNewAppTheGuardianHeardOfOnlyFromTheNextDayReminderGetsTheAllClearWhenSheSaysYes() = runTest { // findings #117, GN18
+        baselines.value = Baseline.of(phone)
+        guardians.value = guardians.value.copy(alertsOn = false) // alerts were off when it happened: no alarm, no line
+        val f = newAppQuestion()
+        pipeline.handle(listOf(f), setOf(DetectorId.NewApp))
+        assertEquals(0, http.bodies.size)
+        guardians.value = guardians.value.copy(alertsOn = true)
+        findings.rows[f.key] = findings.rows.getValue(f.key).copy(firstSeen = now.minus(Duration.ofHours(25)))
+        pipeline.handle(listOf(f), setOf(DetectorId.NewApp)) // a day later, still unanswered: the reminder is the first they hear
+        assertEquals(1, http.bodies.size)
+        http.posts.clear(); http.bodies.clear()
+        assertTrue(actions.acceptChange(f.key))
+        assertEquals(listOf("Ruth confirmed the change Aegida asked about. Nothing more to do."), http.bodies)
+    }
+
+    @Test fun aReminderAboutOneAppNeverCountsForAnotherAppOfTheSameKind() = runTest { // findings #115, #117, GN18
+        baselines.value = Baseline.of(phone)
+        guardians.value = guardians.value.copy(alertsOn = false)
+        val first = newAppQuestion("org.first.notes")
+        pipeline.handle(listOf(first), setOf(DetectorId.NewApp))
+        guardians.value = guardians.value.copy(alertsOn = true)
+        findings.rows[first.key] = findings.rows.getValue(first.key).copy(firstSeen = now.minus(Duration.ofHours(25)))
+        pipeline.handle(listOf(first), setOf(DetectorId.NewApp)) // reminded about the first only
+        guardians.value = guardians.value.copy(alertsOn = false)
+        val second = newAppQuestion("org.second.games")
+        pipeline.handle(listOf(second), setOf(DetectorId.NewApp)) // the guardian never hears of the second
+        guardians.value = guardians.value.copy(alertsOn = true)
+        http.posts.clear(); http.bodies.clear()
+        assertTrue(actions.acceptChange(second.key))
+        assertEquals(0, http.bodies.size)
     }
 
     @Test fun aNeedsTapChangeGetsTheCalmAllClearButAnUrgentOneNever() = runTest {

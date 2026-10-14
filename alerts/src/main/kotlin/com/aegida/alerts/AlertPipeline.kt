@@ -138,13 +138,14 @@ class AlertPipeline @Inject constructor(
      * family-approved install does not need a phone call to settle. Nothing is sent to a guardian who was never told
      * (alerts were off, the repeat back-off held it back, or the kind has no guardian text), nor while the original alarm is still waiting in the
      * outbox (the all-clear must not arrive first). For urgent kinds the words never say everything is fine: it may
-     * be a scammer coaching her (findings #50).
+     * be a scammer coaching her (findings #50). [asTold] is the finding as it was before she marked it seen, still holding the words
+     * the guardian's History lines were made from (findings #117).
      */
-    suspend fun tellConfirmed(key: FindingKey) {
-        val problem = key.problem
+    suspend fun tellConfirmed(asTold: Finding) {
+        val problem = asTold.key.problem
         val settings = line.current()
         val topic = settings.firstTopic?.takeIf { settings.alertsOn } ?: return
-        if (!toldAndNotWaiting(key)) return
+        if (!toldAndNotWaiting(asTold)) return
         val text = if (problem.severity == Severity.Urgent) Texts.Guardian.CONFIRMED_URGENT else Texts.Guardian.CONFIRMED
         val message = GuardianMessage(title = guardianName(settings), body = text.format(guardianName(settings)), urgent = false)
         sendOrHold(topic, message, problem, clock.now())
@@ -154,10 +155,11 @@ class AlertPipeline @Inject constructor(
      * The guardian heard about this very warning, about this app, and that alarm has left the outbox (so the all-clear cannot arrive
      * first). History is matched by what the entry says it was (the app), not only by kind: two apps of the same kind may be told apart
      * (findings #115). An alarm delivered later from the outbox has no line of its own, so it counts only after a failed try for this app.
+     * One rule for every line: the detail is made by [HistoryDetail] from the finding as it was told, before seen took the message words
+     * out, exactly as the alarm's and the reminder's lines were made, so they always match (findings #117).
      */
-    private suspend fun toldAndNotWaiting(key: FindingKey): Boolean {
-        val problem = key.problem
-        val finding = findings.get(key) ?: return false
+    private suspend fun toldAndNotWaiting(finding: Finding): Boolean {
+        val problem = finding.key.problem
         val what = HistoryDetail.of(problem, finding.evidence)
         val entries = history.since(finding.firstSeen).filter { it.problem == problem }
         val toldOutcomes = setOf(Outcome.GuardianTold, Outcome.GuardianReminded)
