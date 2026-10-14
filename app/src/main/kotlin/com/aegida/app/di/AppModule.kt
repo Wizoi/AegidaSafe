@@ -38,38 +38,16 @@ import dagger.hilt.components.SingletonComponent
 import dagger.multibindings.IntoSet
 import javax.inject.Singleton
 
-/** The composition root: one real implementation per port, and the detectors that make up a check. */
+/** The composition root: one real implementation per port. The detectors are in [DetectorsModule], the store's tables in [StoreModule]. */
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class AppModule {
     @Binds abstract fun clock(impl: SystemClock): Clock
     @Binds @Singleton abstract fun http(impl: OkHttpHttpClient): HttpClient
 
-    @Binds @IntoSet abstract fun linkDetector(impl: LinkDetector): Detector
-    @Binds @IntoSet abstract fun popupSpamDetector(impl: PopupSpamDetector): Detector
-    @Binds @IntoSet abstract fun noisyAppDetector(impl: com.aegida.detectors.NoisyAppDetector): Detector
-    @Binds @IntoSet abstract fun dnsDetector(impl: DnsDetector): Detector
-    @Binds @IntoSet abstract fun healthDetector(impl: HealthDetector): Detector
-    @Binds @IntoSet abstract fun deliveryDetector(impl: DeliveryDetector): Detector
-    @Binds @IntoSet abstract fun driftDetector(impl: com.aegida.detectors.DriftDetector): Detector
-    @Binds @IntoSet abstract fun newAppDetector(impl: com.aegida.detectors.NewAppDetector): Detector
-    @Binds @IntoSet abstract fun remoteControlDetector(impl: com.aegida.detectors.RemoteControlDetector): Detector
-    @Binds @IntoSet abstract fun stalkerwareDetector(impl: com.aegida.detectors.StalkerwareDetector): Detector
-
     companion object {
         @Provides @Singleton
         fun store(@ApplicationContext context: Context): AegidaStore = AegidaStore(context)
-
-        @Provides fun checkLog(store: AegidaStore): CheckLog = store.checkLog
-        @Provides fun findings(store: AegidaStore): FindingStore = store.findings
-        @Provides fun notices(store: AegidaStore): com.aegida.core.notice.NoticeLog = store.notices
-        @Provides fun allowList(store: AegidaStore): com.aegida.core.notice.AllowList = store.allowList
-        @Provides fun history(store: AegidaStore): HistoryLog = store.history
-        @Provides fun outbox(store: AegidaStore): Outbox = store.outbox
-        @Provides fun setup(store: AegidaStore): SetupStore = store.setup
-        @Provides fun guardians(store: AegidaStore): GuardianSettings = store.guardians
-        @Provides fun baselines(store: AegidaStore): com.aegida.core.store.BaselineStore = store.baselines
-        @Provides fun feed(store: AegidaStore): FeedStore = store.feed
 
         /** One banner picture for the whole app: the ViewModel updates it, the poster reads it (R5). */
         @Provides @Singleton
@@ -93,4 +71,36 @@ abstract class AppModule {
         fun feedUpdater(http: HttpClient, store: FeedStore, clock: Clock): FeedUpdater =
             FeedUpdater(http, FeedKey.verifier(), store, clock)
     }
+}
+
+/** The detectors that make up a check. */
+@Module
+@InstallIn(SingletonComponent::class)
+abstract class DetectorsModule {
+    @Binds @IntoSet abstract fun linkDetector(impl: LinkDetector): Detector
+    @Binds @IntoSet abstract fun popupSpamDetector(impl: PopupSpamDetector): Detector
+    @Binds @IntoSet abstract fun noisyAppDetector(impl: com.aegida.detectors.NoisyAppDetector): Detector
+    @Binds @IntoSet abstract fun dnsDetector(impl: DnsDetector): Detector
+    @Binds @IntoSet abstract fun healthDetector(impl: HealthDetector): Detector
+    @Binds @IntoSet abstract fun deliveryDetector(impl: DeliveryDetector): Detector
+    @Binds @IntoSet abstract fun driftDetector(impl: com.aegida.detectors.DriftDetector): Detector
+    @Binds @IntoSet abstract fun newAppDetector(impl: com.aegida.detectors.NewAppDetector): Detector
+    @Binds @IntoSet abstract fun remoteControlDetector(impl: com.aegida.detectors.RemoteControlDetector): Detector
+    @Binds @IntoSet abstract fun stalkerwareDetector(impl: com.aegida.detectors.StalkerwareDetector): Detector
+}
+
+/** Each of the store's tables, handed out as the port the rest of the app knows it by. */
+@Module
+@InstallIn(SingletonComponent::class)
+object StoreModule {
+    @Provides fun checkLog(store: AegidaStore): CheckLog = store.checkLog
+    @Provides fun findings(store: AegidaStore): FindingStore = store.findings
+    @Provides fun notices(store: AegidaStore): com.aegida.core.notice.NoticeLog = store.notices
+    @Provides fun allowList(store: AegidaStore): com.aegida.core.notice.AllowList = store.allowList
+    @Provides fun history(store: AegidaStore): HistoryLog = store.history
+    @Provides fun outbox(store: AegidaStore): Outbox = store.outbox
+    @Provides fun setup(store: AegidaStore): SetupStore = store.setup
+    @Provides fun guardians(store: AegidaStore): GuardianSettings = store.guardians
+    @Provides fun baselines(store: AegidaStore): com.aegida.core.store.BaselineStore = store.baselines
+    @Provides fun feed(store: AegidaStore): FeedStore = store.feed
 }

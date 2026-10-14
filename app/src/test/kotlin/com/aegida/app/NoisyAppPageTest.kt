@@ -20,8 +20,10 @@ class NoisyAppPageTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark, f
         val taps = mutableListOf<String>()
         show {
             com.aegida.app.ui.NoisyAppPage(
-                picture, noisy(), now, zone, locale,
-                onTurnOff = { taps += "off" }, onRemove = { taps += "remove" }, onFine = { taps += "fine" }, onGotIt = { taps += "gotit" },
+                picture, noisy(), com.aegida.app.ui.ShownAt(now, zone, locale),
+                com.aegida.app.ui.NoisyAppActions(
+                    onTurnOff = { taps += "off" }, onRemove = { taps += "remove" }, onFine = { taps += "fine" }, onGotIt = { taps += "gotit" },
+                ),
             )
         }
         reachable(Problem.NoisyApp.forMom)

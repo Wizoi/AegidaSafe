@@ -39,7 +39,8 @@ class PublicPagesTest {
         assertTrue("no external scripts", !Regex("""<script[^>]*\bsrc=""").containsMatchIn(html))
         assertTrue("no external files", !Regex("""\b(src|srcset)="https?://""").containsMatchIn(html) && !html.contains("<link rel=\"stylesheet\""))
         val hosts = Regex("""href="https?://([^/"]+)""").findAll(html).map { it.groupValues[1] }.toSet()
-        assertEquals("links may go only to our own site, ntfy and the two app stores", emptySet<String>(), hosts - setOf("wizoi.github.io", "ntfy.sh", "play.google.com", "apps.apple.com"))
+        assertEquals("links may go only to our own site, ntfy and the two app stores", emptySet<String>(), hosts - setOf("wizoi.github.io", "ntfy.sh",
+            "play.google.com", "apps.apple.com"))
     }
 
     @Test fun itNeverSaysSafeOrPromisesMoreThanTheAppDoesOrClaimsTheCodeIsOpen() {
@@ -90,7 +91,10 @@ class PublicPagesTest {
      * plans promised that the code does not do (findings #81): a source we left out, a checker we never added, a second guardian.
      */
     @Test fun noPublicTextMentionsAFeatureThatIsNotBuilt() {
-        val unbuilt = Regex("""URLhaus|Safe Browsing|Play Protect|Play Integrity|MalwareBazaar|second guardian|weekly digest|call screening|coming soon|roadmap""", RegexOption.IGNORE_CASE)
+        val unbuilt = Regex(
+            """URLhaus|Safe Browsing|Play Protect|Play Integrity|MalwareBazaar|second guardian|weekly digest|call screening|coming soon|roadmap""",
+            RegexOption.IGNORE_CASE,
+        )
         val publicFiles = listOf(
             "../docs/site/how-it-works.html", "../docs/site/privacy.html", "../README.md", "../THIRD_PARTY_NOTICES.md", "../SECURITY.md",
             "src/main/play/listings/en-US/title.txt", "src/main/play/listings/en-US/short-description.txt", "src/main/play/listings/en-US/full-description.txt",
@@ -102,7 +106,10 @@ class PublicPagesTest {
 
     /** Kevin, Oct 9: US English in everything public ("license", "recognized", "optimization"), as in the app. */
     @Test fun publicTextIsInUsEnglish() {
-        val british = Regex("""(?i)\b(licen[c]es?|optimis\w+|serialis\w+|recognis\w+|organis\w+|colour\w*|behaviour\w*|centre\w*|favour\w*|catalogue|programme|analyse\w*|defence|authoris\w+|whilst|grey|summaris\w+|realis\w+|minimis\w+|customis\w+|personalis\w+)\b""")
+        val british = Regex(
+            """(?i)\b(licen[c]es?|optimis\w+|serialis\w+|recognis\w+|organis\w+|colour\w*|behaviour\w*|centre\w*|favour\w*|catalogue|""" +
+                """programme|analyse\w*|defence|authoris\w+|whilst|grey|summaris\w+|realis\w+|minimis\w+|customis\w+|personalis\w+)\b""",
+        )
         val publicFiles = listOf(
             "../docs/site/how-it-works.html", "../docs/site/privacy.html", "../README.md", "../THIRD_PARTY_NOTICES.md", "../SECURITY.md",
             "src/main/play/listings/en-US/title.txt", "src/main/play/listings/en-US/short-description.txt", "src/main/play/listings/en-US/full-description.txt",
@@ -115,7 +122,8 @@ class PublicPagesTest {
     /** The README is the first public page of the repo: the same words as the app ("looks out for", never "safe", no "her"). */
     @Test fun theReadmeUsesTheAppsWordsAndNeverAssumesAPronoun() {
         val readme = File("../README.md").readText()
-        assertEquals(emptyList<String>(), Regex("""\b(safe|safely|safety|secure|dangerous|guarantee[ds]?|protected)\b""", RegexOption.IGNORE_CASE).findAll(readme).map { it.value }.toList())
+        assertEquals(emptyList<String>(), Regex("""\b(safe|safely|safety|secure|dangerous|guarantee[ds]?|protected)\b""",
+            RegexOption.IGNORE_CASE).findAll(readme).map { it.value }.toList())
         assertEquals(emptyList<String>(), Regex("""\b(her|hers|she)\b""", RegexOption.IGNORE_CASE).findAll(readme).map { it.value }.toList())
     }
 
@@ -124,12 +132,14 @@ class PublicPagesTest {
         val simple = html.substringAfter("id=\"simple-view\"").substringBefore("id=\"detailed-view\"")
         val detailed = html.substringAfter("id=\"detailed-view\"")
         for ((name, part) in listOf("Simple view" to simple, "Detailed view" to detailed)) {
-            assertTrue("$name must say what the website-blocking step is", part.contains("website-blocking", ignoreCase = true) || part.contains("Website blocking"))
+            assertTrue("$name must say what the website-blocking step is", part.contains("website-blocking",
+                ignoreCase = true) || part.contains("Website blocking"))
             assertTrue("$name must name Cloudflare", part.contains("Cloudflare"))
         }
         assertTrue("the Detailed view must say Aegida only reads the setting", detailed.contains("Aegida reads the setting and nothing more"))
         val privacy = File("../docs/site/privacy.html").readText()
-        assertTrue("the privacy page must name Cloudflare and the host", privacy.contains("Cloudflare") && privacy.contains(com.aegida.core.model.WebsiteFilter.HOST))
+        assertTrue("the privacy page must name Cloudflare and the host",
+            privacy.contains("Cloudflare") && privacy.contains(com.aegida.core.model.WebsiteFilter.HOST))
         assertTrue("it must no longer claim nothing else is sent", !privacy.contains("Aegida sends nothing else. "))
     }
 
@@ -149,8 +159,10 @@ class PublicPagesTest {
     @Test fun thePageSaysHowAGuardianSetsUpMoreDevicesAndThatAnAccountIsOptional() {
         val simple = html.substringAfter("id=\"simple-view\"").substringBefore("id=\"detailed-view\"")
         val detailed = html.substringAfter("id=\"detailed-view\"")
-        assertTrue("the Simple view says what the guardian does", simple.contains("What does my guardian need to do?") && simple.contains("no account is needed"))
-        assertTrue("the Detailed view has the guardian-devices section", detailed.contains("Setting up the guardian's devices") && detailed.contains("Optional: an ntfy account"))
+        assertTrue("the Simple view says what the guardian does",
+            simple.contains("What does my guardian need to do?") && simple.contains("no account is needed"))
+        assertTrue("the Detailed view has the guardian-devices section",
+            detailed.contains("Setting up the guardian's devices") && detailed.contains("Optional: an ntfy account"))
         assertTrue("it says Aegida never needs one", detailed.contains("Aegida does not need an account and never asks for one"))
     }
 

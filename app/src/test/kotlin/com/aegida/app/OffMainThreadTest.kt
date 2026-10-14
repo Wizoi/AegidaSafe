@@ -1,4 +1,4 @@
-package com.aegida.app
+﻿package com.aegida.app
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -27,6 +27,6 @@ class OffMainThreadTest {
 
     @Test fun oneBannerPictureIsSharedBetweenThePosterAndTheViewModel() {
         assertTrue(Regex("""@Provides\s+@Singleton\s+fun pictureBanner\(""").containsMatchIn(source("di/AppModule.kt")))
-        assertTrue(source("MainViewModel.kt").contains("banner.set("))
+        assertTrue(source("SetupCommands.kt").contains("banner.set("))
     }
 }

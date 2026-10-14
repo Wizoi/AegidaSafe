@@ -7,6 +7,7 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.os.Looper
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.createBitmap
 import com.aegida.core.model.SafetyPicture
 import com.aegida.core.store.SetupStore
 import com.aegida.platform.notify.BannerArt
@@ -43,7 +44,7 @@ class PictureBanner(
                 synchronized(this@PictureBanner) { if (!chosen) apply(stored) } // a pick made meanwhile wins
             } catch (e: CancellationException) {
                 throw e
-            } catch (e: Exception) {
+            } catch (ignored: Exception) {
                 // No picture is better than no banner.
             } finally {
                 loaded.countDown()
@@ -77,39 +78,73 @@ class PictureBanner(
     }
 
     private fun draw(picture: SafetyPicture): Bitmap {
-        val size = 192
-        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val bitmap = createBitmap(SIZE, SIZE)
         val canvas = Canvas(bitmap)
-        val s = size.toFloat()
+        val s = SIZE.toFloat()
         val tile = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = ContextCompat.getColor(context, Pictures.tileColor(picture)) }
-        canvas.drawRoundRect(0f, 0f, s, s, s / 4, s / 4, tile)
-        // Her picture, large and faint.
+        canvas.drawRoundRect(0f, 0f, s, s, s / CORNER_DIVISOR, s / CORNER_DIVISOR, tile)
+        drawPicture(canvas, picture)
+        drawShield(canvas, s)
+        return bitmap
+    }
+
+    /** Her picture, large and faint. */
+    private fun drawPicture(canvas: Canvas, picture: SafetyPicture) {
         ContextCompat.getDrawable(context, Pictures.drawable(picture))?.mutate()?.let {
-            val inset = (s * 0.1f).toInt()
-            it.setBounds(inset, inset, size - inset, size - inset)
-            it.alpha = 110
+            val inset = (SIZE * PICTURE_INSET).toInt()
+            it.setBounds(inset, inset, SIZE - inset, SIZE - inset)
+            it.alpha = PICTURE_ALPHA
             it.draw(canvas)
         }
-        // The shield on top.
+    }
+
+    /** The shield on top, with its check. */
+    private fun drawShield(canvas: Canvas, s: Float) {
         val shield = Path().apply {
-            moveTo(s * 0.5f, s * 0.14f)
-            lineTo(s * 0.80f, s * 0.26f)
-            lineTo(s * 0.80f, s * 0.52f)
-            quadTo(s * 0.80f, s * 0.76f, s * 0.5f, s * 0.88f)
-            quadTo(s * 0.20f, s * 0.76f, s * 0.20f, s * 0.52f)
-            lineTo(s * 0.20f, s * 0.26f)
+            moveTo(ShieldTop, s)
+            lineTo(ShieldRightShoulder, s)
+            lineTo(ShieldRightSide, s)
+            quadTo(ShieldRightCurve, ShieldBottom, s)
+            quadTo(ShieldLeftCurve, ShieldLeftSide, s)
+            lineTo(ShieldLeftShoulder, s)
             close()
         }
-        canvas.drawPath(shield, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFF0F6B73.toInt() })
+        canvas.drawPath(shield, Paint(Paint.ANTI_ALIAS_FLAG).apply { color = SHIELD_COLOUR })
         canvas.drawPath(
-            Path().apply {
-                moveTo(s * 0.36f, s * 0.50f); lineTo(s * 0.46f, s * 0.60f); lineTo(s * 0.65f, s * 0.38f)
-            },
+            Path().apply { moveTo(TickStart, s); lineTo(TickBend, s); lineTo(TickEnd, s) },
             Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                color = 0xFFFFFFFF.toInt(); style = Paint.Style.STROKE; strokeWidth = s * 0.07f
+                color = TICK_COLOUR; style = Paint.Style.STROKE; strokeWidth = s * TICK_WIDTH
                 strokeCap = Paint.Cap.ROUND; strokeJoin = Paint.Join.ROUND
             },
         )
-        return bitmap
+    }
+
+    private companion object {
+        const val SIZE = 192
+        const val CORNER_DIVISOR = 4
+        const val PICTURE_INSET = 0.1f
+        const val PICTURE_ALPHA = 110
+        const val TICK_WIDTH = 0.07f
+        val SHIELD_COLOUR = 0xFF0F6B73.toInt()
+        val TICK_COLOUR = 0xFFFFFFFF.toInt()
     }
 }
+
+/** A point in the unit square, scaled by the bitmap's size when drawn. */
+private class UnitPoint(val x: Float, val y: Float)
+
+private val ShieldTop = UnitPoint(0.5f, 0.14f)
+private val ShieldRightShoulder = UnitPoint(0.80f, 0.26f)
+private val ShieldRightSide = UnitPoint(0.80f, 0.52f)
+private val ShieldRightCurve = UnitPoint(0.80f, 0.76f)
+private val ShieldBottom = UnitPoint(0.5f, 0.88f)
+private val ShieldLeftCurve = UnitPoint(0.20f, 0.76f)
+private val ShieldLeftSide = UnitPoint(0.20f, 0.52f)
+private val ShieldLeftShoulder = UnitPoint(0.20f, 0.26f)
+private val TickStart = UnitPoint(0.36f, 0.50f)
+private val TickBend = UnitPoint(0.46f, 0.60f)
+private val TickEnd = UnitPoint(0.65f, 0.38f)
+
+private fun Path.moveTo(p: UnitPoint, s: Float) = moveTo(p.x * s, p.y * s)
+private fun Path.lineTo(p: UnitPoint, s: Float) = lineTo(p.x * s, p.y * s)
+private fun Path.quadTo(control: UnitPoint, end: UnitPoint, s: Float) = quadTo(control.x * s, control.y * s, end.x * s, end.y * s)

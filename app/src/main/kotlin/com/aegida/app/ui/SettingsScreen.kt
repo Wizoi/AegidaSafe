@@ -21,33 +21,44 @@ import com.aegida.core.model.SafetyPicture
 import com.aegida.core.model.Setup
 import com.aegida.core.text.Texts
 
+/** What My settings shows. */
+data class SettingsContent(
+    val setup: Setup,
+    val guardians: Guardians,
+    val filterOn: Boolean,
+    val listsUpdatedAt: java.time.Instant?,
+    val zone: java.time.ZoneId,
+    val locale: java.util.Locale,
+    /** Things the owner told Aegida are fine, each with a way to take it back (Kevin, Oct 11). */
+    val allowed: List<com.aegida.core.notice.AllowedItem> = emptyList(),
+)
+
+/** What the buttons and the switch in My settings do. */
+data class SettingsActions(
+    val onChangePicture: () -> Unit,
+    val onChangeGuardian: () -> Unit,
+    val onResendInvite: () -> Unit,
+    val onAlerts: (Boolean) -> Unit,
+    val onFilterHelp: () -> Unit,
+    val onHowItWorks: () -> Unit,
+    val onStopAllowing: (com.aegida.core.notice.AllowedItem) -> Unit = {},
+)
+
 /** What the owner can see and change later. */
 @Composable
-fun SettingsScreen(
-    setup: Setup,
-    guardians: Guardians,
-    filterOn: Boolean,
-    onChangePicture: () -> Unit,
-    onChangeGuardian: () -> Unit,
-    onResendInvite: () -> Unit,
-    onAlerts: (Boolean) -> Unit,
-    onFilterHelp: () -> Unit,
-    onHowItWorks: () -> Unit,
-    listsUpdatedAt: java.time.Instant?,
-    zone: java.time.ZoneId,
-    locale: java.util.Locale,
-    /** Things the owner told Aegida are fine, each with a way to take it back (Kevin, Oct 11). */
-    allowed: List<com.aegida.core.notice.AllowedItem> = emptyList(),
-    onStopAllowing: (com.aegida.core.notice.AllowedItem) -> Unit = {},
-) {
+fun SettingsScreen(content: SettingsContent, actions: SettingsActions) {
+    val setup = content.setup
+    val guardians = content.guardians
+    val filterOn = content.filterOn
+    val allowed = content.allowed
     val picture = SafetyPicture.fromId(setup.pictureId)
     AegidaScreen(setup.pictureId) {
         Text(Texts.Settings.TITLE, style = MaterialTheme.typography.headlineMedium, modifier = Modifier.semantics { heading() })
         SettingCard {
             ValueRow(Texts.Settings.NAME, guardians.ownerName.ifBlank { Texts.Settings.NOT_SET })
             ValueRow(Texts.Settings.GUARDIAN, guardians.firstGuardianName.ifBlank { Texts.Settings.NOT_SET })
-            QuietButton(Texts.Settings.RESEND_INVITE, onResendInvite)
-            QuietButton(Texts.Settings.CHANGE_GUARDIAN, onChangeGuardian)
+            QuietButton(Texts.Settings.RESEND_INVITE, actions.onResendInvite)
+            QuietButton(Texts.Settings.CHANGE_GUARDIAN, actions.onChangeGuardian)
         }
         SettingCard {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -57,32 +68,34 @@ fun SettingsScreen(
                     Text(picture?.label ?: Texts.Settings.NOT_SET, style = MaterialTheme.typography.bodyLarge)
                 }
             }
-            QuietButton(Texts.Settings.CHANGE, onChangePicture)
+            QuietButton(Texts.Settings.CHANGE, actions.onChangePicture)
         }
         SettingCard {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(Texts.Settings.TELL_GUARDIANS, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                Switch(checked = guardians.alertsOn, onCheckedChange = onAlerts)
+                Switch(checked = guardians.alertsOn, onCheckedChange = actions.onAlerts)
             }
         }
         SettingCard {
             ValueRow(Texts.Settings.WEBSITE_PROTECTION, if (filterOn) Texts.Settings.ON else Texts.Settings.OFF)
-            if (!filterOn) BigButton(Texts.Settings.TURN_ON_WEBSITE_PROTECTION, onFilterHelp) // skipped in setup: an easy way to try again
+            // Skipped in setup: an easy way to try again.
+            if (!filterOn) BigButton(Texts.Settings.TURN_ON_WEBSITE_PROTECTION, actions.onFilterHelp)
         }
         if (allowed.isNotEmpty()) {
             SettingCard {
                 Text(Texts.Settings.ALLOWED_TITLE, style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
                 allowed.forEach { item ->
-                    Text(Texts.Home.cleanLabel(item.label).ifEmpty { item.subject }, style = MaterialTheme.typography.bodyLarge) // an app picks its own label (R17)
-                    QuietButton(Texts.Settings.ALLOWED_REMOVE, { onStopAllowing(item) })
+                    // An app picks its own label (R17).
+                    Text(Texts.Home.cleanLabel(item.label).ifEmpty { item.subject }, style = MaterialTheme.typography.bodyLarge)
+                    QuietButton(Texts.Settings.ALLOWED_REMOVE, { actions.onStopAllowing(item) })
                 }
             }
         }
         SettingCard {
             ValueRow(Texts.Settings.CREDITS_TITLE, Texts.Settings.CREDITS)
-            Text(TimeText.listsLine(listsUpdatedAt, zone, locale), style = MaterialTheme.typography.bodyLarge)
+            Text(TimeText.listsLine(content.listsUpdatedAt, content.zone, content.locale), style = MaterialTheme.typography.bodyLarge)
         }
-        QuietButton(Texts.Settings.HOW_IT_WORKS, onHowItWorks)
+        QuietButton(Texts.Settings.HOW_IT_WORKS, actions.onHowItWorks)
     }
 }
 

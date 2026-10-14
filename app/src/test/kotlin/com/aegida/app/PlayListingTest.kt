@@ -41,7 +41,8 @@ class PlayListingTest {
         val files = listOf("full-description.txt", "short-description.txt", "title.txt").map { File(listing, it) } +
             File("../docs/site/privacy.html") + File(play, "release-notes/en-US").listFiles().orEmpty().toList()
         for (file in files) {
-            assertEquals("${file.path} claims the code is open while the repo is private", emptyList<String>(), claim.findAll(file.readText()).map { it.value }.toList())
+            assertEquals("${file.path} claims the code is open while the repo is private", emptyList<String>(),
+                claim.findAll(file.readText()).map { it.value }.toList())
         }
     }
 
@@ -98,7 +99,8 @@ class PlayListingTest {
     private fun pngSize(file: File): Pair<Int, Int> {
         val b = file.readBytes()
         require(b.size > 24 && b[1] == 'P'.code.toByte() && b[2] == 'N'.code.toByte() && b[3] == 'G'.code.toByte()) { "${file.name} is not a PNG" }
-        fun int(at: Int) = ((b[at].toInt() and 255) shl 24) or ((b[at + 1].toInt() and 255) shl 16) or ((b[at + 2].toInt() and 255) shl 8) or (b[at + 3].toInt() and 255)
+        fun int(at: Int) = ((b[at].toInt() and 255) shl 24) or ((b[at + 1].toInt() and 255) shl 16) or
+            ((b[at + 2].toInt() and 255) shl 8) or (b[at + 3].toInt() and 255)
         return int(16) to int(20)
     }
 

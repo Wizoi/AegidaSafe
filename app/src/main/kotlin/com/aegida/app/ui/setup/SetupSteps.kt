@@ -52,7 +52,7 @@ fun WelcomeScreen(onStart: () -> Unit) {
             AegidaShield(120.dp)
             Text(
                 Texts.Setup.WELCOME_TITLE, style = MaterialTheme.typography.headlineLarge,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.semantics { heading() },
+                textAlign = TextAlign.Center, modifier = Modifier.semantics { heading() },
             )
             Body(Texts.Setup.WELCOME_BODY)
             BigButton(Texts.Setup.WELCOME_START, onStart)
@@ -63,18 +63,19 @@ fun WelcomeScreen(onStart: () -> Unit) {
 /** What the Back button on a first-run step does, or null when there is nothing before it. Set once by the setup flow. */
 val LocalSetupBack = androidx.compose.runtime.staticCompositionLocalOf<(() -> Unit)?> { null }
 
+/** Which picture is shown at the top and which step this is of how many. */
+data class StepPosition(val pictureId: String?, val number: Int, val total: Int)
+
 /** One first-run step: a title, a few plain sentences, then the one thing to do. */
 @Composable
-private fun StepScreen(
-    pictureId: String?,
-    number: Int,
-    total: Int,
-    title: String,
-    content: @Composable () -> Unit,
-) {
+internal fun StepScreen(position: StepPosition, title: String, content: @Composable () -> Unit) {
     val back = LocalSetupBack.current
-    AegidaScreen(pictureId) {
-        Text(Texts.Setup.STEP.format(number, total), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    AegidaScreen(position.pictureId) {
+        Text(
+            Texts.Setup.STEP.format(position.number, position.total),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         Text(title, style = MaterialTheme.typography.headlineMedium, modifier = Modifier.semantics { heading() })
         content()
         if (back != null) QuietButton(Texts.Common.BACK, back)
@@ -82,13 +83,17 @@ private fun StepScreen(
 }
 
 @Composable
-fun AboutStep(pictureId: String?, number: Int, total: Int, initial: Guardians, onContinue: (name: String, guardian: String, email: String, phone: String) -> Unit) {
+fun AboutStep(
+    position: StepPosition,
+    initial: Guardians,
+    onContinue: (name: String, guardian: String, email: String, phone: String) -> Unit,
+) {
     var name by rememberSaveable { mutableStateOf(initial.ownerName) }
     var guardian by rememberSaveable { mutableStateOf(initial.firstGuardianName) }
     var email by rememberSaveable { mutableStateOf(initial.firstGuardianEmail) }
     var phone by rememberSaveable { mutableStateOf(initial.firstGuardianPhone) }
     val valid = name.isNotBlank() && guardian.isNotBlank() && email.contains('@') && email.substringAfter('@').contains('.')
-    StepScreen(pictureId, number, total, Texts.Setup.ABOUT_TITLE) {
+    StepScreen(position, Texts.Setup.ABOUT_TITLE) {
         Field(name, { name = it }, Texts.Setup.YOUR_NAME, KeyboardType.Text)
         Body(Texts.Setup.GUARDIAN_BODY, centered = false)
         Field(guardian, { guardian = it }, Texts.Setup.GUARDIAN_NAME, KeyboardType.Text)
@@ -100,7 +105,11 @@ fun AboutStep(pictureId: String?, number: Int, total: Int, initial: Guardians, o
 
 /** Picks a different guardian later. The owner decides; before saving she is asked to tell the previous guardian herself. */
 @Composable
-fun ChangeGuardianScreen(pictureId: String?, previousName: String, onSave: (name: String, email: String, phone: String) -> Unit) {
+fun ChangeGuardianScreen(
+    pictureId: String?,
+    previousName: String,
+    onSave: (name: String, email: String, phone: String) -> Unit,
+) {
     var guardian by rememberSaveable { mutableStateOf("") }
     var email by rememberSaveable { mutableStateOf("") }
     var phone by rememberSaveable { mutableStateOf("") }
@@ -120,8 +129,14 @@ fun ChangeGuardianScreen(pictureId: String?, previousName: String, onSave: (name
             onDismissRequest = { asking = false },
             title = { Text(Texts.Settings.CHANGE_GUARDIAN_POPUP_TITLE.format(previousName), style = MaterialTheme.typography.titleLarge) },
             text = { Text(Texts.Settings.CHANGE_GUARDIAN_POPUP_BODY.format(previousName), style = MaterialTheme.typography.bodyLarge) },
-            confirmButton = { TextButton({ asking = false; onSave(guardian, email, phone) }) { Text(Texts.Settings.CHANGE_GUARDIAN_POPUP_OK, style = MaterialTheme.typography.titleMedium) } },
-            dismissButton = { TextButton({ asking = false }) { Text(Texts.Settings.CHANGE_GUARDIAN_POPUP_BACK, style = MaterialTheme.typography.titleMedium) } },
+            confirmButton = {
+                TextButton({ asking = false; onSave(guardian, email, phone) }) {
+                    Text(Texts.Settings.CHANGE_GUARDIAN_POPUP_OK, style = MaterialTheme.typography.titleMedium)
+                }
+            },
+            dismissButton = {
+                TextButton({ asking = false }) { Text(Texts.Settings.CHANGE_GUARDIAN_POPUP_BACK, style = MaterialTheme.typography.titleMedium) }
+            },
         )
     }
 }
@@ -142,144 +157,12 @@ private fun Field(value: String, onChange: (String) -> Unit, label: String, type
     )
 }
 
-/** The ten pictures in a grid. Used in setup and when she changes her picture later. */
 @Composable
-fun PictureStep(pictureId: String?, number: Int, total: Int, chosen: SafetyPicture?, onChoose: (SafetyPicture) -> Unit, onContinue: () -> Unit, buttonText: String = Texts.Common.CONTINUE) {
-    var picked by rememberSaveable { mutableStateOf(chosen?.id) }
-    StepScreen(picked ?: pictureId, number, total, Texts.Setup.PICTURE_TITLE) {
-        Body(Texts.Setup.PICTURE_BODY, centered = false)
-        PictureGrid(picked) { picture -> picked = picture.id; onChoose(picture) }
-        BigButton(buttonText, onContinue, enabled = picked != null)
-    }
-}
-
-/**
- * The ten pictures, three across, sized from the screen so the Continue button stays on the first screen (Kevin, Oct 9). At
- * very large text three across would cut the labels, so it is two across there and the screen scrolls, as it always did.
- */
-@Composable
-private fun PictureGrid(picked: String?, onPick: (SafetyPicture) -> Unit) {
-    val config = LocalConfiguration.current
-    val fontScale = LocalDensity.current.fontScale
-    val perRow = if (fontScale > 1.3f) 2 else 3
-    val gap = 12.dp
-    val rows = (SafetyPicture.entries.size + perRow - 1) / perRow
-    val label = 26.dp * fontScale
-    // Across: the width left after the 24 dp side padding. Down: the screen less everything above and below the grid.
-    val acrossLimit = (config.screenWidthDp.dp - 48.dp - gap * (perRow - 1)) / perRow
-    val room = config.screenHeightDp.dp - (CHROME + TEXT_CHROME * fontScale)
-    val downLimit = (room - gap * (rows - 1)) / rows - label
-    // Large text: the screen scrolls anyway, so keep the big 96 dp tiles she had before (two across, labels fit).
-    val tile = if (perRow == 2) 96.dp else minOf(acrossLimit, downLimit, 112.dp).coerceAtLeast(56.dp)
-    Column(verticalArrangement = Arrangement.spacedBy(gap)) {
-        SafetyPicture.entries.chunked(perRow).forEach { row ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(gap)) {
-                row.forEach { picture ->
-                    val isPicked = picked == picture.id
-                    Column(
-                        Modifier.weight(1f).clickable { onPick(picture) }
-                            .semantics { contentDescription = picture.label; selected = isPicked },
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        PictureTile(picture, tile, selected = isPicked)
-                        Text(picture.label, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center, maxLines = 2)
-                    }
-                }
-                repeat(perRow - row.size) { Spacer(Modifier.weight(1f)) }
-            }
-        }
-    }
-}
-
-// What sits above and below the grid on this step: the header, step label, title, text, Continue and Back, and the status and
-// navigation bars. The part that is text grows with the font size.
-private val CHROME = 150.dp
-private val TEXT_CHROME = 250.dp
-
-@Composable
-fun InviteStep(pictureId: String?, number: Int, total: Int, guardianName: String, noEmailApp: Boolean, onWrite: () -> Unit, onSent: () -> Unit) {
-    var written by rememberSaveable { mutableStateOf(false) }
-    StepScreen(pictureId, number, total, Texts.Setup.INVITE_TITLE) {
-        Body(Texts.Setup.INVITE_BODY.format(guardianName), centered = false)
-        BigButton(Texts.Setup.INVITE_WRITE, { written = true; onWrite() })
-        if (noEmailApp) Body(Texts.Setup.INVITE_NO_EMAIL_APP, centered = false)
-        QuietButton(Texts.Setup.INVITE_SENT, onSent, enabled = written)
-    }
-}
-
-@Composable
-fun AlertsStep(pictureId: String?, number: Int, total: Int, onAnswer: (Boolean) -> Unit) {
-    StepScreen(pictureId, number, total, Texts.Setup.ALERTS_TITLE) {
+fun AlertsStep(position: StepPosition, onAnswer: (Boolean) -> Unit) {
+    StepScreen(position, Texts.Setup.ALERTS_TITLE) {
         Body(Texts.Setup.ALERTS_BODY, centered = false)
         BigButton(Texts.Setup.ALERTS_YES, { onAnswer(true) })
         QuietButton(Texts.Setup.ALERTS_NO, { onAnswer(false) })
-    }
-}
-
-@Composable
-fun AccessStep(
-    pictureId: String?, number: Int, total: Int,
-    listenerOn: Boolean, bannersOn: Boolean,
-    onOpenAccess: () -> Unit, onAllowBanners: () -> Unit, onContinue: () -> Unit,
-) {
-    // Skipping this step turns off Aegida's main job, so she is asked first (findings #65).
-    var askingToSkip by rememberSaveable { mutableStateOf(false) }
-    StepScreen(pictureId, number, total, Texts.Setup.ACCESS_TITLE) {
-        Body(Texts.Setup.ACCESS_BODY, centered = false)
-        Text(Texts.Setup.ACCESS_PART_1, style = MaterialTheme.typography.titleLarge)
-        if (listenerOn) DoneRow(Texts.Setup.ACCESS_DONE) else {
-            Body(Texts.Setup.ACCESS_STEP, centered = false)
-            BigButton(Texts.Setup.ACCESS_OPEN, onOpenAccess)
-        }
-        Text(Texts.Setup.ACCESS_PART_2, style = MaterialTheme.typography.titleLarge)
-        if (bannersOn) DoneRow(Texts.Setup.BANNERS_DONE) else {
-            if (!listenerOn) Body(Texts.Setup.ACCESS_FIRST, centered = false)
-            BigButton(Texts.Setup.ACCESS_ALLOW_BANNERS, onAllowBanners, enabled = listenerOn)
-        }
-        if (listenerOn && bannersOn) BigButton(Texts.Common.CONTINUE, onContinue) else QuietButton(Texts.Common.NOT_NOW, { askingToSkip = true })
-    }
-    if (askingToSkip) {
-        AlertDialog(
-            onDismissRequest = { askingToSkip = false },
-            title = { Text(Texts.Setup.ACCESS_SKIP_TITLE, style = MaterialTheme.typography.titleLarge) },
-            text = { Text(Texts.Setup.ACCESS_SKIP_BODY, style = MaterialTheme.typography.bodyLarge) },
-            confirmButton = { TextButton({ askingToSkip = false; onContinue() }) { Text(Texts.Setup.ACCESS_SKIP_ANYWAY, style = MaterialTheme.typography.titleMedium) } },
-            dismissButton = { TextButton({ askingToSkip = false }) { Text(Texts.Setup.ACCESS_SKIP_BACK, style = MaterialTheme.typography.titleMedium) } },
-        )
-    }
-}
-
-/** Website protection (Private DNS). Aegida cannot switch it; it opens the page, then reads the result. */
-@Composable
-fun FilterStep(pictureId: String?, number: Int, total: Int, filterOn: Boolean, onOpenSettings: () -> Unit, onCheck: () -> Unit, onContinue: () -> Unit) {
-    StepScreen(pictureId, number, total, Texts.Setup.FILTER_TITLE) { FilterGuideBody(filterOn, onOpenSettings, onCheck, onContinue) }
-}
-
-@Composable
-fun FilterGuideBody(filterOn: Boolean, onOpenSettings: () -> Unit, onCheck: () -> Unit, onContinue: () -> Unit, continueText: String = Texts.Common.CONTINUE) {
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        if (filterOn) {
-            // Already on: nothing to explain, just say so and move on.
-            DoneRow(Texts.Setup.FILTER_ON)
-            BigButton(continueText, onContinue)
-        } else {
-            Body(Texts.Setup.FILTER_BODY, centered = false)
-            Body(Texts.Setup.FILTER_STEPS.format(WebsiteFilter.HOST), centered = false)
-            Body(Texts.Setup.FILTER_NOT_YET, centered = false)
-            BigButton(Texts.Setup.FILTER_COPY_AND_OPEN, onOpenSettings)
-            QuietButton(Texts.Setup.FILTER_CHECK, onCheck)
-            QuietButton(Texts.Common.NOT_NOW, onContinue)
-        }
-    }
-}
-
-@Composable
-fun BlockerStep(pictureId: String?, number: Int, total: Int, onShow: () -> Unit, onOn: () -> Unit, onNotNow: () -> Unit) {
-    StepScreen(pictureId, number, total, Texts.Setup.BLOCKER_TITLE) {
-        Body(Texts.Setup.BLOCKER_BODY, centered = false)
-        BigButton(Texts.Setup.BLOCKER_SHOW, onShow)
-        QuietButton(Texts.Setup.BLOCKER_IS_ON, onOn)
-        QuietButton(Texts.Common.NOT_NOW, onNotNow)
     }
 }
 

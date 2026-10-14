@@ -3,9 +3,6 @@ package com.aegida.app.ui
 import androidx.compose.runtime.Composable
 import com.aegida.core.model.Finding
 import com.aegida.core.text.Texts
-import java.time.Instant
-import java.time.ZoneId
-import java.util.Locale
 
 /**
  * The page for an app that keeps sending ads as notices (finding #92): which app and an example, then four ways out. Aegida cannot
@@ -16,20 +13,15 @@ import java.util.Locale
 fun NoisyAppPage(
     pictureId: String?,
     finding: Finding,
-    now: Instant,
-    zone: ZoneId,
-    locale: Locale,
-    onTurnOff: () -> Unit,
-    onRemove: () -> Unit,
-    onFine: () -> Unit,
-    onGotIt: () -> Unit,
+    shown: ShownAt,
+    actions: NoisyAppActions,
 ) {
     AegidaScreen(pictureId) {
         Headline(finding.key.problem.forMom)
-        AdviceLines.ofNoisyApp(finding, now, zone, locale).forEach { Body(it) }
-        BigButton(Texts.Home.NOISY_TURN_OFF, onTurnOff)
-        QuietButton(Texts.Home.NOISY_REMOVE, onRemove)
-        QuietButton(Texts.Home.NOISY_FINE, onFine)
-        QuietButton(Texts.Home.GOT_IT, onGotIt)
+        AdviceLines.ofNoisyApp(finding, shown.now, shown.zone, shown.locale).forEach { Body(it) }
+        BigButton(Texts.Home.NOISY_TURN_OFF, actions.onTurnOff)
+        QuietButton(Texts.Home.NOISY_REMOVE, actions.onRemove)
+        QuietButton(Texts.Home.NOISY_FINE, actions.onFine)
+        QuietButton(Texts.Home.GOT_IT, actions.onGotIt)
     }
 }

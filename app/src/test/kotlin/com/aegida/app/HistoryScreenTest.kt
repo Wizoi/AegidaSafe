@@ -14,7 +14,8 @@ class HistoryScreenTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark, 
 
     @Test fun historyListsEventsUnderADayHeadingAndSaysHowLongItIsKept() {
         val rows = listOf(
-            HistoryRow(now.minus(Duration.ofMinutes(10)), "A website sent fake warnings", "You were warned.", handled = true, facts = "The website was news.example."),
+            HistoryRow(now.minus(Duration.ofMinutes(10)), "A website sent fake warnings", "You were warned.", handled = true,
+                facts = "The website was news.example."),
             HistoryRow(now.minus(Duration.ofDays(1)), "Website protection was off", "You were warned. Fixed.", handled = true),
         )
         show { HistoryScreen(rows, picture, now, zone, locale) }
