@@ -1,0 +1,83 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ComplexCondition:NoticeRules.kt$NoticeRules$event.category in REAL_KINDS || event.ongoing || event.conversation || event.groupSummary</ID>
+    <ID>CyclomaticComplexMethod:Baseline.kt$Baseline$fun accepting(problem: Problem, subject: String, now: Snapshot): Baseline</ID>
+    <ID>CyclomaticComplexMethod:Link.kt$Links$private fun scan(t: String, onCandidate: (String) -&gt; Unit)</ID>
+    <ID>LongParameterList:NoticeRulesTest.kt$NoticeRulesTest$( category: String? = null, channelName: String? = null, importance: Int = 3, ongoing: Boolean = false, conversation: Boolean = false, title: String = "Your files", text: String = "Open the app", pkg: String = "com.example.pdf", channelId: String? = "ch", negative: Boolean = false, summary: Boolean = false, )</ID>
+    <ID>LongParameterList:Problem.kt$Problem$( val severity: Severity, /** The banner and Home sentence: what is wrong and, where there is a fix, what to tap. */ val forMom: String, private val guardianTemplate: String?, /** The History line, past tense, with no instruction in it. */ val whatHappened: String, /** * Aegida hides the notification that caused it. Only website notifications: they are the fake virus * pop-ups. A message with a scam link is left in place (it may be from family) and the owner gets a warning. */ val hidesNotification: Boolean = false, /** What "Fix my phone" does for it. */ val fix: Fix = Fix.None, /** * After the owner has seen it, the same warning is not raised again for this long, even if it keeps happening (an app that keeps * sending ads as notices would otherwise warn on every notice). Null: it comes back as soon as it is seen again. */ val quietAfterSeen: java.time.Duration? = null, )</ID>
+    <ID>LongParameterList:ThreatFeed.kt$ThreatFeed.Companion$( generatedAt: Instant, sources: List&lt;FeedSource&gt;, hostKeys: Collection&lt;String&gt;, urlKeys: Collection&lt;String&gt;, packageNames: Collection&lt;String&gt; = emptyList(), certificateSha1s: Collection&lt;String&gt; = emptyList(), )</ID>
+    <ID>LoopWithTooManyJumpStatements:Link.kt$Links$while</ID>
+    <ID>MagicNumber:Endpoint.kt$NtfyTopic$32</ID>
+    <ID>MagicNumber:FeedCodec.kt$FeedCodec$16</ID>
+    <ID>MagicNumber:Link.kt$Links$63</ID>
+    <ID>MagicNumber:Link.kt$Links$7</ID>
+    <ID>MagicNumber:Link.kt$Links$8</ID>
+    <ID>MagicNumber:LinkText.kt$LinkText$0x034F</ID>
+    <ID>MagicNumber:LinkText.kt$LinkText$0x115F</ID>
+    <ID>MagicNumber:LinkText.kt$LinkText$0x1160</ID>
+    <ID>MagicNumber:LinkText.kt$LinkText$0x17B4</ID>
+    <ID>MagicNumber:LinkText.kt$LinkText$0x17B5</ID>
+    <ID>MagicNumber:LinkText.kt$LinkText$0x180B</ID>
+    <ID>MagicNumber:LinkText.kt$LinkText$0x180F</ID>
+    <ID>MagicNumber:LinkText.kt$LinkText$0x3164</ID>
+    <ID>MagicNumber:LinkText.kt$LinkText$0xE0000</ID>
+    <ID>MagicNumber:LinkText.kt$LinkText$0xE0FFF</ID>
+    <ID>MagicNumber:LinkText.kt$LinkText$0xFE00</ID>
+    <ID>MagicNumber:LinkText.kt$LinkText$0xFE0F</ID>
+    <ID>MagicNumber:LinkText.kt$LinkText$0xFFA0</ID>
+    <ID>MagicNumber:Problem.kt$Problem.NewWebsiteNotifications$7</ID>
+    <ID>MagicNumber:Problem.kt$Problem.NoisyApp$7</ID>
+    <ID>MagicNumber:Texts.kt$Texts.Home$127</ID>
+    <ID>MagicNumber:ThreatFeed.kt$FeedHash$0xFF</ID>
+    <ID>MagicNumber:ThreatFeed.kt$FeedHash$8</ID>
+    <ID>MaxLineLength:AppListsTest.kt$AppListsTest$assertEquals(AppMatch.Certificate, feed.matchApp("org.renamed.app", setOf("0000000000000000000000000000000000000000", "31A6ECECD97CF39BC4126B8745CD94A7C30BF81C")))</ID>
+    <ID>MaxLineLength:Baseline.kt$Baseline$Problem.RemoteControlApp -&gt; if (subject in RemoteControlApps.PACKAGES &amp;&amp; now.apps.any { it.packageName == subject }) copy(acceptedRemoteApps = acceptedRemoteApps + subject) else this</ID>
+    <ID>MaxLineLength:GuardianTextTest.kt$GuardianTextTest$"Ruth told Aegida that an app (“Image to PDF”) is fine, so Aegida will stop warning about it. If that surprises you, it may be a good time to ask Ruth."</ID>
+    <ID>MaxLineLength:GuardianTextTest.kt$GuardianTextTest$assertEquals("A message pretending to be a well-known company arrived on Ruth's phone, from the “Messages” app. Aegida warned Ruth.", Problem.LookalikeLink.forGuardian(owner, "Messages"))</ID>
+    <ID>MaxLineLength:GuardianTextTest.kt$GuardianTextTest$assertEquals("A message with a scam link arrived on Ruth's phone, from the “Messages” app, with a link to pa*****.example. Aegida warned Ruth.", Problem.ScamLink.forGuardian(owner, "Messages", "paypa1-help.example"))</ID>
+    <ID>MaxLineLength:GuardianTextTest.kt$GuardianTextTest$assertEquals("A website (ne*****.example) was sending fake warnings to Ruth's phone. Aegida hid them.", Problem.SiteNotifications.forGuardian(owner, null, "https://news.example"))</ID>
+    <ID>MaxLineLength:GuardianTextTest.kt$GuardianTextTest$assertEquals("A website (re*****.example) that was not there before started sending notifications on Ruth's phone. Aegida asked Ruth: “Was that you?”", Problem.NewWebsiteNotifications.forGuardian(owner, null, "https://recipes.example"))</ID>
+    <ID>MaxLineLength:GuardianTextTest.kt$GuardianTextTest$assertEquals("An app (“Image to PDF”) keeps showing Ruth ads as notices. Aegida told Ruth how to turn them off.", Problem.NoisyApp.forGuardian(owner, "Image to PDF"))</ID>
+    <ID>MaxLineLength:GuardianTextTest.kt$GuardianTextTest$assertEquals("an app picks its own label, so it is cut short and cleaned", false, Problem.ScamLink.forGuardian(owner, "Call me\nnow " + "x".repeat(100))!!.contains("\n"))</ID>
+    <ID>MaxLineLength:GuardianTextTest.kt$GuardianTextTest$assertEquals("other problems do not mention an app", Problem.ListenerOff.forGuardian(owner), Problem.ListenerOff.forGuardian(owner, "Messages", "x.example"))</ID>
+    <ID>MaxLineLength:GuardianTextTest.kt$GuardianTextTest$val asked = Problem.entries.filter { it.fix == com.aegida.core.text.Fix.ConfirmChange || it.fix == com.aegida.core.text.Fix.ConfirmEvent }.mapNotNull { it.forGuardian(owner) }</ID>
+    <ID>MaxLineLength:HistoryDetail.kt$HistoryDetail$evidence[Evidence.HOST]?.takeIf { it.isNotBlank() }?.let { Texts.History.LINK_WENT.format(it) }</ID>
+    <ID>MaxLineLength:HistoryDetailTest.kt$HistoryDetailTest$mapOf(Evidence.APP_LABEL to "Messages", Evidence.MESSAGE_TITLE to "Chase Bank", Evidence.MESSAGE_TEXT to "Refund: paypa1-help.example/claim now", Evidence.HOST to "paypa1-help.example")</ID>
+    <ID>MaxLineLength:HistoryRows.kt$HistoryRows$(problem.hidesNotification &amp;&amp; problem.fix != com.aegida.core.text.Fix.ConfirmEvent)</ID>
+    <ID>MaxLineLength:HistoryRows.kt$HistoryRows$private val OUTCOME_ORDER = listOf(Outcome.OwnerWarned, Outcome.GuardianTold, Outcome.GuardianNotReached, Outcome.GuardianNeverReached, Outcome.GuardianReminded, Outcome.Acknowledged, Outcome.Fixed)</ID>
+    <ID>MaxLineLength:LinkTextScenariosTest.kt$LinkTextScenariosTest$assertEquals("Mr.Smith says your parcel is held.Please call St.Louis", Texts.Home.withoutLinks("Mr.Smith says your parcel is held.Please call St.Louis"))</ID>
+    <ID>MaxLineLength:LinksDifferentialTest.kt$LinksDifferentialTest$val alphabet = listOf("a", "b", "c", "1", "9", ".", ".", "-", "/", ":", "@", " ", "h", "t", "p", "s", "://", "http://", "HTTPS://", "_", "'","\n", "?", "com", "x")</ID>
+    <ID>MaxLineLength:NoticeRulesTest.kt$NoticeRulesTest$assertEquals("a bank", 0, NoticeRules.signals(event(title = "Card purchase", text = "\$42.10 at Grocer. Free ATM withdrawals this month", channelName = "Transactions", importance = 4), 7))</ID>
+    <ID>MaxLineLength:NoticeRulesTest.kt$NoticeRulesTest$assertEquals("a bank's sign-in alert", 0, NoticeRules.signals(event(title = "Security alert", text = "New sign-in to your account", channelName = "Security", importance = 4), 7))</ID>
+    <ID>MaxLineLength:NoticeRulesTest.kt$NoticeRulesTest$assertEquals("a delivery", 0, NoticeRules.signals(event(title = "Your order", text = "Arriving today. Install the app update for tracking", channelName = "Orders", importance = 4), null))</ID>
+    <ID>MaxLineLength:NoticeRulesTest.kt$NoticeRulesTest$assertEquals("a news story", 0, NoticeRules.signals(event(title = "Retailer hacked", text = "Card data stolen", channelName = "Top stories", importance = 4), 5))</ID>
+    <ID>MaxLineLength:NoticeRulesTest.kt$NoticeRulesTest$assertEquals("breaking news", 0, NoticeRules.signals(event(title = "Breaking news", text = "Storm warning tonight", channelName = "Breaking news", importance = 4), 5))</ID>
+    <ID>MaxLineLength:NoticeRulesTest.kt$NoticeRulesTest$category = category</ID>
+    <ID>MaxLineLength:NoticeRulesTest.kt$NoticeRulesTest$title: String = "Your files"</ID>
+    <ID>MaxLineLength:NoticeRulesTest.kt$NoticeRulesTest$val ahead = listOf(NoticeRow(now.plus(Duration.ofHours(5)), 3), NoticeRow(now.plus(Duration.ofHours(6)), 3), NoticeRow(now.plus(Duration.ofHours(7)), 3))</ID>
+    <ID>MaxLineLength:ScareWords.kt$ScareWords$"""(?i)\b(virus(es)?|infected|malware|hacked|trojan|spyware)\b|battery (is )?damaged|security (alert|warning)|clean (your|now|it)|your (phone|device) (is|has been)"""</ID>
+    <ID>MaxLineLength:Texts.kt$Texts.Guardian$const</ID>
+    <ID>MaxLineLength:Texts.kt$Texts.Guardian$const val CHANGED = "%1\$s picked a different guardian in Aegida. You will not get messages about %1\$s's phone from now on. If you did not expect this, please call %1\$s."</ID>
+    <ID>MaxLineLength:Texts.kt$Texts.Home$com.aegida.core.url.LinkText.prepare(text).split(WORD_GAPS).joinToString(" ") { word -&gt; if (looksLikeAddress(word) &amp;&amp; !isOrdinaryWord(word)) LINK_REMOVED else word }</ID>
+    <ID>MaxLineLength:Texts.kt$Texts.Invite$"3. Optional, to read them on a computer too: open https://ntfy.sh/%s in a web browser. It only shows messages while that page is open, so it does not replace step 2.\n\n"</ID>
+    <ID>MaxLineLength:Texts.kt$Texts.Invite$"I've picked you as my guardian. If I have switched on “Tell my guardian about serious problems” in my Aegida app, you will get a first message saying it is set up, and then a message if my phone needs help. If it has not come within a day of adding the name, please ask me.\n\n"</ID>
+    <ID>MaxLineLength:Texts.kt$Texts.Settings$const val CHANGE_GUARDIAN_POPUP_BODY = "Aegida will send %s a short message that you changed your guardian. Please tell them yourself too, so they aren't left wondering."</ID>
+    <ID>MaxLineLength:Texts.kt$Texts.Settings$const val CREDITS = "Scam websites: Phishing.Database (MIT license). Spying apps: Stalkerware Indicators by Echap (CC BY 4.0). Both are stored in a shortened, scrambled form."</ID>
+    <ID>MaxLineLength:Texts.kt$Texts.Setup$const val ACCESS_SKIP_BODY = "Without this, Aegida can't see scam links in your messages. If you chose to tell your guardian about problems, they will be told this is off."</ID>
+    <ID>MaxLineLength:Texts.kt$Texts.Setup$const val ALERTS_BODY = "For example: \"A website was sending fake warnings to Ruth's phone. Aegida hid them.\" It never sends your messages, calls or where you are."</ID>
+    <ID>MaxLineLength:Texts.kt$Texts.Setup$const val BLOCKER_BODY = "Some Samsung phones have a switch called Auto Blocker. It helps stop bad apps. Aegida can't see whether it is on, so it will never say it is."</ID>
+    <ID>MaxLineLength:Texts.kt$Texts.Setup$const val FILTER_STEPS = "1. Tap the big button below. It copies the address and opens Settings.\n2. Find Private DNS. It is usually under Network or Connections, then More or Advanced.\n3. Choose the hostname option.\n4. Press and hold in the box, tap Paste, and the address is filled in. (It is %s.)\n5. Tap Save, then come back here."</ID>
+    <ID>ReturnCount:FeedUpdater.kt$FeedUpdater$suspend fun update(): FeedUpdate</ID>
+    <ID>ReturnCount:Link.kt$Links$fun normalizeHost(host: String): String?</ID>
+    <ID>ReturnCount:NoticeRules.kt$NoticeRules$fun counted(event: NotificationEvent, apps: List&lt;InstalledApp&gt;, roleApps: Set&lt;String&gt;): Boolean</ID>
+    <ID>ReturnCount:Texts.kt$Texts.Home$private fun isOrdinaryWord(word: String): Boolean</ID>
+    <ID>SwallowedException:FeedCodec.kt$FeedCodec$e: IOException</ID>
+    <ID>SwallowedException:FeedCodec.kt$FeedVerifier$e: java.security.SignatureException</ID>
+    <ID>SwallowedException:FeedUpdater.kt$FeedUpdater$e: FeedFormatException</ID>
+    <ID>SwallowedException:Link.kt$Links$e: IllegalArgumentException</ID>
+    <ID>TooManyFunctions:Link.kt$Links</ID>
+    <ID>TooManyFunctions:Texts.kt$Texts$Home</ID>
+  </CurrentIssues>
+</SmellBaseline>

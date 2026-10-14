@@ -1,0 +1,17 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>MagicNumber:AndroidSnapshotter.kt$AndroidSnapshotter$30</ID>
+    <ID>MaxLineLength:AndroidSnapshotterTest.kt$AndroidSnapshotterTest$Settings.Secure.putString(context.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, "org.helper/org.helper.Service:org.other/org.other.Svc")</ID>
+    <ID>MaxLineLength:InviteAndFixTest.kt$InviteAndFixTest$assertTrue("the web page is offered for a computer", body.contains("3. Optional, to read them on a computer too: open https://ntfy.sh/${topic.value} in a web browser"))</ID>
+    <ID>MaxLineLength:NotificationMapperTest.kt$NotificationMapperTest$val facts = com.aegida.platform.notify.RankingFacts(channelName = "Special offers", channelDescription = "Deals", importance = 4, conversation = false, sentimentNegative = true)</ID>
+    <ID>ReturnCount:InviteEmail.kt$InviteEmail$fun intent(guardians: Guardians, mailApps: List&lt;String&gt; = emptyList()): Intent?</ID>
+    <ID>SwallowedException:AndroidOemSource.kt$AndroidOemSource$e: android.content.pm.PackageManager.NameNotFoundException</ID>
+    <ID>SwallowedException:AndroidSnapshotter.kt$AndroidSnapshotter$e: PackageManager.NameNotFoundException</ID>
+    <ID>SwallowedException:OkHttpHttpClient.kt$OkHttpHttpClient$e: IOException</ID>
+    <ID>SwallowedException:OkHttpHttpClient.kt$OkHttpHttpClient$e: IllegalArgumentException</ID>
+    <ID>SwallowedException:OkHttpHttpClient.kt$OkHttpHttpClient$e: InterruptedIOException</ID>
+    <ID>SwallowedException:OkHttpHttpClient.kt$OkHttpHttpClient$e: UnknownHostException</ID>
+  </CurrentIssues>
+</SmellBaseline>

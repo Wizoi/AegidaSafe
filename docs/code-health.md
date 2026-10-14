@@ -82,3 +82,11 @@ No dependency or plugin was added (Android Lint is part of AGP; the rest is Grad
 
 Still open (Kevin's decision): detekt (a new Gradle plugin; the lint baseline covers the Android rules only), PMD CPD or jscpd (the stdlib
 report above covers repeated lines, not near-copies), item 8 (the weekly cleanup run and archiving closed `findings.md` rows).
+
+## Kevin's answers (Oct 14)
+
+- **detekt added** (1.23.8, Kevin: "if it is valuable, add it"): on every Kotlin module except the fixture app, `config/detekt/detekt.yml` tuned to
+  house style (lines up to 160, named thresholds, Compose names), a baseline per module (312 entries: 124 long lines, 99 bare numbers,
+  22 swallowed exceptions, 19 return counts, ...). Only new issues fail. The two unused items it found were deleted at once.
+- **PMD CPD: considered, skipped.** It would add near-copies with renamed names; today's exact-copy count is 18 lines, so the benefit is small.
+- **CI** runs on every push and pull request (Kevin).

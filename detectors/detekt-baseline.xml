@@ -1,0 +1,26 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>LongParameterList:Evaluator.kt$Evaluator$( private val detectors: Set&lt;@JvmSuppressWildcards Detector&gt;, private val clock: Clock, private val setupStore: SetupStore, private val feedStore: FeedStore, private val checkLog: CheckLog, private val outbox: Outbox, private val baselines: BaselineStore, private val notices: NoticeLog = NoticeLog.None, private val allowList: AllowList = AllowList.None, )</ID>
+    <ID>LongParameterList:Fixtures.kt$Fixtures$( privateDns: PrivateDns = PrivateDns.Automatic, listenerEnabled: Boolean = true, canPostNotifications: Boolean = true, browser: String? = "com.android.chrome", smsApp: String? = "com.google.android.apps.messaging", dialerApp: String? = "com.google.android.dialer", notificationListeners: Set&lt;String&gt; = emptySet(), accessibilityApps: Set&lt;String&gt; = emptySet(), deviceAdmins: Set&lt;String&gt; = emptySet(), assistant: String? = "com.google.android.googlequicksearchbox", )</ID>
+    <ID>LongParameterList:Fixtures.kt$Fixtures$( snapshot: Snapshot = snapshot(), setup: Setup = Setup.NotDone, feed: ThreatFeed? = feed(), event: NotificationEvent? = null, lastDailyCheck: CheckRun? = CheckRun(Trigger.Daily, now.minus(Duration.ofHours(20)), now.minus(Duration.ofHours(20))), baseline: com.aegida.core.model.Baseline? = null, )</ID>
+    <ID>MagicNumber:PopupSpamDetector.kt$PopupSpamDetector$200</ID>
+    <ID>MaxLineLength:AppDetectorsTest.kt$AppDetectorsTest$val phone = atSetup + app("com.thetruth", installer = null) + app("org.renamed", installer = null).copy(certSha1s = setOf("31a6ececd97cf39bc4126b8745cd94a7c30bf81c")) + app("org.plain.sideload", installer = null)</ID>
+    <ID>MaxLineLength:AppDetectorsTest.kt$AppDetectorsTest$val phone = snapshot().copy(apps = atSetup + app("org.new.by.hand", installer = null) + app("org.new.spy", installer = null) + app("com.anydesk.anydeskandroid") + app("com.carriez.flutter_hbb"))</ID>
+    <ID>MaxLineLength:DetectorsTest.kt$LinkDetectorTest$assertEquals(setOf(Evidence.NOTIFICATION_KEY, Evidence.PACKAGE, Evidence.HOST, Evidence.MESSAGE_TITLE, Evidence.MESSAGE_TEXT, Evidence.MESSAGE_AT), finding.evidence.keys)</ID>
+    <ID>MaxLineLength:DetectorsTest.kt$PopupSpamDetectorTest$assertEquals(Problem.SiteNotifications, detector.evaluate(inputs(event = headline, baseline = baselineWith(setOf("https://news.example")))).single().key.problem)</ID>
+    <ID>MaxLineLength:DetectorsTest.kt$PopupSpamDetectorTest$assertEquals(scare.title, Problem.SiteNotifications, detector.evaluate(inputs(event = scare, setup = Setup(null, setOf(site)))).single().key.problem)</ID>
+    <ID>MaxLineLength:DriftDetectorTest.kt$DriftDetectorTest$@Test fun beforeSetupFinishesThereIsNothingToCompareWith()</ID>
+    <ID>MaxLineLength:EvaluatorTest.kt$EvaluatorTest$assertEquals(e.run(Trigger.NotificationPosted, snapshot(), chromeSiteNotification), e.run(Trigger.NotificationPosted, snapshot(), chromeSiteNotification))</ID>
+    <ID>MaxLineLength:EvaluatorTest.kt$EvaluatorTest$fun ad(n: Int)</ID>
+    <ID>MaxLineLength:EvaluatorTest.kt$EvaluatorTest$val e = Evaluator(setOf(NoisyAppDetector()), { now }, FakeSetupStore(), FakeFeedStore(Fixtures.feed()), log, outbox, FakeBaselines(), FakeNoticeLog(), allow)</ID>
+    <ID>MaxLineLength:LinkDetector.kt$LinkDetector$input.snapshot.apps.firstOrNull { it.packageName == event.packageName }?.label?.takeIf { it.isNotBlank() }?.let { put(Evidence.APP_LABEL, it) }</ID>
+    <ID>MaxLineLength:StalkerwareDetectorTest.kt$StalkerwareDetectorTest$assertEquals(listOf(Problem.StalkerwareApp to "org.renamed.app"), found(app("org.renamed.app", certs = setOf("0000", "31A6ECECD97CF39BC4126B8745CD94A7C30BF81C"))))</ID>
+    <ID>ReturnCount:DeliveryDetector.kt$DeliveryDetector$override fun evaluate(input: Inputs): List&lt;Finding&gt;</ID>
+    <ID>ReturnCount:DnsDetector.kt$DnsDetector$override fun evaluate(input: Inputs): List&lt;Finding&gt;</ID>
+    <ID>ReturnCount:LinkDetector.kt$LinkDetector$override fun evaluate(input: Inputs): List&lt;Finding&gt;</ID>
+    <ID>ReturnCount:NoisyAppDetector.kt$NoisyAppDetector$override fun evaluate(input: Inputs): List&lt;Finding&gt;</ID>
+    <ID>ReturnCount:PopupSpamDetector.kt$PopupSpamDetector$override fun evaluate(input: Inputs): List&lt;Finding&gt;</ID>
+  </CurrentIssues>
+</SmellBaseline>

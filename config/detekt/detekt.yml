@@ -1,0 +1,15 @@
+# detekt settings that match this repo's house style (Oct 14). Everything else is detekt's default.
+style:
+  MaxLineLength:
+    # The code wraps at about 150 characters (KDoc sentences, scenario-named tests); longer lines still fail.
+    maxLineLength: 160
+    excludeCommentStatements: true
+  MagicNumber:
+    # Thresholds are named in one place (NoticeRules, Texts); bare numbers in properties and companions are those names.
+    ignorePropertyDeclaration: true
+    ignoreCompanionObjectPropertyDeclaration: true
+    ignoreAnnotated: ['Preview']
+naming:
+  FunctionNaming:
+    # Compose functions are named like classes.
+    ignoreAnnotated: ['Composable']

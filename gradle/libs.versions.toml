@@ -68,3 +68,5 @@ kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", versi
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 # Gradle Play Publisher: pushes the listing, release notes and bundle (same version as SmugView).
 play-publisher = { id = "com.github.triplet.play", version = "3.12.0" }
+# detekt: Kotlin style and bug checks with a per-module baseline, so only new issues fail (Kevin, Oct 14; code-health item 6).
+detekt = { id = "io.gitlab.arturbosch.detekt", version = "1.23.8" }

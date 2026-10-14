@@ -1,0 +1,17 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>MagicNumber:RoomStores.kt$RoomNoticeLog$12</ID>
+    <ID>MaxLineLength:AegidaDatabase.kt$AegidaDatabase$entities = [CheckRunEntity::class, FindingEntity::class, HistoryEntity::class, OutboxEntity::class, SettingEntity::class, NoticeEntity::class, AllowedEntity::class]</ID>
+    <ID>MaxLineLength:AegidaDatabase.kt$AegidaDatabase.Companion.&lt;no name provided&gt;$db.execSQL("CREATE TABLE IF NOT EXISTS `allowed` (`problem` TEXT NOT NULL, `subject` TEXT NOT NULL, `label` TEXT NOT NULL, `atMillis` INTEGER NOT NULL, PRIMARY KEY(`problem`, `subject`))")</ID>
+    <ID>MaxLineLength:AegidaDatabase.kt$AegidaDatabase.Companion.&lt;no name provided&gt;$db.execSQL("CREATE TABLE IF NOT EXISTS `notice` (`rowId` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `packageName` TEXT NOT NULL, `keyHash` TEXT NOT NULL, `noticeHash` TEXT NOT NULL, `atMillis` INTEGER NOT NULL, `signals` INTEGER NOT NULL)")</ID>
+    <ID>MaxLineLength:HistoryMigrationTest.kt$HistoryMigrationTest$execSQL("INSERT INTO history (rowId, atMillis, historyProblem, outcome, detail) VALUES (1, 1000, 'ScamLink', 'OwnerWarned', 'It came from the app.')")</ID>
+    <ID>MaxLineLength:RoomStores.kt$RoomNoticeLog$if (gap != null &amp;&amp; gap &gt;= 0 &amp;&amp; gap &lt; NoticeRules.SAME_NOTICE.toMillis()) return</ID>
+    <ID>MaxLineLength:UpgradeWithDataTest.kt$UpgradeWithDataTest$private val baseline = Baseline("com.android.chrome", "com.google.android.apps.messaging", "com.google.android.dialer", emptySet(), emptySet(), emptySet(), apps = setOf("com.example.bank"), websites = setOf("https://news.example"))</ID>
+    <ID>MaxLineLength:UpgradeWithDataTest.kt$UpgradeWithDataTest$private val finding = Finding(FindingKey(DetectorId.Dns, Problem.WebsiteFilterOff, "dns"), emptyMap(), now.minus(Duration.ofDays(2)), now.minus(Duration.ofHours(1)), FindingState.Escalated)</ID>
+    <ID>MaxLineLength:UpgradeWithDataTest.kt$UpgradeWithDataTest$private val guardians = Guardians(alertsOn = true, ownerName = "Ruth", firstTopic = topic, firstGuardianName = "Kevin", firstGuardianEmail = "kevin@example.com", firstGuardianPhone = "555 0100")</ID>
+    <ID>MaxLineLength:UpgradeWithDataTest.kt$UpgradeWithDataTest$private val queued = QueuedMessage(id = 0, topic = topic.value, title = "Ruth", body = "A message", urgent = false, problem = Problem.WebsiteFilterOff, queuedAt = now.minus(Duration.ofHours(3)), attempts = 2, lastTriedAt = now.minus(Duration.ofHours(1)))</ID>
+    <ID>SwallowedException:FileFeedStore.kt$FileFeedStore$e: FeedFormatException</ID>
+  </CurrentIssues>
+</SmellBaseline>
