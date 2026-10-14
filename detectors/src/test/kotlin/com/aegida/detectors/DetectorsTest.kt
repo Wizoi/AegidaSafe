@@ -117,6 +117,34 @@ class PopupSpamDetectorTest {
         assertEquals(Problem.SiteNotifications, detector.evaluate(inputs(event = calm, baseline = baselineWith(null))).single().key.problem)
     }
 
+    // Scenario rows WP11, WP15, WP16 (docs/scenarios/website-popups.md); findings #109.
+    private val headline = chromeSiteNotification.copy(title = "Retailer hacked", text = "Millions of customer records stolen in data breach")
+
+    @Test fun aNewsHeadlineFromASiteSheSaidYesToIsLeftInPlace() {
+        assertEquals(emptyList<Any>(), detector.evaluate(inputs(event = headline, baseline = baselineWith(setOf(site)))))
+        assertEquals(emptyList<Any>(), detector.evaluate(inputs(event = headline, setup = Setup(null, setOf(site)))))
+        val malware = headline.copy(title = "New Android malware found in 40 apps", text = "Researchers say the virus spreads by text")
+        assertEquals(emptyList<Any>(), detector.evaluate(inputs(event = malware, baseline = baselineWith(setOf(site)))))
+    }
+
+    @Test fun aSiteSheSaidYesToThatWarnsAboutHerPhoneIsStillHidden() {
+        val known = baselineWith(setOf(site))
+        for (scare in listOf(
+            chromeSiteNotification,
+            headline.copy(title = "Your device has been hacked", text = "Tap to fix"),
+            headline.copy(title = "Security warning", text = "Battery damaged by virus. Clean now"),
+            headline.copy(title = "Alert", text = "Trojan detected on this phone"),
+            headline.copy(title = "Warning", text = "You are infected"),
+        )) {
+            assertEquals(scare.title, Problem.SiteNotifications, detector.evaluate(inputs(event = scare, baseline = known)).single().key.problem)
+            assertEquals(scare.title, Problem.SiteNotifications, detector.evaluate(inputs(event = scare, setup = Setup(null, setOf(site)))).single().key.problem)
+        }
+    }
+
+    @Test fun aNewSitePostingAScareHeadlineIsStillCalledFake() {
+        assertEquals(Problem.SiteNotifications, detector.evaluate(inputs(event = headline, baseline = baselineWith(setOf("https://news.example")))).single().key.problem)
+    }
+
     @Test fun ordinaryAppNotificationsAreIgnored() {
         assertEquals(emptyList<Any>(), detector.evaluate(inputs(event = message("VIRUS DETECTED"))))
     }
