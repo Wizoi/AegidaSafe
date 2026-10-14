@@ -21,14 +21,23 @@ object LinkSigns {
         "shorturl.at", "tiny.cc", "rb.gy", "t.ly", "s.id", "v.gd", "short.gy", "lnkd.in",
     )
 
-    /** Brand word -> the domains that really belong to it. A look-alike uses the word on any other domain. */
+    /**
+     * Brand word -> the domains that really belong to it, short-link and country sites included by name (findings #108). A look-alike
+     * uses the word on any other domain, so a country ending not listed here is still warned about.
+     */
     private val BRANDS = mapOf(
-        "paypal" to setOf("paypal.com"),
-        "amazon" to setOf("amazon.com", "amazon.co.uk", "amazon.ca"),
-        "apple" to setOf("apple.com", "icloud.com"),
+        "paypal" to setOf("paypal.com", "paypal.me"),
+        "amazon" to setOf(
+            "amazon.com", "amazon.co.uk", "amazon.ca", "amazon.de", "amazon.fr", "amazon.it", "amazon.es", "amazon.nl", "amazon.com.au",
+            "amazon.co.jp", "amazon.in", "amazon.com.mx", "amazon.com.br",
+        ),
+        "apple" to setOf("apple.com", "icloud.com", "apple.co"),
         "icloud" to setOf("icloud.com", "apple.com"),
         "microsoft" to setOf("microsoft.com", "live.com", "office.com"),
-        "google" to setOf("google.com"),
+        "google" to setOf(
+            "google.com", "google.co.uk", "google.ca", "google.de", "google.fr", "google.it", "google.es", "google.nl", "google.com.au",
+            "google.co.jp", "google.co.in", "google.com.mx", "google.com.br",
+        ),
         "netflix" to setOf("netflix.com"),
         "wellsfargo" to setOf("wellsfargo.com"),
         "chase" to setOf("chase.com"),
@@ -50,6 +59,13 @@ object LinkSigns {
     private val HOMOGLYPHS = mapOf(
         'а' to 'a', 'е' to 'e', 'о' to 'o', 'р' to 'p', 'с' to 'c', 'у' to 'y', 'х' to 'x', 'і' to 'i',
         'ј' to 'j', 'ѕ' to 's', 'ԁ' to 'd', 'ɡ' to 'g', 'ο' to 'o', 'α' to 'a', 'ν' to 'v', 'ρ' to 'p', 'κ' to 'k',
+        'ӏ' to 'l', // the palochka: "аррӏе" is all Cyrillic, so not mixed, yet reads as "apple" (findings #108)
+    )
+
+    /** English words ending in "-ups" ("pop-ups"): the "ups" in them is not the parcel company (findings #108). */
+    private val UPS_WORDS = setOf(
+        "pop", "sign", "check", "start", "back", "set", "follow", "mix", "pick", "line", "mock", "warm", "round", "close", "make",
+        "grown", "push", "pull", "sit", "top", "write", "clean", "tune", "roll", "hook", "lock", "pin",
     )
     private val DELEET = listOf("rn" to "m", "vv" to "w", "0" to "o", "1" to "l", "3" to "e", "5" to "s", "4" to "a", "@" to "a")
 
@@ -72,12 +88,16 @@ object LinkSigns {
 
     private fun imitatesBrand(host: String): Boolean {
         val unicode = IDN.toUnicode(host, IDN.ALLOW_UNASSIGNED).lowercase()
-        val tokens = unicode.split('.', '-').map(::deleet)
+        val tokens = unicode.split('.').flatMap { label -> brandWords(label.split('-').map(::deleet)) }
         return BRANDS.any { (brand, domains) ->
             val owned = domains.any { host == it || host.endsWith(".$it") }
             !owned && tokens.any { it == brand }
         }
     }
+
+    /** The words of one name between dots, without the "ups" of an English "-ups" word such as "pop-ups". */
+    private fun brandWords(words: List<String>): List<String> =
+        words.filterIndexed { i, w -> !(w == "ups" && i > 0 && words[i - 1] in UPS_WORDS) }
 
     private fun deleet(token: String): String =
         DELEET.fold(token.map { HOMOGLYPHS[it] ?: it }.joinToString("")) { acc, (from, to) -> acc.replace(from, to) }

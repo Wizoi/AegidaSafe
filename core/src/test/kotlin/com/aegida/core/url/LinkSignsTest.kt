@@ -33,6 +33,45 @@ class LinkSignsTest {
         assertEquals(emptySet<LinkSign>(), signs("https://www.irs.gov/refunds"))
     }
 
+    // Scenario rows ST13, ST14, ST16-ST18 (docs/scenarios/scam-texts.md) and WP13 (website-popups.md); findings #108.
+
+    @Test fun aRealBrandShortOrCountryLinkIsNotALookalike() {
+        for (url in listOf(
+            "https://apple.co/3abc", "https://paypal.me/kevin", "https://www.amazon.de/gp/css", "https://www.amazon.fr/x",
+            "https://www.google.co.uk/maps", "https://www.google.de/", "https://amzn.to/3xyz", "https://a.co/d/abc", "https://g.co/help",
+            "https://youtu.be/dQw4w9WgXcQ", "https://www.amazon.co.uk/orders",
+        )) {
+            assertEquals(url, false, LinkSign.BrandLookalike in signs(url))
+        }
+    }
+
+    @Test fun aBrandWordOnAnUnlistedEndingOrBeforeAnotherDomainIsStillALookalike() {
+        for (url in listOf(
+            "http://amazon.de-login.example/", "http://paypal.me.verify-account.example/", "http://apple.co.id-check.example/",
+            "http://www.google.co.uk.signin.example/", "http://amazon.xyz/", "http://paypal.ru/", "http://apple.com.co/",
+        )) {
+            assertEquals(url, true, LinkSign.BrandLookalike in signs(url))
+        }
+    }
+
+    @Test fun anAllCyrillicAppleIsALookalike() {
+        // а р р ӏ е: every letter Cyrillic, so one script and not "mixed", but it reads as "apple" (ӏ is the palochka).
+        assertEquals(setOf(LinkSign.BrandLookalike), signs("https://аррӏе.com/id"))
+        assertEquals(setOf(LinkSign.BrandLookalike), signs("https://аррӏе.рф/"))
+    }
+
+    @Test fun theWordPopUpsIsNotTheParcelCompany() {
+        for (url in listOf("https://www.pop-ups.com/", "https://pop-ups.example/x", "pop-ups.tap", "https://sign-ups.example/", "https://check-ups.example/")) {
+            assertEquals(url, emptySet<LinkSign>(), signs(url))
+        }
+    }
+
+    @Test fun upsBeforeOrAfterAHyphenIsStillTheParcelCompany() {
+        for (url in listOf("http://ups-redelivery.example/", "http://track-ups.example/", "http://ups.parcel-fee.example/", "http://pop-ups-ups.example/")) {
+            assertEquals(url, setOf(LinkSign.BrandLookalike), signs(url))
+        }
+    }
+
     @Test fun wordsThatMerelyContainABrandAreNot() {
         assertEquals(emptySet<LinkSign>(), signs("https://purchase.example/"))
         assertEquals(emptySet<LinkSign>(), signs("https://groups.example/"))
