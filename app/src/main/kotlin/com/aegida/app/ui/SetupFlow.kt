@@ -60,7 +60,8 @@ private fun SetupSteps(state: MainState, vm: MainViewModel) {
     val noEmailApp = rememberSaveable { mutableStateOf(false) }
     val total = if (state.blockerRelevant) SetupStep.Blocker.ordinal + 1 else SetupStep.Blocker.ordinal
     val advance: () -> Unit = {
-        vm.edit { finishStep(step, it.blockerRelevant) }
+        val finished = step // the save runs later on a background thread, after `step` has moved on (finding #123)
+        vm.edit { finishStep(finished, it.blockerRelevant) }
         step.next(state.blockerRelevant)?.let { step = it }
     }
     val c = StepContext(state, vm, StepPosition(state.setup.pictureId, step.ordinal + 1, total), advance, noEmailApp)

@@ -1,4 +1,4 @@
-﻿package com.aegida.app
+package com.aegida.app
 
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.assertIsDisplayed

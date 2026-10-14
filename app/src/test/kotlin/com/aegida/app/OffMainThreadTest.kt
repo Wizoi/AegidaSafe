@@ -1,4 +1,4 @@
-﻿package com.aegida.app
+package com.aegida.app
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue

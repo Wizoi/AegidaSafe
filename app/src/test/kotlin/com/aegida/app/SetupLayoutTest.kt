@@ -1,4 +1,4 @@
-﻿package com.aegida.app
+package com.aegida.app
 
 import android.app.Application
 import android.content.ComponentName

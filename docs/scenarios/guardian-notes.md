@@ -1,4 +1,4 @@
-﻿# Scenarios: notes to guardians
+# Scenarios: notes to guardians
 
 What a guardian is told, when, and what stays unsent. Nothing goes to a guardian unless the owner turned alerts on. A note names the
 owner, never uses a pronoun, never carries a link or the words of a message. `GAP` means nothing covers it yet.

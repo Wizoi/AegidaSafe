@@ -10,7 +10,7 @@ Written for someone auditing the code. Each statement is backed by a test or a g
   (app, sender, a few words with links taken out, the address) for 90 days, on the phone only. For apps that send ads as
   notices, only the time and a count of ad signs per notice are kept, for a week.
 - Which app opens web links, texts and calls; which apps have notification access, screen control or device-admin rights;
-  Private DNS; every installed app with its name, the store that installed it and (for apps that did not ship with the phone)
+  Private DNS; every installed app with its name, the store that installed it, the app that asked for the install (both stay on the phone) and (for apps that did not ship with the phone)
   its signing-certificate fingerprint. No app data, no contacts, no messages, no location, no microphone, no camera.
 
 ## Stores on the phone
