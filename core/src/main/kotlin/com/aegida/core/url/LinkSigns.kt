@@ -67,6 +67,11 @@ object LinkSigns {
         "pop", "sign", "check", "start", "back", "set", "follow", "mix", "pick", "line", "mock", "warm", "round", "close", "make",
         "grown", "push", "pull", "sit", "top", "write", "clean", "tune", "roll", "hook", "lock", "pin",
     )
+    /** Words of a parcel scam's name ("track-pick-ups", "ups-redelivery"). */
+    private val PARCEL_WORDS = setOf(
+        "track", "tracking", "delivery", "redelivery", "deliver", "redeliver", "parcel", "parcels", "package", "packages", "shipping",
+        "shipment", "courier",
+    )
     private val DELEET = listOf("rn" to "m", "vv" to "w", "0" to "o", "1" to "l", "3" to "e", "5" to "s", "4" to "a", "@" to "a")
 
     fun of(link: Link): Set<LinkSign> = buildSet {
@@ -88,7 +93,9 @@ object LinkSigns {
 
     private fun imitatesBrand(host: String): Boolean {
         val unicode = IDN.toUnicode(host, IDN.ALLOW_UNASSIGNED).lowercase()
-        val tokens = unicode.split('.').flatMap { label -> brandWords(label.split('-').map(::deleet)) }
+        val labels = unicode.split('.').map { label -> label.split('-').map(::deleet).flatMap(::splitUps) }
+        val aboutParcels = labels.any { words -> words.any { it in PARCEL_WORDS } }
+        val tokens = labels.flatMap { brandWords(it, aboutParcels) }
         return BRANDS.any { (brand, domains) ->
             val owned = domains.any { host == it || host.endsWith(".$it") }
             !owned && tokens.any { it == brand }
@@ -96,11 +103,24 @@ object LinkSigns {
     }
 
     /**
-     * The words of one name between dots, without the "ups" of an English "-ups" word such as "pop-ups". Only when that word ends the
-     * name: "pick-ups-redelivery" goes on, so the "ups" in it is the parcel company (findings #120).
+     * The words of one name between dots, without the "ups" of an English "-ups" word such as "pop-ups" or "check-ups", unless the
+     * host talks about parcels: "pick-ups-redelivery" and "track-pick-ups" are the parcel company, "pop-ups-blocker" is not
+     * (findings #108, #120, #127; table ST19 in docs/scenarios/scam-texts.md).
      */
-    private fun brandWords(words: List<String>): List<String> =
-        words.filterIndexed { i, w -> !(w == "ups" && i == words.lastIndex && i > 0 && words[i - 1] in UPS_WORDS) }
+    private fun brandWords(words: List<String>, aboutParcels: Boolean): List<String> =
+        if (aboutParcels) words else words.filterIndexed { i, w -> !(w == "ups" && i > 0 && words[i - 1] in UPS_WORDS) }
+
+    /** "pickups" and "setups" read as "pick ups" and "set ups"; "upsdelivery" as "ups delivery". "upstairs" and "cups" stay one word. */
+    private fun splitUps(word: String): List<String> {
+        val root = word.removeSuffix("ups")
+        val rest = word.removePrefix("ups")
+        return when {
+            word == "ups" -> listOf(word)
+            root != word && root in UPS_WORDS -> listOf(root, "ups")
+            rest != word && rest in PARCEL_WORDS -> listOf("ups", rest)
+            else -> listOf(word)
+        }
+    }
 
     private fun deleet(token: String): String =
         DELEET.fold(token.map { HOMOGLYPHS[it] ?: it }.joinToString("")) { acc, (from, to) -> acc.replace(from, to) }
