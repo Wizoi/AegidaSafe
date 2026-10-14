@@ -11,6 +11,12 @@ interface OemSource {
 
     /** Whether Aegida is on the maker's "never put to sleep" list. */
     fun neverSleeping(): Reading<Boolean>
+
+    /**
+     * The maker's own app stores (package names), trusted like Play for the new-app question only. Empty when the
+     * maker has none or this is not that maker's phone. Never used for the spying-app, remote-control or access checks.
+     */
+    fun appStores(): Set<String>
 }
 
 sealed interface Reading<out T> {

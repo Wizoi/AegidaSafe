@@ -34,9 +34,10 @@ class AndroidSnapshotterTest {
     private val listener = ComponentName(context.packageName, "com.aegida.app.AegidaListenerService")
     private val now = Instant.now().minus(Duration.ofSeconds(30))
 
-    private class FixedOem(val blocker: Reading<Boolean>, val sleeping: Reading<Boolean>) : OemSource {
+    private class FixedOem(val blocker: Reading<Boolean>, val sleeping: Reading<Boolean>, val stores: Set<String> = emptySet()) : OemSource {
         override fun installBlocker() = blocker
         override fun neverSleeping() = sleeping
+        override fun appStores(): Set<String> = stores
     }
 
     private fun take(oem: OemSource = FixedOem(Reading.NotPresent, Reading.NotPresent)) =
@@ -194,6 +195,82 @@ class AndroidSnapshotterTest {
         assertNull(apps.getValue("org.byhand.app").installer)
         assertTrue(apps.getValue("com.android.phone").isSystem)
         assertFalse(apps.getValue("org.byhand.app").isSystem)
+    }
+
+    // The phone maker's own store (findings #106, scenarios GS*). Data shape from the Galaxy S25 dump in build/samsung-rtl.
+
+    private val galaxyStore = "com.sec.android.app.samsungapps"
+
+    private fun installFromStore(pkg: String, installing: String?, initiating: String?, system: Boolean = false, enabled: Boolean = true) {
+        val info = android.content.pm.PackageInfo().apply {
+            packageName = pkg
+            applicationInfo = android.content.pm.ApplicationInfo().apply {
+                packageName = pkg
+                nonLocalizedLabel = pkg
+                this.enabled = enabled
+                flags = if (system) android.content.pm.ApplicationInfo.FLAG_SYSTEM else 0
+            }
+        }
+        shadowOf(context.packageManager).installPackage(info)
+        if (android.os.Build.VERSION.SDK_INT >= 30) shadowOf(context.packageManager).setInstallSourceInfo(pkg, initiating, installing) // this Robolectric shadow does not run on API 36
+    }
+
+    private fun takeWithGalaxyStore() = take(FixedOem(Reading.NotPresent, Reading.NotPresent, setOf(galaxyStore)))
+
+    @Test @org.robolectric.annotation.Config(sdk = [34]) fun anAppThatTheMakersStoreInstalledAndAskedForIsFromThatStore() { // GS1
+        installFromStore(galaxyStore, null, null, system = true)
+        installFromStore("org.temu", galaxyStore, galaxyStore)
+        val snapshot = takeWithGalaxyStore()
+        assertEquals(setOf(galaxyStore), snapshot.makerStores)
+        assertTrue(snapshot.apps.single { it.packageName == "org.temu" }.fromStoreIn(snapshot.makerStores))
+    }
+
+    @Test @org.robolectric.annotation.Config(sdk = [34]) fun aStoreThatIsNotASystemAppIsNotTrusted() { // GS6: an impostor with the store's name
+        installFromStore(galaxyStore, "com.android.vending", "com.android.vending", system = false)
+        installFromStore("org.pushed", galaxyStore, galaxyStore)
+        val snapshot = takeWithGalaxyStore()
+        assertEquals(emptySet<String>(), snapshot.makerStores)
+        assertFalse(snapshot.apps.single { it.packageName == "org.pushed" }.fromStoreIn(snapshot.makerStores))
+    }
+
+    @Test @org.robolectric.annotation.Config(sdk = [34]) fun aPreloadedInstallerThatOnlyWritesTheStoreNameIsNotTheStore() { // GS6: installer is the store, initiating is the preloaded app
+        installFromStore(galaxyStore, null, null, system = true)
+        installFromStore("org.pushed", galaxyStore, "com.preloaded.installer")
+        val snapshot = takeWithGalaxyStore()
+        assertFalse(snapshot.apps.single { it.packageName == "org.pushed" }.fromStoreIn(snapshot.makerStores))
+    }
+
+    @Test @org.robolectric.annotation.Config(sdk = [34]) fun anAppOpenedFromAFileOnAPhoneWithTheStoreIsNotFromTheStore() { // GS7
+        installFromStore(galaxyStore, null, null, system = true)
+        installFromStore("org.file", null, null)
+        installFromStore("org.pkg", "com.google.android.packageinstaller", "com.sec.android.app.myfiles")
+        val snapshot = takeWithGalaxyStore()
+        assertFalse(snapshot.apps.single { it.packageName == "org.file" }.fromStoreIn(snapshot.makerStores))
+        assertFalse(snapshot.apps.single { it.packageName == "org.pkg" }.fromStoreIn(snapshot.makerStores))
+    }
+
+    @Test @org.robolectric.annotation.Config(sdk = [34]) fun onAPhoneWithoutTheStoreInItsListNothingIsTrusted() { // GS10 (Pixel: oem names none), GS11/GS20 (store removed: not in the list)
+        installFromStore("org.temu", galaxyStore, galaxyStore)
+        assertEquals(emptySet<String>(), take().makerStores)
+        assertEquals(emptySet<String>(), takeWithGalaxyStore().makerStores)
+    }
+
+    @Test @org.robolectric.annotation.Config(sdk = [34]) fun aDisabledStoreThatIsStillASystemAppKeepsItsAppsTrusted() { // GS20
+        installFromStore(galaxyStore, null, null, system = true, enabled = false)
+        assertEquals(setOf(galaxyStore), takeWithGalaxyStore().makerStores)
+    }
+
+    @Test @org.robolectric.annotation.Config(sdk = [29]) fun beforeAndroid11ThereIsNoInitiatingInstallerSoTheAppIsAQuestion() { // GS19
+        installFromStore(galaxyStore, null, null, system = true)
+        @Suppress("DEPRECATION") run {
+            installFromStore("org.temu", null, null)
+            context.packageManager.setInstallerPackageName("org.temu", galaxyStore)
+        }
+        val snapshot = takeWithGalaxyStore()
+        val app = snapshot.apps.single { it.packageName == "org.temu" }
+        assertEquals(galaxyStore, app.installer)
+        assertNull(app.initiatingInstaller)
+        assertFalse(app.fromStoreIn(snapshot.makerStores))
     }
 
     @Test fun theListIsKeptForAFewMinutesBecauseEveryNotificationRunsACheck() {

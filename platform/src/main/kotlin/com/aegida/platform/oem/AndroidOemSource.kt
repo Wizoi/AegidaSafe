@@ -27,7 +27,10 @@ class AndroidOemSource(private val context: Context) : OemSource {
 
     override fun neverSleeping(): Reading<Boolean> = if (isSamsung) Reading.Unreadable else Reading.NotPresent
 
+    override fun appStores(): Set<String> = if (isSamsung) setOf(GALAXY_STORE) else emptySet()
+
     private companion object {
+        const val GALAXY_STORE = "com.sec.android.app.samsungapps"
         const val AUTO_BLOCKER = "com.samsung.android.rampart"
     }
 }

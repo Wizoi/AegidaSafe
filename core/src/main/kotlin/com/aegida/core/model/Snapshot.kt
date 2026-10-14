@@ -32,6 +32,8 @@ data class Snapshot(
     val assistant: String? = null,
     /** Every app Aegida may see. Empty when it could not list them. */
     val apps: List<InstalledApp> = emptyList(),
+    /** The phone maker's own app stores that are present on this phone as system apps (never guessed). Empty on a Pixel. */
+    val makerStores: Set<String> = emptySet(),
 )
 
 /** The Private DNS ("website filter") setting as read from the phone. */

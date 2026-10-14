@@ -141,6 +141,25 @@ class AlertPipelineTest {
         assertEquals(listOf(changed.key), owner.cleared)
     }
 
+    /** GS2: a question raised before the phone's own store was trusted goes away at the next check, through the real detector. */
+    @Test fun aNewAppQuestionFromTheMakersStoreIsResolvedAtTheNextCheck() = runTest {
+        val store = "org.maker.store"
+        val app = com.aegida.core.model.InstalledApp("org.new.temu", "Temu", store, false, initiatingInstaller = store)
+        val atSetup = com.aegida.core.model.Snapshot(now, com.aegida.core.model.PrivateDns.Automatic, null, true, true, com.aegida.core.oem.Reading.NotPresent, com.aegida.core.oem.Reading.NotPresent)
+        val baseline = com.aegida.core.model.Baseline.of(atSetup)
+        fun check(phone: com.aegida.core.model.Snapshot) =
+            com.aegida.detectors.NewAppDetector().evaluate(com.aegida.detectors.Inputs(phone, now, com.aegida.core.model.Setup.NotDone, null, null, null, baseline = baseline))
+
+        val before = check(atSetup.copy(apps = listOf(app))) // the old build: no trusted store
+        assertEquals(1, before.size)
+        pipeline.handle(before, setOf(DetectorId.NewApp))
+
+        val after = check(atSetup.copy(apps = listOf(app), makerStores = setOf(store)))
+        val result = pipeline.handle(after, setOf(DetectorId.NewApp))
+        assertEquals(1, result.resolved)
+        assertEquals(FindingState.Resolved, findings.rows[before.single().key]!!.state)
+    }
+
     @Test fun theGuardianMessageNeverContainsTheLinkOrEvidence() = runTest {
         pipeline.handle(listOf(scamLink.copy(evidence = mapOf("host" to "evil.example"))), setOf(DetectorId.Link))
         assertTrue(http.bodies.none { "evil.example" in it || "http" in it })

@@ -13,8 +13,13 @@ data class InstalledApp(
     val certSha1s: Set<String> = emptySet(),
     /** The developer's own category (`ApplicationInfo.category`: game 0, image 3, social 4, news 5, productivity 7 ...), -1 when none. */
     val category: Int = -1,
+    /** The app that asked for the install (`InstallSourceInfo`, Android 11+), or null when unknown or older Android. */
+    val initiatingInstaller: String? = null,
 ) {
     val fromPlayStore: Boolean get() = installer == PLAY_STORE
+
+    /** Installed by one of [stores] and also asked for by it, so a preloaded installer that only writes the store's name as installer does not count. */
+    fun fromStoreIn(stores: Set<String>): Boolean = installer != null && installer in stores && initiatingInstaller == installer
 
     companion object {
         const val PLAY_STORE = "com.android.vending"

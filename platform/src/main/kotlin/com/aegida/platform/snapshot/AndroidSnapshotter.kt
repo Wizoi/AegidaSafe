@@ -37,6 +37,7 @@ class AndroidSnapshotter(
 
     override fun take(): Snapshot {
         val notifications = context.getSystemService(NotificationManager::class.java)
+        val apps = apps()
         return Snapshot(
             takenAt = clock.now(),
             privateDns = readPrivateDns(),
@@ -51,7 +52,8 @@ class AndroidSnapshotter(
             notificationListeners = packagesIn(Settings.Secure.getString(context.contentResolver, ENABLED_LISTENERS)) - context.packageName,
             accessibilityApps = packagesIn(Settings.Secure.getString(context.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES)),
             deviceAdmins = context.getSystemService(DevicePolicyManager::class.java)?.activeAdmins.orEmpty().map { it.packageName }.toSet(),
-            apps = apps(),
+            apps = apps,
+            makerStores = oem.appStores().filter { store -> apps.any { it.packageName == store && it.isSystem } }.toSet(),
         )
     }
 
@@ -86,6 +88,7 @@ class AndroidSnapshotter(
                 packageName = info.packageName,
                 label = pm.getApplicationLabel(info).toString(),
                 installer = installerOf(pm, info.packageName),
+                initiatingInstaller = initiatingInstallerOf(pm, info.packageName),
                 isSystem = system,
                 // Apps that came with the phone are matched by name only, which keeps a check to about a second.
                 certSha1s = if (system) emptySet() else certificatesOf(pm, info.packageName),
@@ -108,6 +111,13 @@ class AndroidSnapshotter(
     @Suppress("DEPRECATION")
     private fun installerOf(pm: PackageManager, pkg: String): String? = try {
         if (Build.VERSION.SDK_INT >= 30) pm.getInstallSourceInfo(pkg).installingPackageName else pm.getInstallerPackageName(pkg)
+    } catch (e: PackageManager.NameNotFoundException) {
+        null
+    }
+
+    /** Who asked for the install (Android 11+); null below that or when unknown. */
+    private fun initiatingInstallerOf(pm: PackageManager, pkg: String): String? = try {
+        if (Build.VERSION.SDK_INT >= 30) pm.getInstallSourceInfo(pkg).initiatingPackageName else null
     } catch (e: PackageManager.NameNotFoundException) {
         null
     }
