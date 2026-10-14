@@ -109,4 +109,33 @@ class LinkTextScenariosTest {
             assertTrue("$text: ${Texts.Home.withoutLinks(text)}", Texts.Home.withoutLinks(text).contains("(link)"))
         }
     }
+
+    @Test fun aLinkIsTakenOutOfTheWordsByTheSameCodeThatFindsLinksNotByTheStoredHost() { // finding #94
+        val lookalike = Texts.Home.saysLine("Refund at \u0440\u0430ypal.com/claim now", "xn--ypal-43d9g.com")!!
+        assertFalse(lookalike, lookalike.contains("ypal"))
+        val two = Texts.Home.saysLine("Pay at evil.example/x or other-site.example/y today", "evil.example")!!
+        assertFalse(two, two.contains("other-site") || two.contains("evil"))
+        assertEquals("From: “Visit (link) now”", Texts.Home.senderLine("Visit paypa1-help.example now"))
+    }
+
+    @Test fun aWebsitePopUpTitleNeverShowsALinkAsText() { // finding #98
+        val said = Texts.Home.saidLine("Infected! Go to cleaner-app.top now")!!
+        assertFalse(said, said.contains("cleaner-app"))
+    }
+
+    @Test fun ordinaryWordsWithADotAreNotTakenForLinks() { // finding #98
+        assertEquals("Mr.Smith says your parcel is held.Please call St.Louis", Texts.Home.withoutLinks("Mr.Smith says your parcel is held.Please call St.Louis"))
+    }
+
+    @Test fun aLongLabelEndingInAnAddressIsMaskedBeforeItIsCut() { // finding #98
+        val label = Texts.Home.guardianLabel("A very long app name that goes on and on before evil-site.com")
+        assertFalse(label, label.contains("evil-site") || label.contains("evil-si"))
+    }
+
+    @Test fun anAppNamedLikeAWebAddressReachesTheGuardianMasked() { // findings #94, #96
+        val note = Problem.NoisyApp.forGuardian("Ruth", "evil-site.com")!!
+        assertFalse(note, note.contains("evil-site.com"))
+        assertTrue(note, note.contains("ev*****.com"))
+        assertFalse(Texts.Guardian.ALLOWED.format("Ruth", Texts.Home.guardianLabel("Get evil-site.com")).contains("evil-site.com"))
+    }
 }

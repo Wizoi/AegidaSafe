@@ -26,4 +26,10 @@ class HostMaskTest {
         assertEquals("*****", HostMask.of("192.168.1.5"))
         assertEquals("*****", HostMask.of(""))
     }
+
+    @Test fun hostMaskHandlesATrailingDotAndWww() { // findings #94, #96
+        assertEquals("ex*****.com", HostMask.of("example.com."))
+        assertEquals("ex*****.com", HostMask.of("www.example.com"))
+        assertEquals("ex*****.com", HostMask.of("https://m.example.com/x"))
+    }
 }
