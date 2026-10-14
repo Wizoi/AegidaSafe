@@ -46,8 +46,10 @@ class StalkerwareDetectorTest {
             found(app("com.thetruth", system = true), app("org.renamed.app", certs = setOf(listedCert), system = true)),
         )
 
-    @Test fun anAppSignedWithAListedCertificateIsRaisedEvenUnderAnotherName() =
-        assertEquals(listOf(Problem.StalkerwareApp to "org.renamed.app"), found(app("org.renamed.app", certs = setOf("0000", "31A6ECECD97CF39BC4126B8745CD94A7C30BF81C"))))
+    @Test fun anAppSignedWithAListedCertificateIsRaisedEvenUnderAnotherName() {
+        val renamed = app("org.renamed.app", certs = setOf("0000", "31A6ECECD97CF39BC4126B8745CD94A7C30BF81C"))
+        assertEquals(listOf(Problem.StalkerwareApp to "org.renamed.app"), found(renamed))
+    }
 
     @Test fun otherAppsAreLeftAlone() =
         assertEquals(emptyList<Pair<Problem, String>>(), found(app("com.android.chrome", certs = setOf("abcd")), app("org.family.photos")))

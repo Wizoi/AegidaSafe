@@ -30,7 +30,10 @@ class Findings : FindingStore {
     override suspend fun get(key: FindingKey) = rows[key]
     override suspend fun put(finding: Finding) { rows[finding.key] = finding }
     override suspend fun prune(before: Instant, notAfter: Instant): Int =
-        rows.values.filter { (it.state == FindingState.Resolved || it.state == FindingState.Acknowledged) && (it.lastSeen.isBefore(before) || it.lastSeen.isAfter(notAfter)) }
+        rows.values.filter {
+            (it.state == FindingState.Resolved || it.state == FindingState.Acknowledged) &&
+                (it.lastSeen.isBefore(before) || it.lastSeen.isAfter(notAfter))
+        }
             .map { rows.remove(it.key) }.size
 }
 

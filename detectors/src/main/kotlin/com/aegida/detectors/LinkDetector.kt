@@ -5,6 +5,7 @@ import com.aegida.core.model.DetectorId
 import com.aegida.core.model.Evidence
 import com.aegida.core.model.Finding
 import com.aegida.core.model.FindingKey
+import com.aegida.core.model.NotificationEvent
 import com.aegida.core.text.Problem
 import com.aegida.core.url.LinkSign
 import com.aegida.core.url.LinkSigns
@@ -22,9 +23,15 @@ class LinkDetector @Inject constructor() : Detector {
     override val id = DetectorId.Link
 
     override fun evaluate(input: Inputs): List<Finding> {
-        val event = input.event ?: return emptyList()
-        if (event.packageName == Aegida.PACKAGE) return emptyList()
-        if (event.channelId?.startsWith(PopupSpamDetector.SITE_CHANNEL_PREFIX) == true) return emptyList()
+        val event = input.event
+        return if (event == null || isNotForLinks(event)) emptyList() else findingsIn(event, input)
+    }
+
+    /** Aegida's own notices, and a website's (PopupSpamDetector owns those), are not checked for links. */
+    private fun isNotForLinks(event: NotificationEvent): Boolean =
+        event.packageName == Aegida.PACKAGE || event.channelId?.startsWith(PopupSpamDetector.SITE_CHANNEL_PREFIX) == true
+
+    private fun findingsIn(event: NotificationEvent, input: Inputs): List<Finding> {
         // The links in the text as written are checked as always. Links that only appear once odd dots, invisible characters or a
         // broken fragment are dealt with (findings #104) count only with a real ending or a scheme, so Japanese full stops and
         // middle dots between ordinary words never make a "link" (findings #105).
@@ -50,7 +57,8 @@ class LinkDetector @Inject constructor() : Detector {
                     put(Evidence.MESSAGE_TEXT, cap(event.text))
                     put(Evidence.MESSAGE_AT, event.postedAt.toEpochMilli().toString())
                     // The owner is told which app it came from (Kevin, Oct 10); the phone's own app list names it.
-                    input.snapshot.apps.firstOrNull { it.packageName == event.packageName }?.label?.takeIf { it.isNotBlank() }?.let { put(Evidence.APP_LABEL, it) }
+                    input.snapshot.apps.firstOrNull { it.packageName == event.packageName }?.label?.takeIf { it.isNotBlank() }
+                        ?.let { put(Evidence.APP_LABEL, it) }
                 },
                 input.now,
                 input.now,

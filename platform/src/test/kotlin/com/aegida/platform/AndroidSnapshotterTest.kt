@@ -136,7 +136,8 @@ class AndroidSnapshotterTest {
 
     @Test fun appsWithScreenControlAreReadAndNoneMeansEmpty() {
         assertEquals(emptySet<String>(), take().accessibilityApps)
-        Settings.Secure.putString(context.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, "org.helper/org.helper.Service:org.other/org.other.Svc")
+        val services = "org.helper/org.helper.Service:org.other/org.other.Svc"
+        Settings.Secure.putString(context.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES, services)
         assertEquals(setOf("org.helper", "org.other"), take().accessibilityApps)
     }
 

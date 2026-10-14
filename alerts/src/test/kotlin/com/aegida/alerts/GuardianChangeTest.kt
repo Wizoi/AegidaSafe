@@ -13,7 +13,10 @@ class GuardianChangeTest {
     private val oldTopic = NtfyTopic("aegida_" + "x9Y8z7W6".repeat(4))
     private val http = Http()
     private val guardians = FakeGuardians(
-        Guardians(alertsOn = true, ownerName = "Mom", firstTopic = oldTopic, firstGuardianName = "Kevin", firstGuardianEmail = "k@example.com", firstGuardianPhone = "555"),
+        Guardians(
+            alertsOn = true, ownerName = "Mom", firstTopic = oldTopic,
+            firstGuardianName = "Kevin", firstGuardianEmail = "k@example.com", firstGuardianPhone = "555",
+        ),
     )
     private val sender = NtfySender(http)
     private val switch = DeadMansSwitch(guardians, sender) { java.time.Instant.EPOCH }
@@ -61,7 +64,9 @@ class GuardianChangeTest {
             val result = change.change("Ann", "ann@example.com", "")
             val toOld = http.posts.filter { it.first.url == "https://ntfy.sh/${oldTopic.value}" }
             assertEquals(1, toOld.size)
-            assertEquals("Mom picked a different guardian in Aegida. You will not get messages about Mom's phone from now on. If you did not expect this, please call Mom.", toOld.single().second)
+            val told = "Mom picked a different guardian in Aegida. You will not get messages about Mom's phone from now on. " +
+                "If you did not expect this, please call Mom."
+            assertEquals(told, toOld.single().second)
             assertEquals(SendResult.Delivered, result.oldGuardianTold)
             // told first, then the waiting "hasn't checked in" message is cancelled
             assertEquals(0, http.deleted.indexOfFirst { true })

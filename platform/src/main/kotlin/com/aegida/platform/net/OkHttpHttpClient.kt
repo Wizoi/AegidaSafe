@@ -33,25 +33,21 @@ class OkHttpHttpClient internal constructor(
     override suspend fun post(endpoint: Endpoint, body: String, headers: Map<String, String>): HttpResult {
         check(endpoint.host in Endpoint.ALLOWED_HOSTS) { "host not allowed" }
         return withContext(Dispatchers.IO) {
-            try {
-                val request = Request.Builder()
-                    .url(urlFor(endpoint))
-                    .post(body.toRequestBody("text/plain; charset=utf-8".toMediaType()))
-                    .apply { headers.forEach { (name, value) -> header(name, value) } }
-                    .build()
-                client.newCall(request).execute().use { response ->
-                    if (response.isSuccessful) HttpResult.Ok(response.code, response.body?.string().orEmpty())
-                    else HttpResult.Failed(response.code, FailureReason.HttpError)
+            failSoftly({ HttpResult.Failed(null, it) }) {
+                try {
+                    val request = Request.Builder()
+                        .url(urlFor(endpoint))
+                        .post(body.toRequestBody("text/plain; charset=utf-8".toMediaType()))
+                        .apply { headers.forEach { (name, value) -> header(name, value) } }
+                        .build()
+                    client.newCall(request).execute().use { response ->
+                        if (response.isSuccessful) HttpResult.Ok(response.code, response.body?.string().orEmpty())
+                        else HttpResult.Failed(response.code, FailureReason.HttpError)
+                    }
+                } catch (expectedBadHeader: IllegalArgumentException) {
+                    // A header value OkHttp will not carry: a failed send the outbox can report, never a crash (its text is dropped).
+                    HttpResult.Failed(null, FailureReason.Unknown)
                 }
-            } catch (e: UnknownHostException) {
-                HttpResult.Failed(null, FailureReason.Offline)
-            } catch (e: InterruptedIOException) {
-                HttpResult.Failed(null, FailureReason.Timeout)
-            } catch (e: IOException) {
-                HttpResult.Failed(null, FailureReason.Unknown)
-            } catch (e: IllegalArgumentException) {
-                // A header value OkHttp will not carry: a failed send the outbox can report, never a crash.
-                HttpResult.Failed(null, FailureReason.Unknown)
             }
         }
     }
@@ -60,17 +56,11 @@ class OkHttpHttpClient internal constructor(
         check(endpoint.host in Endpoint.ALLOWED_HOSTS) { "host not allowed" }
         val request = Request.Builder().url(urlFor(endpoint)).delete().build()
         return withContext(Dispatchers.IO) {
-            try {
+            failSoftly({ HttpResult.Failed(null, it) }) {
                 client.newCall(request).execute().use { response ->
                     if (response.isSuccessful) HttpResult.Ok(response.code, response.body?.string().orEmpty())
                     else HttpResult.Failed(response.code, FailureReason.HttpError)
                 }
-            } catch (e: UnknownHostException) {
-                HttpResult.Failed(null, FailureReason.Offline)
-            } catch (e: InterruptedIOException) {
-                HttpResult.Failed(null, FailureReason.Timeout)
-            } catch (e: IOException) {
-                HttpResult.Failed(null, FailureReason.Unknown)
             }
         }
     }
@@ -79,7 +69,7 @@ class OkHttpHttpClient internal constructor(
         check(endpoint.host in Endpoint.ALLOWED_HOSTS) { "host not allowed" }
         val request = Request.Builder().url(urlFor(endpoint)).get().build()
         return withContext(Dispatchers.IO) {
-            try {
+            failSoftly({ BytesResult.Failed(null, it) }) {
                 client.newCall(request).execute().use { response ->
                     val body = response.body
                     when {
@@ -89,15 +79,24 @@ class OkHttpHttpClient internal constructor(
                         else -> readAtMost(body.source(), maxBytes, response.code)
                     }
                 }
-            } catch (e: UnknownHostException) {
-                BytesResult.Failed(null, FailureReason.Offline)
-            } catch (e: InterruptedIOException) {
-                BytesResult.Failed(null, FailureReason.Timeout)
-            } catch (e: IOException) {
-                BytesResult.Failed(null, FailureReason.Unknown)
             }
         }
     }
+
+    /**
+     * Runs [block]; trouble on the network becomes the failure [failed] builds from the reason, never an exception and never its
+     * text (the exceptions are named "expected" because only their kind is used).
+     */
+    private inline fun <T> failSoftly(failed: (FailureReason) -> T, block: () -> T): T =
+        try {
+            block()
+        } catch (expectedNoSuchHost: UnknownHostException) {
+            failed(FailureReason.Offline)
+        } catch (expectedSlow: InterruptedIOException) {
+            failed(FailureReason.Timeout)
+        } catch (expectedNetworkTrouble: IOException) {
+            failed(FailureReason.Unknown)
+        }
 
     /** Reads one byte past the limit to tell "exactly maxBytes" from "more than maxBytes" without buffering the rest. */
     private fun readAtMost(source: okio.BufferedSource, maxBytes: Int, code: Int): BytesResult {

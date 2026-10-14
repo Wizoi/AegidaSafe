@@ -19,7 +19,7 @@ class AndroidOemSource(private val context: Context) : OemSource {
     private val hasAutoBlocker: Boolean
         get() = try {
             context.packageManager.getApplicationInfo(AUTO_BLOCKER, 0).enabled
-        } catch (e: android.content.pm.PackageManager.NameNotFoundException) {
+        } catch (expectedNotInstalled: android.content.pm.PackageManager.NameNotFoundException) { // no such package: no Auto Blocker
             false
         }
 

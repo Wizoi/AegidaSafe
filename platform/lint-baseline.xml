@@ -1,48 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <issues format="6" by="lint 8.13.2" type="baseline" client="gradle" dependencies="false" name="AGP (8.13.2)" variant="all" version="8.13.2">
 
-    <issue
-        id="UseKtx"
-        message="Use the KTX extension function `String.toUri` instead?"
-        errorLine1="            smsApp = defaultHandler(Intent(Intent.ACTION_SENDTO, Uri.parse(&quot;smsto:5550100&quot;))),"
-        errorLine2="                                                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/kotlin/com/aegida/platform/snapshot/AndroidSnapshotter.kt"
-            line="48"
-            column="66"/>
-    </issue>
-
-    <issue
-        id="UseKtx"
-        message="Use the KTX extension function `String.toUri` instead?"
-        errorLine1="        defaultHandler(Intent(Intent.ACTION_VIEW, Uri.parse(&quot;https://example.com&quot;)).addCategory(Intent.CATEGORY_BROWSABLE))"
-        errorLine2="                                                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/kotlin/com/aegida/platform/snapshot/AndroidSnapshotter.kt"
-            line="133"
-            column="51"/>
-    </issue>
-
-    <issue
-        id="UseKtx"
-        message="Use the KTX extension function `String.toUri` instead?"
-        errorLine1="    fun howItWorks(): Intent = Intent(Intent.ACTION_VIEW, Uri.parse(com.aegida.core.net.PublicPages.HOW_IT_WORKS)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)"
-        errorLine2="                                                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/kotlin/com/aegida/platform/notify/FixActions.kt"
-            line="54"
-            column="59"/>
-    </issue>
-
-    <issue
-        id="UseKtx"
-        message="Use the KTX extension function `String.toUri` instead?"
-        errorLine1="        val mail = pm.queryIntentActivities(Intent(Intent.ACTION_SENDTO, Uri.parse(&quot;mailto:&quot;)), 0).map { it.activityInfo.packageName }.toSet()"
-        errorLine2="                                                                         ~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/kotlin/com/aegida/platform/invite/InviteEmail.kt"
-            line="46"
-            column="74"/>
-    </issue>
-
 </issues>

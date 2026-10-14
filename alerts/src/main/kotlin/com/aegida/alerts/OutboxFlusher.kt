@@ -26,6 +26,13 @@ class OutboxFlusher @Inject constructor(
     private val guardians: GuardianSettings,
     private val clock: Clock,
 ) {
+    /** What one pass over the outbox has seen so far. */
+    private class Pass {
+        var delivered = 0
+        val markers = mutableListOf<QueuedMessage>()
+        val backedOff = mutableListOf<QueuedMessage>()
+    }
+
     /** How many messages were delivered. */
     suspend fun flush(): Int {
         val now = clock.now()
@@ -33,29 +40,32 @@ class OutboxFlusher @Inject constructor(
         val topic = current.firstTopic
         // Alerts off or nobody paired: send nothing, and keep what is held (it goes if she turns alerts back on).
         if (!current.alertsOn || topic == null) return 0
-        var delivered = 0
-        val markers = mutableListOf<QueuedMessage>()
-        val backedOff = mutableListOf<QueuedMessage>()
+        val pass = Pass()
         // Oldest first, always. Once one message gets through the network is evidently up, so the rest go
         // without waiting out their own back-off; if nothing has gone yet the back-off still applies.
         for (message in outbox.all().sortedBy { it.queuedAt }) {
-            // Queued for a guardian she has since replaced: not re-targeted, and the old guardian is not told.
-            if (message.topic != topic.value) { outbox.remove(message.id); continue }
-            if (message.attempts == GAVE_UP) {
-                // The marker for a message given up on. It keeps "can't reach your guardian" open until a
-                // later message gets through, and goes after a month so it cannot stay forever.
-                if (elapsedAtLeast(message.queuedAt, now, MARKER_KEPT)) outbox.remove(message.id) else markers += message
-                continue
-            }
-            if (elapsedAtLeast(message.queuedAt, now, EXPIRES)) { giveUp(message, now); continue }
-            if (delivered == 0 && !elapsedAtLeast(message.lastTriedAt, now, wait(message))) { backedOff += message; continue }
-            if (!trySend(message, now)) { if (delivered == 0) break else continue } // offline: they would all fail
-            delivered++
+            if (!visit(message, topic, now, pass)) break
         }
         // Something got through, so the network is up: the older ones that were still waiting go now, oldest first.
-        if (delivered > 0) for (message in backedOff) if (trySend(message, now)) delivered++
-        if (delivered > 0) markers.forEach { outbox.remove(it.id) }
-        return delivered
+        if (pass.delivered > 0) for (message in pass.backedOff) if (trySend(message, now)) pass.delivered++
+        if (pass.delivered > 0) pass.markers.forEach { outbox.remove(it.id) }
+        return pass.delivered
+    }
+
+    /** Deals with one queued message. False means stop here: offline, and nothing has got through, so they would all fail. */
+    private suspend fun visit(message: QueuedMessage, topic: NtfyTopic, now: Instant, pass: Pass): Boolean {
+        when {
+            // Queued for a guardian she has since replaced: not re-targeted, and the old guardian is not told.
+            message.topic != topic.value -> outbox.remove(message.id)
+            // The marker for a message given up on. It keeps "can't reach your guardian" open until a
+            // later message gets through, and goes after a month so it cannot stay forever.
+            message.attempts == GAVE_UP -> if (elapsedAtLeast(message.queuedAt, now, MARKER_KEPT)) outbox.remove(message.id) else pass.markers += message
+            elapsedAtLeast(message.queuedAt, now, EXPIRES) -> giveUp(message, now)
+            pass.delivered == 0 && !elapsedAtLeast(message.lastTriedAt, now, wait(message)) -> pass.backedOff += message
+            trySend(message, now) -> pass.delivered++
+            else -> return pass.delivered > 0
+        }
+        return true
     }
 
     private suspend fun trySend(message: QueuedMessage, now: Instant): Boolean {
@@ -87,7 +97,7 @@ class OutboxFlusher @Inject constructor(
     }
 
     private fun wait(message: QueuedMessage): Duration {
-        val steps = (message.attempts - 1).coerceIn(0, 5)
+        val steps = (message.attempts - 1).coerceIn(0, MAX_WAIT_DOUBLINGS)
         return minOf(FIRST_WAIT.multipliedBy(1L shl steps), LONGEST_WAIT)
     }
 
@@ -97,5 +107,8 @@ class OutboxFlusher @Inject constructor(
         val EXPIRES: Duration = Duration.ofDays(7)
         val MARKER_KEPT: Duration = Duration.ofDays(30)
         const val GAVE_UP = -1
+
+        /** The wait doubles at most this many times: 15 minutes up to 8 hours, which [LONGEST_WAIT] then caps. */
+        private const val MAX_WAIT_DOUBLINGS = 5
     }
 }

@@ -216,7 +216,8 @@ internal class RoomNoticeLog(private val dao: NoticeDao) : NoticeLog {
         if (dao.seen(noticeHash) > 0) return // the same notice coming back (a snooze, a repost): not new
         val last = dao.lastAt(keyHash)
         val gap = if (last == null) null else at.toEpochMilli() - last
-        if (gap != null && gap >= 0 && gap < NoticeRules.SAME_NOTICE.toMillis()) return // an update a moment later; a negative gap is a clock that went back (findings #96)
+        // An update a moment later is not a new notice; a negative gap is a clock that went back (findings #96).
+        if (gap != null && gap >= 0 && gap < NoticeRules.SAME_NOTICE.toMillis()) return
         dao.add(NoticeEntity(packageName = packageName, keyHash = keyHash, noticeHash = noticeHash, atMillis = at.toEpochMilli(), signals = signals))
     }
 
@@ -227,7 +228,12 @@ internal class RoomNoticeLog(private val dao: NoticeDao) : NoticeLog {
 
     /** The key is never stored as it is: it can carry an app's own tag (finding #93). */
     private fun hash(text: String): String =
-        java.security.MessageDigest.getInstance("SHA-256").digest(text.toByteArray()).take(12).joinToString("") { "%02x".format(it) }
+        java.security.MessageDigest.getInstance("SHA-256").digest(text.toByteArray()).take(HASH_BYTES).joinToString("") { "%02x".format(it) }
+
+    private companion object {
+        /** The first 12 bytes of the SHA-256: enough to tell notices apart, too little to read the key back. */
+        const val HASH_BYTES = 12
+    }
 }
 
 internal class RoomAllowList(private val dao: AllowedDao) : AllowList {

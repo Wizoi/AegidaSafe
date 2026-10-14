@@ -31,7 +31,7 @@ class AlertReminderTest {
     private val http = Http()
     private val outbox = FakeOutbox()
     private val settings = FakeGuardians(Guardians(alertsOn = true, ownerName = "Ruth", firstTopic = topic))
-    private val pipeline = AlertPipeline(findings, owner, history, settings, NtfySender(http), outbox) { now }
+    private val pipeline = AlertPipeline(findings, owner, history, GuardianLine(settings, NtfySender(http), outbox)) { now }
 
     private fun link(host: String, seen: Instant = now) = Finding(FindingKey(DetectorId.Link, Problem.ScamLink, host), emptyMap(), seen, seen)
     private fun after(d: Duration) { now = now.plus(d) }
@@ -83,12 +83,12 @@ class AlertReminderTest {
         val dying = object : HttpClient by http {
             var die = true
             override suspend fun post(endpoint: Endpoint, body: String, headers: Map<String, String>): HttpResult {
-                if (die) { die = false; throw IllegalStateException("process killed") }
+                if (die) { die = false; error("process killed") }
                 return http.post(endpoint, body, headers)
             }
         }
-        val killable = AlertPipeline(findings, owner, history, settings, NtfySender(dying), outbox) { now }
-        try { killable.handle(listOf(f.copy(lastSeen = now)), setOf(DetectorId.Link)) } catch (e: IllegalStateException) { /* died here */ }
+        val killable = AlertPipeline(findings, owner, history, GuardianLine(settings, NtfySender(dying), outbox)) { now }
+        try { killable.handle(listOf(f.copy(lastSeen = now)), setOf(DetectorId.Link)) } catch (expected: IllegalStateException) { /* died here */ }
         killable.handle(listOf(f.copy(lastSeen = now)), setOf(DetectorId.Link))
         assertEquals(1, reminders().size)
         assertEquals(FindingState.Escalated, findings.rows[f.key]!!.state)

@@ -28,11 +28,12 @@ class GuardianAlerts @Inject constructor(
         val current = settings.current()
         if (current.alertsOn == on) return AlertsSwitched(null, null)
         settings.save(current.copy(alertsOn = on))
-        if (!on) {
-            settings.save(settings.current().copy(welcomePendingFor = null))
-            return AlertsSwitched(null, switch.disarm())
-        }
-        return startTelling()
+        return if (on) startTelling() else stopTelling()
+    }
+
+    private suspend fun stopTelling(): AlertsSwitched {
+        settings.save(settings.current().copy(welcomePendingFor = null))
+        return AlertsSwitched(null, switch.disarm())
     }
 
     /** Tells the current guardian Aegida is set up and starts the "hasn't checked in" message. Used when alerts go on and when the guardian changes; the caller holds the [AlertGate]. */
@@ -48,8 +49,8 @@ class GuardianAlerts @Inject constructor(
         val current = settings.current()
         val pending = current.welcomePendingFor ?: return null
         val topic = current.firstTopic?.takeIf { current.alertsOn && it.value == pending }
-            ?: run { settings.save(current.copy(welcomePendingFor = null)); return null } // alerts off, or a different guardian now
-        return sendWelcome(topic, current.ownerName.ifBlank { Texts.APP_NAME })
+        if (topic == null) settings.save(current.copy(welcomePendingFor = null)) // alerts off, or a different guardian now
+        return topic?.let { sendWelcome(it, current.ownerName.ifBlank { Texts.APP_NAME }) }
     }
 
     /**

@@ -18,6 +18,7 @@ import com.aegida.core.oem.Reading
 import com.aegida.core.text.Problem
 import com.aegida.detectors.DnsDetector
 import com.aegida.detectors.Evaluator
+import com.aegida.detectors.EvaluatorMemory
 import com.aegida.detectors.HealthDetector
 import com.aegida.detectors.LinkDetector
 import com.aegida.detectors.PopupSpamDetector
@@ -45,7 +46,9 @@ class HealthScenariosTest {
     private var now = Instant.now().truncatedTo(ChronoUnit.SECONDS)
     private val topic = NtfyTopic("aegida_" + "h3J4k5L6".repeat(4))
     private val setupStore = FakeSetupStore(Setup("security.cloudflare-dns.com", emptySet(), stepsDone = SetupStep.entries.size))
-    private val feedStore = FakeFeedStore(ThreatFeed.of(now.minus(Duration.ofHours(3)), listOf(FeedSource("test", "test", 1)), listOf("evil.example"), emptyList()))
+    private val feedStore = FakeFeedStore(
+        ThreatFeed.of(now.minus(Duration.ofHours(3)), listOf(FeedSource("test", "test", 1)), listOf("evil.example"), emptyList()),
+    )
     private val checkLog = FakeCheckLog()
     private val findings = Findings()
     private val owner = Owner()
@@ -53,13 +56,23 @@ class HealthScenariosTest {
     private val http = Http()
     private val outbox = FakeOutbox()
     private val guardians = FakeGuardians(Guardians(alertsOn = true, ownerName = "Ruth", firstTopic = topic))
-    private val baselines = FakeBaselines(Baseline("com.android.chrome", null, null, emptySet(), emptySet(), emptySet(), websites = setOf("https://news.example")))
+    private val baselines = FakeBaselines(
+        Baseline("com.android.chrome", null, null, emptySet(), emptySet(), emptySet(), websites = setOf("https://news.example")),
+    )
     private var listenerEnabled = true
 
-    private val evaluator = Evaluator(setOf(LinkDetector(), PopupSpamDetector(), DnsDetector(), HealthDetector()), { now }, setupStore, feedStore, checkLog, outbox, baselines)
-    private val pipeline = AlertPipeline(findings, owner, history, guardians, NtfySender(http), outbox) { now }
+    private val evaluator = Evaluator(
+        setOf(LinkDetector(), PopupSpamDetector(), DnsDetector(), HealthDetector()), { now },
+        EvaluatorMemory(setupStore, feedStore, checkLog, outbox, baselines),
+    )
+    private val pipeline = AlertPipeline(findings, owner, history, GuardianLine(guardians, NtfySender(http), outbox)) { now }
     private val runner = CheckRunner(
-        { Snapshot(now, PrivateDns.Hostname("security.cloudflare-dns.com"), "com.android.chrome", listenerEnabled, true, Reading.NotPresent, Reading.NotPresent) },
+        {
+            Snapshot(
+                now, PrivateDns.Hostname("security.cloudflare-dns.com"), "com.android.chrome", listenerEnabled, true,
+                Reading.NotPresent, Reading.NotPresent,
+            )
+        },
         evaluator, pipeline, BaselineKeeper(setupStore, baselines), OutboxFlusher(outbox, NtfySender(http), history, guardians, { now }), AlertGate(),
     )
     private val shade = FakeNotificationShade(now)

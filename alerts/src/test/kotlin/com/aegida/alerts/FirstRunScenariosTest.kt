@@ -20,6 +20,7 @@ import com.aegida.core.oem.Reading
 import com.aegida.core.text.Texts
 import com.aegida.detectors.DnsDetector
 import com.aegida.detectors.Evaluator
+import com.aegida.detectors.EvaluatorMemory
 import com.aegida.detectors.HealthDetector
 import com.aegida.detectors.LinkDetector
 import com.aegida.detectors.PopupSpamDetector
@@ -62,15 +63,24 @@ internal class WholePhone(network: (Http) -> com.aegida.core.net.HttpClient = { 
     private val net = network(http)
     private val sender = NtfySender(net)
     private val gate = AlertGate()
-    private val evaluator = Evaluator(setOf(LinkDetector(), PopupSpamDetector(), DnsDetector(), HealthDetector()), { now }, setupStore, feedStore, checkLog, outbox, baselines)
-    private val pipeline = AlertPipeline(findings, owner, history, guardians, sender, outbox) { now }
+    private val evaluator = Evaluator(
+        setOf(LinkDetector(), PopupSpamDetector(), DnsDetector(), HealthDetector()), { now },
+        EvaluatorMemory(setupStore, feedStore, checkLog, outbox, baselines),
+    )
+    private val pipeline = AlertPipeline(findings, owner, history, GuardianLine(guardians, sender, outbox)) { now }
     private val switch = DeadMansSwitch(guardians, sender) { now }
     val runner = CheckRunner(
         { Snapshot(now, dns, "com.android.chrome", listenerEnabled, canPost, Reading.NotPresent, Reading.NotPresent) },
         evaluator, pipeline, BaselineKeeper(setupStore, baselines), OutboxFlusher(outbox, sender, history, guardians, { now }), gate,
     )
     val guardianAlerts = GuardianAlerts(guardians, sender, switch, gate)
-    val daily = DailyCheck(FeedUpdater(net, FeedVerifier(keys.public.encoded), feedStore) { now }, runner, history, findings, checkLog, feedStore, switch, guardianAlerts, gate) { now }
+    val daily = DailyCheck(
+        DailyFeed(FeedUpdater(net, FeedVerifier(keys.public.encoded), feedStore) { now }, feedStore) { now },
+        runner,
+        DailyPruning(history, findings, checkLog),
+        DailyHeartbeat(switch, guardianAlerts, gate),
+        checkLog,
+    ) { now }
 
     /** The scam list as the feed tool signs it, served by the fake network. */
     fun publishFeed() {

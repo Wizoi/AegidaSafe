@@ -8,9 +8,9 @@ import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.os.Build
-import android.net.Uri
 import android.provider.Settings
 import android.telecom.TelecomManager
+import androidx.core.net.toUri
 import com.aegida.core.model.InstalledApp
 import com.aegida.core.model.PrivateDns
 import com.aegida.core.model.Snapshot
@@ -46,7 +46,7 @@ class AndroidSnapshotter(
             canPostNotifications = canPost(notifications),
             installBlocker = oem.installBlocker(),
             neverSleeping = oem.neverSleeping(),
-            smsApp = defaultHandler(Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:5550100"))),
+            smsApp = defaultHandler(Intent(Intent.ACTION_SENDTO, "smsto:5550100".toUri())),
             assistant = defaultHandler(Intent(Intent.ACTION_ASSIST)),
             dialerApp = context.getSystemService(TelecomManager::class.java)?.defaultDialerPackage,
             notificationListeners = packagesIn(Settings.Secure.getString(context.contentResolver, ENABLED_LISTENERS)) - context.packageName,
@@ -105,7 +105,7 @@ class AndroidSnapshotter(
         signers.map { signature ->
             MessageDigest.getInstance("SHA-1").digest(signature.toByteArray()).joinToString("") { "%02x".format(it) }
         }.toSet()
-    } catch (e: PackageManager.NameNotFoundException) {
+    } catch (expectedNotInstalled: PackageManager.NameNotFoundException) { // gone since the list was read: no certificates to report
         emptySet()
     }
 
@@ -115,12 +115,12 @@ class AndroidSnapshotter(
      */
     @Suppress("DEPRECATION")
     private fun installersOf(pm: PackageManager, pkg: String): Pair<String?, String?> = try {
-        if (Build.VERSION.SDK_INT >= 30) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             pm.getInstallSourceInfo(pkg).let { it.installingPackageName to it.initiatingPackageName }
         } else {
             pm.getInstallerPackageName(pkg) to null
         }
-    } catch (e: PackageManager.NameNotFoundException) {
+    } catch (expectedNotInstalled: PackageManager.NameNotFoundException) { // gone since the list was read: no installer known
         null to null
     }
 
@@ -142,7 +142,7 @@ class AndroidSnapshotter(
      * system chooser, which means no default is set. App roles cannot be listed by an ordinary app.
      */
     private fun readDefaultBrowser(): String? =
-        defaultHandler(Intent(Intent.ACTION_VIEW, Uri.parse("https://example.com")).addCategory(Intent.CATEGORY_BROWSABLE))
+        defaultHandler(Intent(Intent.ACTION_VIEW, "https://example.com".toUri()).addCategory(Intent.CATEGORY_BROWSABLE))
 
     /**
      * The app that would open [probe] by default, found by asking the system to resolve it, never by launching it.

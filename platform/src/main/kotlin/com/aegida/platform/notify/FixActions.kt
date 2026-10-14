@@ -5,6 +5,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import androidx.core.net.toUri
 import android.provider.Settings
 import com.aegida.core.model.Evidence
 import com.aegida.core.model.Finding
@@ -51,7 +52,8 @@ object FixActions {
     fun notificationAccess(): Intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
     /** Opens [com.aegida.core.net.PublicPages.HOW_IT_WORKS] in her own browser. The page is only shown to her; Aegida does not fetch it. */
-    fun howItWorks(): Intent = Intent(Intent.ACTION_VIEW, Uri.parse(com.aegida.core.net.PublicPages.HOW_IT_WORKS)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    fun howItWorks(): Intent =
+        Intent(Intent.ACTION_VIEW, com.aegida.core.net.PublicPages.HOW_IT_WORKS.toUri()).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
     /** An app's own notification switch, so the owner can turn its notices off (finding #92). */
     fun appNotificationSettings(packageName: String): Intent =

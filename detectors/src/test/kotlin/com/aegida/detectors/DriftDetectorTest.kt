@@ -17,31 +17,29 @@ class DriftDetectorTest {
 
     @Test fun aPhoneThatMatchesItsBaselineHasNoDrift() = assertEquals(emptyList<Pair<Problem, String>>(), found(atSetup))
 
-    @Test fun beforeSetupFinishesThereIsNothingToCompareWith() = assertEquals(emptyList<Pair<Problem, String>>(), found(snapshot(browser = "org.evil.browser"), base = null))
+    @Test fun beforeSetupFinishesThereIsNothingToCompareWith() =
+        assertEquals(emptyList<Pair<Problem, String>>(), found(snapshot().copy(browser = "org.evil.browser"), base = null))
 
     @Test fun anotherDefaultBrowserTextAppOrPhoneAppIsAChange() {
-        assertEquals(listOf(Problem.BrowserChanged to "org.evil.browser"), found(snapshot(browser = "org.evil.browser")))
-        assertEquals(listOf(Problem.SmsAppChanged to "org.evil.sms"), found(snapshot(smsApp = "org.evil.sms")))
-        assertEquals(listOf(Problem.DialerChanged to "org.evil.dialer"), found(snapshot(dialerApp = "org.evil.dialer")))
-        assertEquals(listOf(Problem.AssistantChanged to "org.evil.assistant"), found(snapshot(assistant = "org.evil.assistant")))
+        assertEquals(listOf(Problem.BrowserChanged to "org.evil.browser"), found(snapshot().copy(browser = "org.evil.browser")))
+        assertEquals(listOf(Problem.SmsAppChanged to "org.evil.sms"), found(snapshot().copy(smsApp = "org.evil.sms")))
+        assertEquals(listOf(Problem.DialerChanged to "org.evil.dialer"), found(snapshot().copy(dialerApp = "org.evil.dialer")))
+        assertEquals(listOf(Problem.AssistantChanged to "org.evil.assistant"), found(snapshot().copy(assistant = "org.evil.assistant")))
     }
 
     /** Kevin, Oct 10: the finding says which app, by the name the owner sees, so History and the "Was that you?" page can. */
     @Test fun aChangeNamesTheAppByItsLabelWhenThePhoneListsIt() {
         val apps = listOf(com.aegida.core.model.InstalledApp("org.evil.browser", "Other Browser", "com.android.vending", false))
-        val finding = DriftDetector().evaluate(inputs(snapshot = snapshot(browser = "org.evil.browser").copy(apps = apps)).copy(baseline = baseline)).single()
+        val phone = snapshot().copy(browser = "org.evil.browser", apps = apps)
+        val finding = DriftDetector().evaluate(inputs(snapshot = phone).copy(baseline = baseline)).single()
         assertEquals("Other Browser", finding.evidence[com.aegida.core.model.Evidence.APP_LABEL])
     }
 
     @Test fun aDefaultThatIsNowUnsetIsNotAChange() =
-        assertEquals(emptyList<Pair<Problem, String>>(), found(snapshot(browser = null, smsApp = null, dialerApp = null)))
+        assertEquals(emptyList<Pair<Problem, String>>(), found(snapshot().copy(browser = null, smsApp = null, dialerApp = null)))
 
     @Test fun eachNewAppWithNotificationAccessScreenControlOrAdminRightsIsOneFinding() {
-        val now = snapshot(
-            notificationListeners = setOf("app.b", "app.a"),
-            accessibilityApps = setOf("app.screen"),
-            deviceAdmins = setOf("app.admin"),
-        )
+        val now = snapshot().copy(notificationListeners = setOf("app.b", "app.a"), accessibilityApps = setOf("app.screen"), deviceAdmins = setOf("app.admin"))
         assertEquals(
             listOf(
                 Problem.ListenerAdded to "app.a", Problem.ListenerAdded to "app.b",
@@ -52,17 +50,18 @@ class DriftDetectorTest {
     }
 
     @Test fun anAppThatWasAlreadyThereAtSetupIsNotNew() {
-        val base = Baseline.of(snapshot(notificationListeners = setOf("app.a"), accessibilityApps = setOf("app.screen")))
-        assertEquals(emptyList<Pair<Problem, String>>(), found(snapshot(notificationListeners = setOf("app.a"), accessibilityApps = setOf("app.screen")), base))
+        val base = Baseline.of(snapshot().copy(notificationListeners = setOf("app.a"), accessibilityApps = setOf("app.screen")))
+        val phone = snapshot().copy(notificationListeners = setOf("app.a"), accessibilityApps = setOf("app.screen"))
+        assertEquals(emptyList<Pair<Problem, String>>(), found(phone, base))
     }
 
     @Test fun anAppThatLostItsAccessIsNotAProblem() {
-        val base = Baseline.of(snapshot(accessibilityApps = setOf("app.screen")))
+        val base = Baseline.of(snapshot().copy(accessibilityApps = setOf("app.screen")))
         assertEquals(emptyList<Pair<Problem, String>>(), found(snapshot(), base))
     }
 
     @Test fun sayingTheChangeWasHersMovesOnlyThatPartOfTheBaseline() {
-        val now = snapshot(browser = "org.other.browser", smsApp = "org.other.sms")
+        val now = snapshot().copy(browser = "org.other.browser", smsApp = "org.other.sms")
         val accepted = baseline.accepting(Problem.BrowserChanged, "org.other.browser", now)
         assertEquals("org.other.browser", accepted.browser)
         assertEquals(baseline.smsApp, accepted.smsApp)
@@ -70,7 +69,7 @@ class DriftDetectorTest {
     }
 
     @Test fun eachKindOfChangeIsAcceptedOnItsOwn() {
-        val everything = snapshot(
+        val everything = snapshot().copy(
             browser = "b.new", smsApp = "s.new", dialerApp = "d.new", assistant = "as.new",
             notificationListeners = setOf("l.new"), accessibilityApps = setOf("a.new"), deviceAdmins = setOf("m.new"),
         )
@@ -92,10 +91,8 @@ class DriftDetectorTest {
     }
 
     @Test fun sayingOneAppWasHersLeavesAnotherNewOneFlaggedAndAWrongSubjectChangesNothing() { // findings #50
-        val now = snapshot(
-            notificationListeners = setOf("app.good", "app.spy"),
-            accessibilityApps = setOf("screen.good", "screen.spy"),
-            browser = "b.new",
+        val now = snapshot().copy(
+            notificationListeners = setOf("app.good", "app.spy"), accessibilityApps = setOf("screen.good", "screen.spy"), browser = "b.new",
         )
         val accepted = baseline.accepting(Problem.ListenerAdded, "app.good", now).accepting(Problem.AccessibilityAdded, "screen.good", now)
         assertEquals(setOf("app.good"), accepted.notificationListeners)

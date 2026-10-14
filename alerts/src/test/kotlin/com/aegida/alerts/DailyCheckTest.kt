@@ -32,6 +32,7 @@ import com.aegida.core.oem.Reading
 import com.aegida.core.text.Problem
 import com.aegida.detectors.DnsDetector
 import com.aegida.detectors.Evaluator
+import com.aegida.detectors.EvaluatorMemory
 import com.aegida.detectors.HealthDetector
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -55,26 +56,29 @@ class DailyCheckTest {
     private val http = Http()
     private val outbox = FakeOutbox()
     private val topic = NtfyTopic("aegida_" + "x9Y8z7W6".repeat(4))
-    private val guardians = FakeGuardians(Guardians(alertsOn = true, ownerName = "Mom", firstTopic = topic, firstGuardianName = "Kevin", firstGuardianEmail = "k@example.com", firstGuardianPhone = ""))
+    private val guardians = FakeGuardians(
+        Guardians(
+            alertsOn = true, ownerName = "Mom", firstTopic = topic,
+            firstGuardianName = "Kevin", firstGuardianEmail = "k@example.com", firstGuardianPhone = "",
+        ),
+    )
     private val owner = Owner()
 
-    private val evaluator = Evaluator(setOf(DnsDetector(), HealthDetector()), { now }, FakeSetupStore(), feedStore, checkLog, outbox, FakeBaselines())
-    private val pipeline = AlertPipeline(findings, owner, history, guardians, NtfySender(http), outbox) { now }
+    private val evaluator = Evaluator(
+        setOf(DnsDetector(), HealthDetector()), { now }, EvaluatorMemory(FakeSetupStore(), feedStore, checkLog, outbox, FakeBaselines()),
+    )
+    private val pipeline = AlertPipeline(findings, owner, history, GuardianLine(guardians, NtfySender(http), outbox)) { now }
     private val snapshot = Snapshot(now, PrivateDns.Automatic, "com.android.chrome", true, true, Reading.NotPresent, Reading.NotPresent)
     private val sender = NtfySender(http)
     private val switch = DeadMansSwitch(guardians, sender) { now }
     private val guardianAlerts = GuardianAlerts(guardians, sender, switch, AlertGate())
-    private val daily = DailyCheck(
-        FeedUpdater(http, FeedVerifier(keys.public.encoded), feedStore) { now },
-        CheckRunner({ snapshot }, evaluator, pipeline, BaselineKeeper(FakeSetupStore(), FakeBaselines()), OutboxFlusher(outbox, NtfySender(http), history, guardians, { now }), AlertGate()),
-        history,
-        findings,
-        checkLog,
-        feedStore,
-        switch,
-        guardianAlerts,
-        AlertGate(),
-    ) { now }
+    private val runner = CheckRunner(
+        { snapshot }, evaluator, pipeline, BaselineKeeper(FakeSetupStore(), FakeBaselines()),
+        OutboxFlusher(outbox, NtfySender(http), history, guardians, { now }), AlertGate(),
+    )
+    private val feed = DailyFeed(FeedUpdater(http, FeedVerifier(keys.public.encoded), feedStore) { now }, feedStore) { now }
+    private val heartbeat = DailyHeartbeat(switch, guardianAlerts, AlertGate())
+    private val daily = DailyCheck(feed, runner, DailyPruning(history, findings, checkLog), heartbeat, checkLog) { now }
 
     private fun publish(generatedAt: Instant) {
         val feed = ThreatFeed.of(generatedAt, listOf(FeedSource("test", "test", 1)), List(2_000) { "h$it.example" }, emptyList())
@@ -190,11 +194,7 @@ class DailyCheckTest {
             record("com.example.pdf", "k2", 2, now.minus(Duration.ofDays(1)), 2)
             record("com.example.pdf", "k3", 3, now.plus(Duration.ofDays(3)), 2) // a clock that was ahead
         }
-        val withNotices = DailyCheck(
-            FeedUpdater(http, FeedVerifier(keys.public.encoded), feedStore) { now },
-            CheckRunner({ snapshot }, evaluator, pipeline, BaselineKeeper(FakeSetupStore(), FakeBaselines()), OutboxFlusher(outbox, NtfySender(http), history, guardians, { now }), AlertGate()),
-            history, findings, checkLog, feedStore, switch, guardianAlerts, AlertGate(), notices = notices,
-        ) { now }
+        val withNotices = DailyCheck(feed, runner, DailyPruning(history, findings, checkLog, notices), heartbeat, checkLog) { now }
         withNotices.run()
         assertEquals(1, notices.rows.size)
     }

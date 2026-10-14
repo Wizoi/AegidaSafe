@@ -56,7 +56,8 @@ class InviteAndFixTest {
         assertTrue("and what to do if none comes", body.contains("If it has not come within a day of adding the name, please ask me."))
         assertTrue("the guardian is asked to save it for other devices", body.contains("Please save this email"))
         // The web page is offered only as an extra for a computer, after the app steps, and says what it cannot do.
-        assertTrue("the web page is offered for a computer", body.contains("3. Optional, to read them on a computer too: open https://ntfy.sh/${topic.value} in a web browser"))
+        val offered = "3. Optional, to read them on a computer too: open https://ntfy.sh/${topic.value} in a web browser"
+        assertTrue("the web page is offered for a computer", body.contains(offered))
         assertTrue("and comes after the app steps", body.indexOf("https://ntfy.sh/") > body.indexOf("ntfy://ntfy.sh/"))
     }
 

@@ -26,8 +26,14 @@ class AlertBackoffTest {
     private val history = History()
     private val http = Http()
     private val settings = FakeGuardians(Guardians(alertsOn = true, ownerName = "Ruth", firstTopic = topic))
-    private val pipeline = AlertPipeline(findings, owner, history, settings, NtfySender(http), FakeOutbox()) { now }
-    private val actions = FindingActions(findings, history, owner, FakeBaselines(), { error("not used") }, pipeline, AlertGate()) { now }
+    private val pipeline = AlertPipeline(findings, owner, history, GuardianLine(settings, NtfySender(http), FakeOutbox())) { now }
+    private val seen = SeenMarker(findings, history, owner)
+    private val actions = FindingActions(
+        seen,
+        AppAllowing(findings, history, pipeline, seen) { now },
+        ChangeAcceptor(findings, FakeBaselines(), { error("not used") }, pipeline, seen) { now },
+        AlertGate(),
+    ) { now }
 
     private fun link(host: String) = Finding(FindingKey(DetectorId.Link, Problem.ScamLink, host), emptyMap(), now, now)
     private fun after(d: Duration) { now = now.plus(d) }

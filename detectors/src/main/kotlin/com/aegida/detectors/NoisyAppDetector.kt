@@ -4,6 +4,7 @@ import com.aegida.core.model.DetectorId
 import com.aegida.core.model.Evidence
 import com.aegida.core.model.Finding
 import com.aegida.core.model.FindingKey
+import com.aegida.core.model.NotificationEvent
 import com.aegida.core.notice.NoticeRules
 import com.aegida.core.text.Problem
 import javax.inject.Inject
@@ -17,13 +18,19 @@ class NoisyAppDetector @Inject constructor() : Detector {
     override val id = DetectorId.NoisyApp
 
     override fun evaluate(input: Inputs): List<Finding> {
-        val event = input.event ?: return emptyList()
-        val apps = input.snapshot.apps
+        val event = input.event
+        return if (event != null && worthWarning(event, input)) listOf(finding(event, input)) else emptyList()
+    }
+
+    private fun worthWarning(event: NotificationEvent, input: Inputs): Boolean {
         val roles = setOfNotNull(input.snapshot.smsApp, input.snapshot.dialerApp, input.snapshot.browser)
-        if (!NoticeRules.counted(event, apps, roles)) return emptyList()
-        if (event.packageName in input.allowedApps) return emptyList()
-        if (!NoticeRules.flagged(input.notices, input.now)) return emptyList()
-        val label = apps.firstOrNull { it.packageName == event.packageName }?.label?.takeIf { it.isNotBlank() }
+        return NoticeRules.counted(event, input.snapshot.apps, roles) &&
+            event.packageName !in input.allowedApps &&
+            NoticeRules.flagged(input.notices, input.now)
+    }
+
+    private fun finding(event: NotificationEvent, input: Inputs): Finding {
+        val label = input.snapshot.apps.firstOrNull { it.packageName == event.packageName }?.label?.takeIf { it.isNotBlank() }
         val evidence = buildMap {
             put(Evidence.PACKAGE, event.packageName)
             label?.let { put(Evidence.APP_LABEL, it) }
@@ -32,7 +39,7 @@ class NoisyAppDetector @Inject constructor() : Detector {
             put(Evidence.MESSAGE_TITLE, event.title.take(EXAMPLE_CHARS))
             put(Evidence.MESSAGE_AT, event.postedAt.toEpochMilli().toString())
         }
-        return listOf(Finding(FindingKey(id, Problem.NoisyApp, event.packageName), evidence, input.now, input.now))
+        return Finding(FindingKey(id, Problem.NoisyApp, event.packageName), evidence, input.now, input.now)
     }
 
     private companion object {

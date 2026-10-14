@@ -15,8 +15,8 @@ class DeliveryDetector @Inject constructor() : Detector {
         val oldest = input.oldestUndelivered ?: return emptyList()
         // A negative time (the clock moved back, or it was stamped while the clock was ahead) counts as long enough.
         val held = Duration.between(oldest, input.now)
-        if (!held.isNegative && held <= UNREACHABLE_AFTER) return emptyList()
-        return listOf(Finding(FindingKey(id, Problem.GuardianUnreachable, "guardian"), emptyMap(), input.now, input.now))
+        val reachable = !held.isNegative && held <= UNREACHABLE_AFTER
+        return if (reachable) emptyList() else listOf(Finding(FindingKey(id, Problem.GuardianUnreachable, "guardian"), emptyMap(), input.now, input.now))
     }
 
     companion object {

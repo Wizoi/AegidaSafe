@@ -46,7 +46,7 @@ internal class FileFeedStore(private val dir: File) : FeedStore {
     /** A damaged file reads as "no feed" (HealthDetector then says the lists are old), never a crash. */
     private fun readOrNull(): ThreatFeed? = try {
         if (file.isFile) FeedCodec.decode(file.readBytes()) else null
-    } catch (e: FeedFormatException) {
+    } catch (expectedDamagedFile: FeedFormatException) {
         null
     }
 }

@@ -4,8 +4,10 @@ import com.aegida.core.model.DetectorId
 import com.aegida.core.model.Evidence
 import com.aegida.core.model.Finding
 import com.aegida.core.model.FindingKey
+import com.aegida.core.model.NotificationEvent
 import com.aegida.core.model.WebsiteSites
 import com.aegida.core.text.Problem
+import java.time.Instant
 import javax.inject.Inject
 
 /**
@@ -24,42 +26,58 @@ class PopupSpamDetector @Inject constructor() : Detector {
     override val id = DetectorId.PopupSpam
 
     override fun evaluate(input: Inputs): List<Finding> {
-        val event = input.event ?: return emptyList()
-        val channel = event.channelId ?: return emptyList()
-        if (!channel.startsWith(SITE_CHANNEL_PREFIX)) return emptyList()
-        val site = WebsiteSites.siteOf(channel) ?: return emptyList()
-        val words = event.title + " " + event.text
+        val notice = siteNotice(input.event)
+        val problem = notice?.let { problemFor(it, input) }
+        return if (notice == null || problem == null) emptyList() else listOf(findingFor(notice, problem, input.now))
+    }
+
+    /** A notification from one website's channel, with the site it names. */
+    private class SiteNotice(val event: NotificationEvent, val channel: String, val site: String)
+
+    private fun siteNotice(event: NotificationEvent?): SiteNotice? {
+        val channel = event?.channelId?.takeIf { it.startsWith(SITE_CHANNEL_PREFIX) }
+        val site = channel?.let { WebsiteSites.siteOf(it) }
+        return if (event != null && channel != null && site != null) SiteNotice(event, channel, site) else null
+    }
+
+    /** Null when there is nothing to say about this site. */
+    private fun problemFor(notice: SiteNotice, input: Inputs): Problem? {
+        val site = notice.site
+        val words = notice.event.title + " " + notice.event.text
         val anyScareWord = com.aegida.core.model.ScareWords.REGEX.containsMatchIn(words)
         // A site she said Yes to or had at setup may report news ("Retailer hacked"); it is fake only when it talks about her phone.
         val scary = anyScareWord && ABOUT_HER_PHONE.containsMatchIn(words)
         val recorded = input.baseline?.websites
-        val problem = when {
-            recorded == null -> if (site in input.setup.allowedSites && !scary) return emptyList() else Problem.SiteNotifications
+        return when {
+            recorded == null -> if (site in input.setup.allowedSites && !scary) null else Problem.SiteNotifications
             site in recorded && scary -> Problem.SiteNotifications
-            site in recorded -> return emptyList()
+            site in recorded -> null
             anyScareWord -> Problem.SiteNotifications
             else -> Problem.NewWebsiteNotifications
         }
-        return listOf(
-            Finding(
-                FindingKey(id, problem, site),
-                mapOf(
-                    Evidence.NOTIFICATION_KEY to event.key,
-                    Evidence.PACKAGE to event.packageName,
-                    Evidence.CHANNEL_ID to channel,
-                    Evidence.SITE to site,
-                    // What the website said, for History (Kevin, Oct 10); kept only until the owner has seen the warning.
-                    Evidence.MESSAGE_TITLE to event.title.take(200),
-                    Evidence.MESSAGE_AT to event.postedAt.toEpochMilli().toString(),
-                ),
-                input.now,
-                input.now,
+    }
+
+    private fun findingFor(notice: SiteNotice, problem: Problem, now: Instant): Finding {
+        val event = notice.event
+        return Finding(
+            FindingKey(id, problem, notice.site),
+            mapOf(
+                Evidence.NOTIFICATION_KEY to event.key,
+                Evidence.PACKAGE to event.packageName,
+                Evidence.CHANNEL_ID to notice.channel,
+                Evidence.SITE to notice.site,
+                // What the website said, for History (Kevin, Oct 10); kept only until the owner has seen the warning.
+                Evidence.MESSAGE_TITLE to event.title.take(EXAMPLE_CHARS),
+                Evidence.MESSAGE_AT to event.postedAt.toEpochMilli().toString(),
             ),
+            now,
+            now,
         )
     }
 
     companion object {
         const val SITE_CHANNEL_PREFIX = "web:"
+        private const val EXAMPLE_CHARS = 200
 
         /** Scare wording aimed at her own phone, not a news story about someone else (findings #109). */
         private val ABOUT_HER_PHONE = Regex(

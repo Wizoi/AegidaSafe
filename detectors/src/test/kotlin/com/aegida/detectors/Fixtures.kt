@@ -21,20 +21,10 @@ import java.time.Instant
 object Fixtures {
     val now: Instant = Instant.now()
 
-    fun snapshot(
-        privateDns: PrivateDns = PrivateDns.Automatic,
-        listenerEnabled: Boolean = true,
-        canPostNotifications: Boolean = true,
-        browser: String? = "com.android.chrome",
-        smsApp: String? = "com.google.android.apps.messaging",
-        dialerApp: String? = "com.google.android.dialer",
-        notificationListeners: Set<String> = emptySet(),
-        accessibilityApps: Set<String> = emptySet(),
-        deviceAdmins: Set<String> = emptySet(),
-        assistant: String? = "com.google.android.googlequicksearchbox",
-    ) = Snapshot(
-        now, privateDns, browser, listenerEnabled, canPostNotifications, Reading.NotPresent, Reading.NotPresent,
-        smsApp, dialerApp, notificationListeners, accessibilityApps, deviceAdmins, assistant = assistant,
+    fun snapshot() = Snapshot(
+        now, PrivateDns.Automatic, "com.android.chrome", true, true, Reading.NotPresent, Reading.NotPresent,
+        smsApp = "com.google.android.apps.messaging", dialerApp = "com.google.android.dialer",
+        assistant = "com.google.android.googlequicksearchbox",
     )
 
     fun feed(age: Duration = Duration.ofHours(3), hosts: List<String> = listOf("evil.example")) =
@@ -46,8 +36,7 @@ object Fixtures {
         feed: ThreatFeed? = feed(),
         event: NotificationEvent? = null,
         lastDailyCheck: CheckRun? = CheckRun(Trigger.Daily, now.minus(Duration.ofHours(20)), now.minus(Duration.ofHours(20))),
-        baseline: com.aegida.core.model.Baseline? = null,
-    ) = Inputs(snapshot, now, setup, feed, event, lastDailyCheck, baseline = baseline)
+    ) = Inputs(snapshot, now, setup, feed, event, lastDailyCheck)
 
     /** Posted with `cmd notification post` on the Aegida36 emulator (channel shell_cmd, package com.android.shell). */
     fun message(text: String, title: String = "Bank alert") =
