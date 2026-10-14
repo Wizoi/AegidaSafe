@@ -1,9 +1,9 @@
 # Publishing the feed (one-time setup)
 
-How the scam lists reach Mom's phone: `.github/workflows/build-feed.yml` (private AegidaSafe) builds and signs
+How the scam lists reach the phone: `.github/workflows/build-feed.yml` (private AegidaSafe) builds and signs
 `feed.bin`/`feed.sig` every day and pushes them to the `gh-pages` branch of the public
 [Aegida-Feed](https://github.com/Wizoi/Aegida-Feed) repo, served at `https://wizoi.github.io/Aegida-Feed/`.
-Decisions: `decisions.md` (Build step 1 choices, Feed publishing). Sources and licences: findings #27.
+Decisions: `decisions.md` (Build step 1 choices, Feed publishing). Sources and licenses: findings #27.
 
 Phishing.Database (MIT) and Echap's stalkerware indicators (CC BY 4.0) are published; both notices travel in
 `NOTICE.txt` on the feed site. URLhaus stays out until abuse.ch confirms in writing that republishing is allowed.
@@ -22,7 +22,7 @@ fails the run instead of publishing an empty list (the previous feed stays live)
    - GitHub, repo **AegidaSafe**, Settings, Secrets and variables, Actions, new secret
      `AEGIDA_FEED_SIGNING_KEY` = the contents of `feed-private.txt`.
    - Copy the contents of `feed-public.txt` into `feedtool/feed-public-key.txt` in this repo and commit it
-     (a public key is safe to commit). The app will embed the same key.
+     (a public key is meant to be public). The app will embed the same key.
    - Keep `feed-private.txt` in your password manager, then delete it from disk. **If it is lost, the app
      has to be updated with a new public key; phones cannot be re-keyed remotely.**
 2. **Deploy key** (lets the workflow write to Aegida-Feed and nothing else):
@@ -52,4 +52,4 @@ fails the run instead of publishing an empty list (the previous feed stays live)
 - GitHub disables scheduled workflows after 60 days with no activity in a repo; AegidaSafe is active, and a
   manual run re-enables it.
 - The phone must keep working if the feed is stale or missing: `HealthDetector` reports "lists old" after
-  3 days and nothing is ever called "safe" because of a feed.
+  3 days and nothing is ever called fine because of a feed.

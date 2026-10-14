@@ -18,8 +18,8 @@ generated; rerun it after any wording change. Names in the boards (owner Ruth, g
 | 8 | New app outside Play, remote-control app, spying app | Remote.dc.html | Yes | `new-apps`, `stalkerware`, live steps 2-4 |
 | 9 | Guardian messages and plumbing, changing guardian | Guardian.dc.html | Yes | `guardian-offline`, live steps 1, 5-8; none for the one-day reminder (JVM only) |
 | 10 | History and My settings | History.dc.html | Yes | live steps 7-8 drive My settings; none for History |
-| 11 | Banners with her picture over the shield | Banners.dc.html | Yes | no emulator check yet (build plan: not yet seen on emulator) |
-| 12 | Planned: Samsung checks, second guardian, call screening, weekly digest | Planned.dc.html | n/a, notes only, marked PLANNED | n/a |
+| 11 | Banners with the owner's picture over the shield | Banners.dc.html | Yes | no emulator check yet (build plan: not yet seen on emulator) |
+| 12 | Ideas board (not built, not promised; see `ideas.md`) | Planned.dc.html | n/a, notes only | n/a |
 
 "live" is `scripts/emulator_live.py` (untracked in the main checkout when this was written). The Overview board is Main.dc.html.
 
@@ -44,10 +44,10 @@ Project owner: say if the code should change instead.
 
 ## Things in the app that looked odd while reading the code
 
-- `docs/build-plan.md` says in one line that changing the guardian "sends nothing automatically"; decisions.md R12 replaced that. Docs disagree.
+- (Resolved Oct 14) `docs/build-plan.md` said changing the guardian "sends nothing automatically"; it now follows decisions.md R12.
 - The step total depends on the phone ("STEP 7 OF 7" on Samsung, "6 OF 6" elsewhere); the welcome says "about five minutes".
 - `GuardianUnreachable` has no Call button of its own: "Fix my phone" dials the guardian, and "Call a guardian" does the same. With no number given the dialer opens empty.
-- `Texts.Setup.ALERTS_BODY` bakes the example name "Ruth" into every owner's screen, not her own name.
-- The four default-app "Was that you?" pages never show which app took over, so she cannot tell a harmless change from a hostile one without opening Android settings.
+- `Texts.Setup.ALERTS_BODY` bakes the example name "Ruth" into every owner's screen, not the owner's own name.
+- The four default-app "Was that you?" pages never show which app took over, so the owner cannot tell a harmless change from a hostile one without opening Android settings.
 - Home shows only the first open problem's sentence even when it says "2 things need a tap".
 - ListenerOff and NotificationsBlocked are announced by banner, though in those states Aegida may be unable to post one; Home is the only sure place.

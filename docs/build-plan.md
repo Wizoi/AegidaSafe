@@ -29,7 +29,7 @@ Gate (design section 11): guard tests green; emulator scenarios for link check, 
 | 1j | Emulator scenarios: `emulator-checks.sh scenarios` 10/10 and `failures` 7/7 (offline daily job keeps the last feed and raises no alarm; a phone that never runs its check gets MissedCheck and ListsOld). Guardian transport built and JVM-tested (Oct 8): scheduled and cancellable ntfy messages, dead man's switch (due in 2 days, pushed back by each daily check), alerts switch, outbox with back-off and retry, `GuardianUnreachable` after 24 h. Done since: public ntfy.sh honours sequence ids for replace and cancel (live test, findings #44); outbox on the emulator, offline (`guardian-offline` 0 failed, #43); 37 mutation checks; a check killed mid-way no longer loses a warning (#42). Still to do: heartbeat arming and guardian change from the real app against live ntfy, with a phone subscribed | `emulator-checks.sh` | mostly done |
 
 Open items inside phase 1:
-- **Her picture on banners:** decided (Kevin) and built: the shield over her picture as a faint watermark, drawn by `PictureBanner` and set as the banner's large icon (JVM/Robolectric-tested). Not yet looked at on the emulator or a phone.
+- **The owner's picture on banners:** decided (Kevin) and built: the shield over the owner's safety picture as a faint watermark, drawn by `PictureBanner` and set as the banner's large icon (JVM/Robolectric-tested). Not yet looked at on the emulator or a phone.
 - **Event warnings that repeat:** back-off built (phase 2, `AlertBackoffTest`, decisions Oct 8).
 - **Home wording:** approved by Kevin. The storyboard says "Everything is as it should be."; Home says "No known problems found." instead, as CLAUDE.md requires.
 - Dead man's switch: built and its replace/cancel behaviour confirmed live (findings #44); the app-side arming still needs a live run with a subscribed phone.
@@ -37,30 +37,29 @@ Open items inside phase 1:
 - Look-alike gap: a name written entirely in Cyrillic or Greek letters that imitates a brand is only caught when its letters map to Latin ones (`LinkSigns` homoglyph table). Check against real internationalised domains from the feed before widening it.
 
 ## Phase 2. Drift, new apps, remote-control apps
-- [x] Snapshotter reads default browser/text/phone apps and who has notification access, screen control or device-admin rights (installed apps with installer and signing cert: still to do, needs `QUERY_ALL_PACKAGES`, which Kevin has not approved yet)
+- [x] Snapshotter reads default browser/text/phone apps and who has notification access, screen control or device-admin rights and every installed app with its installer and signing certificate (`QUERY_ALL_PACKAGES` approved Oct 8)
 - [x] `DriftDetector` with a baseline taken after setup and "Was that you?" (JVM-tested, emulator `drift` scenario, findings #45)
-- [x] `NewAppDetector` (apps installed from outside Play after setup) and `RemoteControlDetector` (known remote-access apps by package name), JVM-tested and walked on the emulator with fixture APKs signed by the debug test key (findings #46). Still to do: a second-browser fixture to see default-browser drift, a fixture device-admin app, signing-certificate hashes and the signed-feed delivery of the remote-control list
-- [x] Escalation (decided Oct 8): the same guardian is reminded once at 24 h if the warning is still open; repeat back-off 1/2/4/7 days. Fake-clock tests (`AlertBackoffTest`); a second guardian is a later feature
+- [x] `NewAppDetector` (apps installed from outside Play after setup) and `RemoteControlDetector` (known remote-access apps by package name), JVM-tested and walked on the emulator with fixture APKs signed by the debug test key (findings #46). Open test gaps: a second-browser fixture to see default-browser drift, a fixture device-admin app. Not built: matching remote-control apps by signing certificate, and delivering that list in the signed feed
+- [x] Escalation (decided Oct 8): the same guardian is reminded once at 24 h if the warning is still open; repeat back-off 1/2/4/7 days. Fake-clock tests (`AlertBackoffTest`); a second guardian is not built
 - [x] Emulator scenarios: `drift` (notification access, screen control), `new-apps` (installed by hand, remote-control app). Not yet: default browser/text/phone app changes, device-admin and overlay grants (need fixtures)
 
 ## Phase 3. Stalkerware list
-- [x] Echap indicators (CC BY 4.0) in the signed feed v2 (610 packages, 470 certificate hashes), refreshed daily by the workflow; `StalkerwareDetector`; credit in the feed NOTICE and in My settings. Walked on the emulator against the live feed (findings #47). Open: the owner-safety question when a spying app was planted by someone close to her (findings #47)
+- [x] Echap indicators (CC BY 4.0) in the signed feed v2 (610 packages, 470 certificate hashes), refreshed daily by the workflow; `StalkerwareDetector`; credit in the feed NOTICE and in My settings. Walked on the emulator against the live feed (findings #47). Open: the owner-safety question when a spying app was planted by someone close to the owner (findings #47)
 
 ## Phase 4. Pixel pass and Play
 - [x] Gaps in `emulator-vs-device.md` checked on Kevin's Pixel (Kevin's Oct 9 retest of the Play build; he keeps it running; findings #69 to #78)
 - [x] Internal Play build (0.2.0 on Oct 8, 0.3.0 next); all Console forms and declarations (`QUERY_ALL_PACKAGES`, notification access, foreground service, Data safety, privacy page) done
 - [ ] Closed-test release: 0.2.0 sent for review on Oct 9; 0.3.0 follows it
-- [ ] Ask Play Developer Support about automatic consented alerts before any release beyond the closed test
-- [ ] Name clearance: trademark, Play Console, domain, GitHub
+- [x] Play Developer Support about automatic consented alerts: decided not to ask for now (decisions, Oct 9; draft in `play-support-question.md`)
+- [x] Name clearance: Kevin's hand check of USPTO looked clean; no trademark filed for now (`name-clearance.md`)
 
 ## Phase 5. Samsung (last)
 - [ ] Unmanaged Galaxy on One UI 6+ for Auto Blocker on/off and Maximum restrictions (lab phone has it disabled, findings #11)
 - [ ] Multi-day sleeping checks (3, 7, 16 days unopened) on a phone Kevin owns
-- [ ] Samsung Internet notification behaviour with a public fixture page
-- [ ] First release to Mom is observe-only for a few days
+- [ ] Samsung Internet notification behavior with a public fixture page
 
-## Later
-Remote-access and banking warning, opt-in call screening, weekly guardian digest, manual "Check this".
+## Notes
+Ideas that are not built, and not promised, are listed in `ideas.md`.
 - **Code naming:** the person with the phone is the *owner* in code (decided Oct 8).
 - **Blank owner name:** setup will not continue without a name, so a blank only appears on a database from before that rule; guardian messages then say "Aegida". Left as is.
-- **Changing the guardian:** decided (Kevin): allowed, with a popup telling her to let the previous guardian know; nothing is sent automatically. Built: GuardianChange (new private topic for the new guardian, old heartbeat cancelled, new guardian told if alerts are on) and the My settings screen with the popup; not yet walked on the emulator.
+- **Changing the guardian:** decided (Kevin): allowed, with a popup asking the owner to let the previous guardian know; with alerts on, the old guardian also gets one short message (decisions, review R12). Built: GuardianChange (new private topic for the new guardian, old heartbeat cancelled, new guardian told if alerts are on) and the My settings screen with the popup. Walked live on the emulator against ntfy.sh (findings #71).

@@ -1,6 +1,6 @@
 # Reporting a security problem
 
-Aegida runs on an older person's phone and can tell her family when something is wrong, so a flaw in it matters.
+Aegida runs on an older person's phone and can tell the owner's family when something is wrong, so a flaw in it matters.
 
 Please report a problem privately, not in a public issue: use GitHub's "Report a vulnerability" (Security tab of this
 repository). If that is not available, open an issue that says only "security report, please contact me" and leave out

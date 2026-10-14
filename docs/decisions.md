@@ -9,29 +9,29 @@
 - **Logo: locked on idea #1, the sunflower shield** (Kevin, Oct 7, 3:02 pm), chosen from six ideas (sunflower shield, letter A shield, cradled sun, keyhole sunflower, porch-light arch, Æ tile). Full-colour, app-icon and single-colour notification SVGs were produced.
 
 ## Setup
-- Originally imagined as Kevin setting up in person with a QR code. Kevin lives states away, so **Mom sets up herself**: she enters guardians (one required, optional second), and the app drafts the invitation email in her own mail app (ntfy install links for Android and iPhone plus her alert link). She presses Send. Sending from her Gmail automatically was ruled out earlier (OAuth/app-password burden).
-- **Auto Blocker:** first a required first safety switch (earlier, Kevin: "auto-blocker should be enabled by default"). **Changed Oct 8 (Kevin): recommended, not required.** Reason: the app can't turn it on or read it, it exists only on Samsung phones, and Maximum restrictions hides links in messages. Setup guides one tap with "Show me" / "Not now"; the answer is stored as what Mom said, never shown as verified, and the guardian summary says if she chose "Not now". Brief, design doc and storyboard Setup board updated.
+- Originally imagined as Kevin setting up in person with a QR code. Kevin lives states away, so **Mom sets up herself**: she enters guardians (one required, optional second; **not built:** the app has one guardian), and the app drafts the invitation email in her own mail app (ntfy install links for Android and iPhone plus her alert link). She presses Send. Sending from her Gmail automatically was ruled out earlier (OAuth/app-password burden).
+- **Auto Blocker:** first a required first safety switch (earlier, Kevin: "auto-blocker should be enabled by default"). **Changed Oct 8 (Kevin): recommended, not required.** Reason: the app can't turn it on or read it, it exists only on Samsung phones, and Maximum restrictions hides links in messages. Setup guides one tap with "Show me" / "Not now"; the answer is stored as what Mom said, never shown as verified, and the guardian summary says if she chose "Not now" (**not built:** there is no guardian summary). Brief, design doc and storyboard Setup board updated.
 - **Distribution** changed from ADB/sideload to **Google Play closed testing (alpha)**, published by Kevin.
 - Kevin chose to keep the 10 safety pictures and the alert length as designed.
 
 ## Strictness and approvals
-- Earlier rule "new app is unapproved until Kevin approves" was **dropped**: Kevin doesn't want to approve every app. New apps pass if Play Protect and the threat feeds are clean; only flagged apps prompt.
+- Earlier rule "new app is unapproved until Kevin approves" was **dropped**: Kevin doesn't want to approve every app. New apps pass if Play Protect and the threat feeds are clean; only flagged apps prompt. (**Not built:** the Play Protect check.)
 - No approve/remove from a guardian's phone (needs infrastructure we don't have).
 - Added **remote-control app detection** (AnyDesk and similar).
 
 ## Alerts
 - On Mom's phone: **heads-up banner** (not full-screen, not overlay).
-- Escalation: Kevin after 24 hours; the **second guardian** only if still open 24 hours after the first alert. (First answer was "every alert," then changed.)
+- Escalation: Kevin after 24 hours; the **second guardian** only if still open 24 hours after the first alert. (First answer was "every alert," then changed.) **Not built as written:** replaced by the Phase 2 decision below (one reminder to the same guardian; no second guardian).
 - **Guardian ntfy alerts:** first drafted as triggered by a "Tell Kevin" button; Kevin preferred **no button** ("start with it using ntfy automatically after initial pairing"). Settled design: automatic, via an opt-in setup switch Mom turns on herself ("Let Aegida tell my guardians about serious problems"), persistent notice, unique icon, off switch, coarse events only, written in her name. Fallback to the button design if Play objects. The Play monitoring policy is a gray area (2020 text found; adult-to-adult tracking barred even with consent).
 - Added Oct 8: guardians get "Aegida hasn't checked in" if the app is silent for 2+ days (covers Samsung putting it to sleep).
 
 ## Scam coverage
 - Deep research report produced (SMS/links/QR, calls, malicious apps and accounts, free data sources); see `../research/`. Report title predates the rename: "Phone Angel extra scam protections."
 - **Always-on safe-call card dropped** as too restrictive; other checks are the backstop.
-- **Manual "Check this" (share/scan) demoted**: Kevin doubts Mom would use it. Replaced in v1 by automatic link checks on message notifications plus a guided website filter (Private DNS). Manual version is a later add-on.
+- **Manual "Check this" (share/scan) demoted**: Kevin doubts Mom would use it. Replaced in v1 by automatic link checks on message notifications plus a guided website filter (Private DNS). Manual version is a later add-on (**not built**).
 
 ## App screens
-- Added: home (all good / needs a tap), **history of events** (kept 90 days, confirmed by Kevin), **My settings** where Mom can change guardians, picture, name, the alerts switch, and website protection. Added safety rule: any guardian change notifies the existing guardians.
+- Added: home (all good / needs a tap), **history of events** (kept 90 days, confirmed by Kevin), **My settings** where Mom can change guardians, picture, name, the alerts switch, and website protection. Added safety rule: any guardian change notifies the existing guardians. (Superseded: see "Open items settled" and R12 below.)
 
 ## Storyboard
 - Final structure: Overview + Scenario 0 First run, 1 Using the app, 2 Fake virus warnings, 3 A new app changes her defaults, 4 A safety switch is turned off, 5 Remote-control apps, 6 A scam text is caught, plus a Logo ideas board. Boards show the end state, not the review history.
@@ -43,7 +43,7 @@
 - Key choices: Gradle modules so the compiler enforces layers (`:core` pure JVM → `:store`/`:platform` → `:detectors` → `:alerts` → `:app`); one owner per concern with a failing guard test for each (time, HTTP, ntfy, SQL, notifications, secrets, OEM code, banned manifest capabilities, banned words like "safe"); only detectors create findings; single idempotent Evaluator; failure states designed before building; findings log and CLAUDE.md working rules copied from the two repos.
 - **Testing decision (Kevin):** no access to Mom's phone. **Emulator first** (scripted, Play image API 36, scripts refuse non-emulator serials, own signed fixture APKs for flagged/remote-control apps, host-served page for website notification spam); **Kevin's Pixel only for known emulator gaps** (tracked in `emulator-vs-device.md`).
 - **Samsung decision (Kevin):** One UI is mostly a launcher; default-app and reset logic is plain Android. **Samsung-specific validations go last**; Kevin will try to find an old Samsung phone (a Galaxy S8 is too old: Android 9) and Samsung Remote Test Lab is "an item to look into" (`samsung-validation-options.md`). Until then research from documentation. Samsung-only code lives behind one `OemSource` and returns `NotPresent`/`Unreadable` rather than guessing.
-- **Research findings (docs, unverified on device):** (1) Samsung puts apps **not opened for ~3 days** to sleep (jobs, alarms, foreground services restricted) and long-unused apps (~16 days) into deep sleep with no notifications; Mom may never open Aegida, so this is the biggest Samsung risk. Responses: foreground service, a setup deep-link to Samsung's "Never sleeping" list, a "hasn't checked in" guardian alert. (2) **Auto Blocker** blocks installs from unauthorized sources (Play is fine); its Maximum restrictions block device-admin apps and **hide links in messages**, which would starve link checks; Samsung doesn't say apps can read it. (3) Nothing found in documentation about how Samsung Internet handles website notification spam.
+- **Research findings (docs, unverified on device):** (1) Samsung puts apps **not opened for ~3 days** to sleep (jobs, alarms, foreground services restricted) and long-unused apps (~16 days) into deep sleep with no notifications; Mom may never open Aegida, so this is the biggest Samsung risk. Responses: foreground service, a setup deep-link to Samsung's "Never sleeping" list (**not built**), a "hasn't checked in" guardian alert. (2) **Auto Blocker** blocks installs from unauthorized sources (Play is fine); its Maximum restrictions block device-admin apps and **hide links in messages**, which would starve link checks; Samsung doesn't say apps can read it. (3) Nothing found in documentation about how Samsung Internet handles website notification spam.
 - Oct 8: repo created at `C:\src\kidzi\GitHub\AegidaSafe`, private GitHub repository `Wizoi/AegidaSafe`. Docs, research and design artifacts copied into it.
 
 ## Gradle skeleton (Oct 8)
@@ -85,7 +85,7 @@
 
 ## Phase 2 decisions (Kevin, Oct 8)
 - **`QUERY_ALL_PACKAGES` approved**, so new-app and remote-control detection can list every installed app. Needs the Play Console declaration (phase 4).
-- **The 24 hour step:** a warning still not dealt with after 24 hours reminds the *same* guardian once ("hasn't dealt with a warning yet"). A second guardian is a later feature with its own setup step. The finding becomes `Escalated`, which still counts as open and stays on Home.
+- **The 24 hour step:** a warning still not dealt with after 24 hours reminds the *same* guardian once ("hasn't dealt with a warning yet"). A second guardian is a later feature with its own setup step (**not built**). The finding becomes `Escalated`, which still counts as open and stays on Home.
 - **Repeat back-off (built):** a repeat of the same kind of warning still warns the owner but messages the guardian only after 1, 2, 4, then 7 days since the last message about that kind (by what was told in the last 7 days). Urgent problems are never held back.
 - **"She said it was hers" follow-up (Kevin, Oct 8):** when the owner taps "Yes, that was me" on a was-that-you question, a guardian who was told about it gets one short message saying so. A guardian who was never told (default app changes) hears nothing; nothing is sent with the alerts switch off. Plain "Got it" on a scam warning sends nothing.
 - **Changing the guardian now messages the old guardian (Kevin, Oct 8, review R12):** this replaces "nothing is sent automatically". When the owner changes her guardian with alerts on, the guardian being replaced gets one short message first ("... changed her guardian in Aegida. You will not get messages about her phone from now on. If you did not expect this, please call her."), then their link stops working and their "hasn't checked in" message is cancelled. The popup says Aegida will send it and that she should tell them herself too. Not sent when alerts are off or there was no guardian. One attempt only: the old topic is no longer the guardian's, so the outbox would drop a retry.
@@ -119,7 +119,7 @@
 - **Ads that arrive as notices (Kevin, Oct 11):** Aegida counts notices per app (time and number of ad signs only, a week) and warns about an app that keeps sending ad-like ones, naming it, with buttons to its notice settings and App info. Nothing is hidden. The owner can say an app is fine: it goes on a list in My settings with Warn me again, and the guardian is told each time. Only this kind can be allowed, never urgent kinds. New tables `notice` and `allowed` (migration 2 to 3).
 - **Designs and final reviews (Kevin, Oct 11):** designs and final code reviews run on Opus 5.5 with effort high; making the changes may run on Sonnet 5.5 at medium.
 
-## Open / next session
+## Open / next session (as of Oct 8; the spike ran, Play Support was not asked by decision on Oct 9, and the name was checked by hand on Oct 9)
 - Create the Gradle project and run the **emulator spike**: confirm each `adb`/`cmd` scenario works on the API 36 Play image.
 - Kevin: look for an old Samsung phone on One UI 6+; look into Samsung Remote Test Lab.
 - Ask Play Developer Support about automatic consented alerts.
