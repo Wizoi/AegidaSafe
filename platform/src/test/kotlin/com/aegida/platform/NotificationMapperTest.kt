@@ -57,7 +57,9 @@ class NotificationMapperTest {
     }
 
     @Test fun whatThePhoneKnowsAboutTheNoticeIsPassedThrough() {
-        val facts = com.aegida.platform.notify.RankingFacts(channelName = "Special offers", channelDescription = "Deals", importance = 4, conversation = false, sentimentNegative = true)
+        val facts = com.aegida.platform.notify.RankingFacts(
+            channelName = "Special offers", channelDescription = "Deals", importance = 4, conversation = false, sentimentNegative = true,
+        )
         val event = NotificationMapper.toEvent("k", "p", builder().setContentTitle("Hi").build(), postedAt.toEpochMilli(), facts)
         assertEquals("Special offers", event.channelName)
         assertEquals("Deals", event.channelDescription)

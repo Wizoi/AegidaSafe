@@ -44,11 +44,23 @@ class UpgradeWithDataTest {
     private val now = Instant.now().truncatedTo(ChronoUnit.MILLIS)
     private val topic = NtfyTopic("aegida_" + "Ab3dE5gH".repeat(5))
     private val setup = Setup("security.cloudflare-dns.com", setOf("https://news.example"), pictureId = "sunflower", stepsDone = 6)
-    private val guardians = Guardians(alertsOn = true, ownerName = "Ruth", firstTopic = topic, firstGuardianName = "Kevin", firstGuardianEmail = "kevin@example.com", firstGuardianPhone = "555 0100")
-    private val baseline = Baseline("com.android.chrome", "com.google.android.apps.messaging", "com.google.android.dialer", emptySet(), emptySet(), emptySet(), apps = setOf("com.example.bank"), websites = setOf("https://news.example"))
-    private val finding = Finding(FindingKey(DetectorId.Dns, Problem.WebsiteFilterOff, "dns"), emptyMap(), now.minus(Duration.ofDays(2)), now.minus(Duration.ofHours(1)), FindingState.Escalated)
+    private val guardians = Guardians(
+        alertsOn = true, ownerName = "Ruth", firstTopic = topic,
+        firstGuardianName = "Kevin", firstGuardianEmail = "kevin@example.com", firstGuardianPhone = "555 0100",
+    )
+    private val baseline = Baseline(
+        "com.android.chrome", "com.google.android.apps.messaging", "com.google.android.dialer", emptySet(), emptySet(), emptySet(),
+        apps = setOf("com.example.bank"), websites = setOf("https://news.example"),
+    )
+    private val finding = Finding(
+        FindingKey(DetectorId.Dns, Problem.WebsiteFilterOff, "dns"), emptyMap(), now.minus(Duration.ofDays(2)), now.minus(Duration.ofHours(1)),
+        FindingState.Escalated,
+    )
     private val historyEntry = HistoryEntry(now.minus(Duration.ofDays(2)), Problem.WebsiteFilterOff, Outcome.GuardianTold)
-    private val queued = QueuedMessage(id = 0, topic = topic.value, title = "Ruth", body = "A message", urgent = false, problem = Problem.WebsiteFilterOff, queuedAt = now.minus(Duration.ofHours(3)), attempts = 2, lastTriedAt = now.minus(Duration.ofHours(1)))
+    private val queued = QueuedMessage(
+        id = 0, topic = topic.value, title = "Ruth", body = "A message", urgent = false, problem = Problem.WebsiteFilterOff,
+        queuedAt = now.minus(Duration.ofHours(3)), attempts = 2, lastTriedAt = now.minus(Duration.ofHours(1)),
+    )
     private val run = CheckRun(Trigger.Daily, now.minus(Duration.ofHours(5)), now.minus(Duration.ofHours(5)).plusSeconds(4))
 
     /** Today's stores write the rows the way the app writes them; they are returned as raw rows per version-1 table. */

@@ -2,7 +2,7 @@ package com.aegida.platform.invite
 
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
+import androidx.core.net.toUri
 import com.aegida.core.alert.Guardians
 import com.aegida.core.text.Texts
 
@@ -22,8 +22,12 @@ object InviteEmail {
      * none leaves it to the system's share list.
      */
     fun intent(guardians: Guardians, mailApps: List<String> = emptyList()): Intent? {
-        val topic = guardians.firstTopic?.value ?: return null
-        val email = guardians.firstGuardianEmail.trim().ifEmpty { return null }
+        val topic = guardians.firstTopic?.value
+        val email = guardians.firstGuardianEmail.trim()
+        return if (topic == null || email.isEmpty()) null else draft(guardians, topic, email, mailApps)
+    }
+
+    private fun draft(guardians: Guardians, topic: String, email: String, mailApps: List<String>): Intent {
         val owner = guardians.ownerName.trim() // blank: no name, never "Aegida has picked you" (findings #95)
         val guardian = guardians.firstGuardianName.ifBlank { "there" }
         fun send() = Intent(Intent.ACTION_SEND)
@@ -43,7 +47,7 @@ object InviteEmail {
     /** Apps that are mail apps (take a mailto:) and also take a share of plain text, which is how the draft is filled in. */
     fun emailApps(context: Context): List<String> {
         val pm = context.packageManager
-        val mail = pm.queryIntentActivities(Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:")), 0).map { it.activityInfo.packageName }.toSet()
+        val mail = pm.queryIntentActivities(Intent(Intent.ACTION_SENDTO, "mailto:".toUri()), 0).map { it.activityInfo.packageName }.toSet()
         val share = pm.queryIntentActivities(Intent(Intent.ACTION_SEND).setType("text/plain"), 0).map { it.activityInfo.packageName }
         return share.filter { it in mail }.distinct()
     }
