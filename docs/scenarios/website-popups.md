@@ -1,0 +1,21 @@
+# Scenarios: website pop-ups
+
+A website sends notifications through the browser. A fake virus warning is hidden. A new website is asked about once.
+`GAP` means nothing covers it yet.
+
+| ID | Situation (Mom's words) | Mom sees | Guardian gets | Variants | Data source | Test | Emulator | Mutant |
+|---|---|---|---|---|---|---|---|---|
+| WP1 | "A website says my phone has a virus" | The pop-up is hidden; a warning on Home that it was hidden | A note naming the site, masked | Repeats are all hidden; the owner is told once | Chrome's real channel format | CheckRunnerTest#aFakeVirusPopUpIsHiddenAndOwnerAndTheGuardianAreTold; CheckRunnerTest#everyRepeatedPopUpIsHiddenButOwnerIsOnlyAlertedOnce | emulator_websites.py | popup-baseline-sites |
+| WP2 | "Chrome's own site notification" | Caught as a website notification | n/a | Real shape from the emulator | Emulator dump | DetectorsTest#theRealChromeSiteNotificationIsCaught | emulator_websites.py | site-banner-opens-switch |
+| WP3 | "A website I never saw before sends a notice" | A question: "Was that you?" The notice is put aside, not deleted | Nothing until a day passes unanswered | Question left a day | Emulator | DetectorsTest#aSiteThatAppearedAfterSetupIsAskedAboutAndNotSimplyBlocked; CheckOutcomeTest#aFakeWarningIsRemovedAndANewWebsiteIsSnoozed | emulator_websites.py (site B) | new-website-is-snoozed-not-deleted |
+| WP4 | "I tap Yes, it was me" | The site is remembered and its notices stay | Nothing | A baseline from before websites were recorded | Emulator | WebsiteBaselineTest#sayingItWasHersAddsTheSiteAndKeepsTheOthers; WebsiteBaselineTest#aBaselineFromBeforeWebsitesWereRecordedTakesHerYesToo | emulator_websites.py (site A) | website-yes-adds-the-site; website-question-can-be-answered |
+| WP5 | "A site I already had at setup" | Left alone unless it turns scary | Nothing | Scary words later | Emulator | DetectorsTest#aSiteSheAlreadyHadWhenSetupEndedIsLeftAloneUnlessItTurnsScary; WebsiteBaselineTest#theBaselineStartsWithNoWebsitesSoEachIsAskedAboutOnce | emulator_websites.py | website-recorded-site-left-alone; website-baseline-starts-empty |
+| WP6 | "A new site with fake virus words" | Called fake, not asked about | Note | n/a | Invented words | DetectorsTest#aNewSiteWithFakeVirusWordsIsCalledFakeNotAskedAbout | emulator_websites.py | GAP |
+| WP7 | "I tap No" | The site's notice is deleted; quiet for a week | Nothing | Notice comes back: deleted, not put aside again | Emulator | CheckOutcomeTest#aWebsiteSheSaidNoToIsDeletedWhenItsNoticeComesBackNotPutAsideAgain; WebsiteSitesTest#aWebsiteTheOwnerSaidNoToIsQuietForAWeek | emulator_websites.py (site B again) | website-no-sticks |
+| WP8 | "I never answered the question" | After a day the notice stops being put aside and is deleted | Nothing | Clock set ahead | Emulator | CheckOutcomeTest#aQuestionLeftUnansweredForADayStopsBeingPutAsideAndIsDeleted; AlertPipelineTest#aQuestionFirstSeenUnderAClockThatWasAheadIsTreatedAsSeenNowAndDeletedADayLater | emulator_websites.py (jump_minutes) | first-seen-put-right-once |
+| WP9 | "What the site said is in History" | The site and its words, no link | n/a | Site masked for the guardian | Room database | HistoryDetailTest#aWebsiteWarningSaysWhichWebsiteAndWhatItSaid; HostMaskTest#keepsTheFirstTwoLettersAFixedRunOfStarsAndTheEnding | none | host-mask-hides-the-name; history-keeps-what-it-was |
+| WP10 | "A pop-up title with a link in it" | The link is shown as (link) | Masked | n/a | Invented text | LinkTextScenariosTest#aWebsitePopUpTitleNeverShowsALinkAsText | none | popup-title-links-removed |
+| WP11 | "A site I said Yes to later posts a real scare ('Retailer hacked')" | Would be hidden as a fake warning | Would be told | Found by reading | Needs a real news-site shape | GAP | GAP | GAP |
+| WP12 | "Samsung Internet or another browser" | Same as Chrome | Same | Website channels are known only in Chrome's format | Samsung dump needed | GAP | GAP | GAP |
+| WP13 | "The word pop-ups splits to ups" | Not hidden by mistake | Nothing | Found by reading | Invented words | GAP | GAP | GAP |
+| WP14 | "The phone put the notice to sleep and it came back" | Left in place if the site was answered Yes | Nothing | Snooze returning, no model of it | Needs a fake notification shade | GAP | emulator_websites.py (partly) | GAP |

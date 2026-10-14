@@ -20,6 +20,7 @@ import org.junit.Test
 import java.time.Duration
 import java.time.Instant
 import java.util.Random
+import org.junit.Assert.assertFalse
 
 class HomeStateTest {
     private val now = Instant.now()
@@ -120,5 +121,15 @@ class SafetyPictureAndTopicTest {
             assertTrue(it.all { c -> c.isLetterOrDigit() || c == '_' })
         }
         assertNotEquals(NtfyTopic.generate().value, NtfyTopic.generate().value) // the real SecureRandom
+    }
+
+    @Test fun anUnansweredWebsiteQuestionIsNotShownAsHandledAndALateAllowNoteIsNotShownAsNeedsYou() { // findings #94, #96
+        val at = Instant.parse("2026-10-11T16:00:00Z")
+        val asked = HistoryRows.of(listOf(HistoryEntry(at, Problem.NewWebsiteNotifications, Outcome.OwnerWarned))).single()
+        assertFalse(asked.handled)
+        val fake = HistoryRows.of(listOf(HistoryEntry(at, Problem.SiteNotifications, Outcome.OwnerWarned))).single()
+        assertTrue("a fake warning that was hidden needs nothing", fake.handled)
+        val lateNote = HistoryRows.of(listOf(HistoryEntry(at, Problem.AppAllowed, Outcome.GuardianTold))).single()
+        assertTrue(lateNote.handled)
     }
 }
