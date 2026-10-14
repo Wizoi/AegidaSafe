@@ -35,7 +35,7 @@ import java.time.temporal.ChronoUnit
  * to today's version 3. The rows are written by today's stores into a database of today's shape and copied, column for column, into
  * a version-1 database built from store/schemas/1.json (every table version 1 had is unchanged in shape except history). After the
  * 1-to-2-to-3 migrations the real stores read back the same settings, guardian, baseline, findings, history, outbox and check log.
- * Not yet from a real phone's database file: none has been pulled (finding #113).
+ * The second test starts from a real version-1 file (finding #113), see store/src/test/resources/upgrade/README.txt.
  */
 @RunWith(RobolectricTestRunner::class)
 class UpgradeWithDataTest {
@@ -108,7 +108,40 @@ class UpgradeWithDataTest {
         db.close()
     }
 
+    @Test fun aDatabaseFileWrittenByTheRealVersionOneBuildOnTheEmulatorIsUpgradedToVersionThreeAndReadBackThroughTheRealStores() = runTest {
+        val target = ApplicationProvider.getApplicationContext<android.content.Context>().getDatabasePath(NAME_REAL)
+        target.parentFile!!.mkdirs()
+        val file = checkNotNull(javaClass.getResourceAsStream("/upgrade/aegida-v1-emulator.db")) { "missing resource" }
+        file.use { input -> target.outputStream().use { input.copyTo(it) } }
+        migrations.runMigrationsAndValidate(NAME_REAL, 3, true, AegidaDatabase.MIGRATION_1_2, AegidaDatabase.MIGRATION_2_3).close()
+
+        val db = Room.databaseBuilder(ApplicationProvider.getApplicationContext(), AegidaDatabase::class.java, NAME_REAL)
+            .addMigrations(AegidaDatabase.MIGRATION_1_2, AegidaDatabase.MIGRATION_2_3).allowMainThreadQueries().build()
+        val settings = RoomSettings(db.settings())
+        val setup = settings.setup()
+        assertEquals(8, setup.stepsDone)
+        assertEquals("sunflower", setup.pictureId)
+        val guardians = settings.current()
+        assertEquals("Ruth", guardians.ownerName)
+        assertEquals(false, guardians.alertsOn)
+        val baseline = checkNotNull(settings.baseline())
+        assertEquals("com.android.chrome", baseline.browser)
+        assertEquals("com.google.android.apps.messaging", baseline.smsApp)
+        assertEquals("com.google.android.dialer", baseline.dialerApp)
+        assertEquals(setOf("com.aegida.app", "com.aegida.fixture.noisy"), baseline.apps)
+        val finding = checkNotNull(RoomFindingStore(db.findings()).get(FindingKey(DetectorId.Health, Problem.ListsOld, "aegida")))
+        assertEquals(FindingState.Resolved, finding.state)
+        val history = RoomHistoryLog(db.history()).since(Instant.EPOCH)
+        assertEquals(listOf(Problem.ListsOld to Outcome.Fixed), history.map { it.problem to it.outcome })
+        assertEquals("the version-1 file kept its history time", 1792001741006L, history.single().at.toEpochMilli())
+        assertEquals(emptyList<Any>(), RoomOutbox(db.outbox()).all())
+        assertEquals(Trigger.Daily, RoomCheckLog(db.checkRuns()).latest(Trigger.Daily)?.trigger)
+        assertEquals("the new tables start empty", emptyList<Any>(), RoomAllowList(db.allowed()).all())
+        db.close()
+    }
+
     private companion object {
         const val NAME = "upgrade-with-data"
+        const val NAME_REAL = "upgrade-real-v1"
     }
 }
