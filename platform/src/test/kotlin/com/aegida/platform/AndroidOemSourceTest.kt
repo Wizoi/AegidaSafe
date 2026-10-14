@@ -52,6 +52,13 @@ class AndroidOemSourceTest {
         assertEquals(Reading.NotPresent, oem.installBlocker())
     }
 
+    @Test fun onlyASamsungNamesAMakerStore() { // GS10
+        ShadowBuild.setManufacturer("Google")
+        assertEquals(emptySet<String>(), oem.appStores())
+        ShadowBuild.setManufacturer("samsung")
+        assertEquals(setOf("com.sec.android.app.samsungapps"), oem.appStores())
+    }
+
     private companion object {
         const val AUTO_BLOCKER = "com.samsung.android.rampart"
     }

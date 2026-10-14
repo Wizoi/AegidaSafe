@@ -10,7 +10,7 @@ import javax.inject.Inject
 
 /**
  * "Did an app arrive that did not come from the Play Store?" Apps that shipped with the phone, apps that were
- * there at setup, apps from Play and known remote-control apps (RemoteControlDetector owns those) and known spying apps (StalkerwareDetector owns those) are not raised.
+ * there at setup, apps from Play, apps from the phone maker's own store (installed and asked for by it; Snapshot.makerStores) and known remote-control apps (RemoteControlDetector owns those) and known spying apps (StalkerwareDetector owns those) are not raised.
  * No list of bad apps is needed: the way it arrived is what is checked. Nothing is raised before a baseline.
  */
 class NewAppDetector @Inject constructor() : Detector {
@@ -19,7 +19,8 @@ class NewAppDetector @Inject constructor() : Detector {
     override fun evaluate(input: Inputs): List<Finding> {
         val known = input.baseline?.apps ?: return emptyList()
         return input.snapshot.apps
-            .filter { !it.isSystem && !it.fromPlayStore && it.packageName !in known && it.packageName !in RemoteControlApps.PACKAGES }
+            .filter { !it.isSystem && !it.fromPlayStore && !it.fromStoreIn(input.snapshot.makerStores) }
+            .filter { it.packageName !in known && it.packageName !in RemoteControlApps.PACKAGES }
             .filter { input.feed?.matchApp(it.packageName, it.certSha1s) == null }
             .sortedBy { it.packageName }
             .map {

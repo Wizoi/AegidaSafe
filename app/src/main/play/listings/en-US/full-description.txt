@@ -19,7 +19,7 @@ You stay in charge
 What your phone will ask you to allow
 Your phone will ask you a few questions. Here is why.
 - Notification access: so Aegida can look at the alerts and messages on your screen for scam links. It does not keep or send what they say.
-- A list of your apps: so Aegida can notice a new app that came from outside the Play Store, or one that lets someone else control your phone.
+- A list of your apps: so Aegida can notice a new app that came from outside the Play Store or, on a Samsung, the Galaxy Store, or one that lets someone else control your phone.
 - A small notice on your screen: so you can see that Aegida is running.
 - Internet: to get its list of known scams, and to send your short note if you turned that on.
 

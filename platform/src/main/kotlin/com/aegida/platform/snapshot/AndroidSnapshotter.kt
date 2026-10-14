@@ -37,6 +37,7 @@ class AndroidSnapshotter(
 
     override fun take(): Snapshot {
         val notifications = context.getSystemService(NotificationManager::class.java)
+        val apps = apps()
         return Snapshot(
             takenAt = clock.now(),
             privateDns = readPrivateDns(),
@@ -51,7 +52,8 @@ class AndroidSnapshotter(
             notificationListeners = packagesIn(Settings.Secure.getString(context.contentResolver, ENABLED_LISTENERS)) - context.packageName,
             accessibilityApps = packagesIn(Settings.Secure.getString(context.contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES)),
             deviceAdmins = context.getSystemService(DevicePolicyManager::class.java)?.activeAdmins.orEmpty().map { it.packageName }.toSet(),
-            apps = apps(),
+            apps = apps,
+            makerStores = oem.appStores().filter { store -> apps.any { it.packageName == store && it.isSystem } }.toSet(),
         )
     }
 
@@ -82,10 +84,12 @@ class AndroidSnapshotter(
         val pm = context.packageManager
         return pm.getInstalledApplications(0).map { info ->
             val system = info.flags and (ApplicationInfo.FLAG_SYSTEM or ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
+            val (installer, initiating) = installersOf(pm, info.packageName)
             InstalledApp(
                 packageName = info.packageName,
                 label = pm.getApplicationLabel(info).toString(),
-                installer = installerOf(pm, info.packageName),
+                installer = installer,
+                initiatingInstaller = initiating,
                 isSystem = system,
                 // Apps that came with the phone are matched by name only, which keeps a check to about a second.
                 certSha1s = if (system) emptySet() else certificatesOf(pm, info.packageName),
@@ -105,11 +109,19 @@ class AndroidSnapshotter(
         emptySet()
     }
 
+    /**
+     * The store that installed the app and the app that asked for the install, from one lookup. Android 10 records only the first,
+     * so the second is null there (a maker's store is then not trusted, GS19).
+     */
     @Suppress("DEPRECATION")
-    private fun installerOf(pm: PackageManager, pkg: String): String? = try {
-        if (Build.VERSION.SDK_INT >= 30) pm.getInstallSourceInfo(pkg).installingPackageName else pm.getInstallerPackageName(pkg)
+    private fun installersOf(pm: PackageManager, pkg: String): Pair<String?, String?> = try {
+        if (Build.VERSION.SDK_INT >= 30) {
+            pm.getInstallSourceInfo(pkg).let { it.installingPackageName to it.initiatingPackageName }
+        } else {
+            pm.getInstallerPackageName(pkg) to null
+        }
     } catch (e: PackageManager.NameNotFoundException) {
-        null
+        null to null
     }
 
     /** The settings that list enabled services hold "package/Class:package/Class"; only the packages matter. */

@@ -78,4 +78,70 @@ class AppDetectorsTest {
         val found = NewAppDetector().evaluate(inputs(snapshot = snapshot().copy(apps = phone), feed = feed).copy(baseline = baseline)).map { it.key.subject }
         assertEquals(listOf("org.plain.sideload"), found)
     }
+
+    // Maker's own store (findings #106, scenarios GS*). The store name is made up here; the real one lives in :platform.
+    private val store = "org.maker.store"
+    private fun fromStore(pkg: String, installer: String? = store, initiating: String? = store) =
+        app(pkg, installer = installer).copy(initiatingInstaller = initiating)
+
+    private fun newAppsOn(apps: List<InstalledApp>, stores: Set<String>, base: Baseline? = baseline) =
+        NewAppDetector().evaluate(inputs(snapshot = snapshot().copy(apps = apps, makerStores = stores)).copy(baseline = base))
+            .map { it.key.problem to it.key.subject }
+
+    @Test fun anAppInstalledFromTheMakersStoreIsNotAQuestion() { // GS1
+        val phone = atSetup + fromStore("org.new.temu") + fromStore("org.new.pdf")
+        assertEquals(emptyList<Pair<Problem, String>>(), newAppsOn(phone, setOf(store)))
+    }
+
+    @Test fun anAppFromTheMakersStoreThatSheAlreadyAnsweredStaysQuiet() { // GS3
+        val phone = snapshot().copy(apps = atSetup + fromStore("org.new.temu", installer = null, initiating = null), makerStores = setOf(store))
+        val answered = baseline.accepting(Problem.NewAppOutsidePlay, "org.new.temu", phone)
+        assertEquals(emptyList<Pair<Problem, String>>(), newAppsOn(atSetup + fromStore("org.new.temu"), setOf(store), answered))
+    }
+
+    @Test fun aRemoteControlAppFromTheMakersStoreIsStillRaised() = // GS4
+        assertEquals(
+            listOf(Problem.RemoteControlApp to "com.anydesk.anydeskandroid", Problem.RemoteControlApp to "com.teamviewer.quicksupport.market"),
+            RemoteControlDetector().evaluate(
+                inputs(
+                    snapshot = snapshot().copy(
+                        apps = atSetup + fromStore("com.anydesk.anydeskandroid") + fromStore("com.teamviewer.quicksupport.market"),
+                        makerStores = setOf(store),
+                    ),
+                ).copy(baseline = baseline),
+            ).map { it.key.problem to it.key.subject },
+        )
+
+    @Test fun anAppThatSaysItCameFromTheMakersStoreButWasAskedForByAnotherInstallerIsAQuestion() { // GS6
+        val phone = atSetup + fromStore("org.preloaded.pusher", initiating = "org.preloaded.installer") + fromStore("org.no.initiator", initiating = null)
+        assertEquals(
+            listOf(Problem.NewAppOutsidePlay to "org.no.initiator", Problem.NewAppOutsidePlay to "org.preloaded.pusher"),
+            newAppsOn(phone, setOf(store)),
+        )
+    }
+
+    @Test fun aFileOpenedByHandOnAPhoneWithAMakerStoreIsStillAQuestion() { // GS7
+        val phone = atSetup + fromStore("org.new.file", installer = null, initiating = null) +
+            fromStore("org.new.pkg", installer = "com.google.android.packageinstaller", initiating = "com.google.android.apps.messaging")
+        assertEquals(
+            listOf(Problem.NewAppOutsidePlay to "org.new.file", Problem.NewAppOutsidePlay to "org.new.pkg"),
+            newAppsOn(phone, setOf(store)),
+        )
+    }
+
+    @Test fun anAppFromAnyOtherStoreIsStillAQuestion() { // GS8
+        val phone = atSetup + fromStore("org.new.amazon", installer = "com.amazon.venezia", initiating = "com.amazon.venezia")
+        assertEquals(listOf(Problem.NewAppOutsidePlay to "org.new.amazon"), newAppsOn(phone, setOf(store)))
+    }
+
+    @Test fun onAPhoneWithNoMakerStoreOnlyPlayIsTrusted() { // GS10, GS11, GS20 (store missing from the list)
+        val phone = atSetup + fromStore("org.new.temu")
+        assertEquals(listOf(Problem.NewAppOutsidePlay to "org.new.temu"), newAppsOn(phone, emptySet()))
+    }
+
+    @Test fun anAppFromTheMakersStoreThatLaterGetsAccessIsStillAskedAbout() { // GS17
+        val now = snapshot().copy(apps = atSetup + fromStore("org.new.temu"), makerStores = setOf(store), notificationListeners = setOf("org.new.temu"))
+        val found = DriftDetector().evaluate(inputs(snapshot = now).copy(baseline = baseline)).map { it.key.problem to it.key.subject }
+        assertEquals(listOf(Problem.ListenerAdded to "org.new.temu"), found)
+    }
 }

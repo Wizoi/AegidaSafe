@@ -58,4 +58,15 @@ class StalkerwareDetectorTest {
         val finding = StalkerwareDetector().evaluate(inputs(snapshot = snapshot().copy(apps = listOf(app("com.thetruth"))), feed = feed)).single()
         assertEquals("thetruth", finding.evidence[com.aegida.core.model.Evidence.APP_LABEL])
     }
+
+    /** GS5: the maker's store gets no Play-style exemption in the spying-app check. */
+    @Test fun aListedPackageFromTheMakersStoreIsStillRaised() {
+        val store = "org.maker.store"
+        val spy = app("com.thetruth", installer = store).copy(initiatingInstaller = store)
+        val phone = snapshot().copy(apps = listOf(spy), makerStores = setOf(store))
+        assertEquals(
+            listOf(Problem.StalkerwareApp to "com.thetruth"),
+            StalkerwareDetector().evaluate(inputs(snapshot = phone, feed = feed)).map { it.key.problem to it.key.subject },
+        )
+    }
 }
