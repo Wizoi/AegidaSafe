@@ -65,6 +65,13 @@ New code goes where design section 2 puts it. Modules (compile-time layering, im
 - **Ask before one-way choices:** a Room migration, a new default Mom did not choose, changing what
   "alert" or "resolved" means, anything that sends to guardians.
 
+## Keeping the code clean (docs/code-health.md)
+
+- Search before adding a helper, fake, text or test file; reuse what exists. Delete what a change makes unused, in that change.
+- No new dependency without Kevin's OK and a check that the artifact really exists with a history (AI-suggested names can be fake).
+- Tests assert behaviour or a named rule, never a count of call sites or the shape of the source.
+- Guards fail the build on unused texts (`UnusedTextsTest`) and on mutation checks that stop matching (`MutantsMatchTest`).
+
 ## Testing: emulator first
 
 - Order of evidence: JVM -> Robolectric -> emulator -> Kevin's Pixel -> (last) a Samsung.

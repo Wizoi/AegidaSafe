@@ -17,6 +17,14 @@ class ShippedSourcesTest {
             assertTrue("no shipped sources found for :$module under ${ShippedSources.root}", byModule[module].orEmpty().isNotEmpty())
         }
     }
+    /** The secrets scan reads tracked files: shipped code and docs are in, release mappings and agents' working copies are not. */
+    @Test fun theSecretsScanReadsTrackedFilesOnly() {
+        val paths = ShippedSources.allText.map { it.path }
+        assertTrue("Texts.kt must be scanned", paths.any { it.endsWith("core/text/Texts.kt") })
+        assertTrue("CLAUDE.md must be scanned", "CLAUDE.md" in paths)
+        assertTrue("release mappings are not scanned", paths.none { it.startsWith("release-mappings/") })
+        assertTrue("agents' working copies are not scanned", paths.none { it.startsWith(".claude/worktrees/") })
+    }
 }
 
 class ClockSingleOwnerTest {

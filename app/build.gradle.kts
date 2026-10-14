@@ -142,3 +142,6 @@ tasks.withType<Test>().configureEach {
     inputs.dir("../docs/site")
     inputs.file("build.gradle.kts")
 }
+
+// Unit tests run once, on the debug variant: no test depends on release, and running both doubled the time (docs/code-health.md).
+tasks.withType<Test>().matching { it.name.endsWith("ReleaseUnitTest") }.configureEach { enabled = false }

@@ -32,14 +32,28 @@ object ShippedSources {
             listOf("build.gradle.kts", "settings.gradle.kts", "gradle.properties").map { File(root, it) }.filter { it.isFile }.map { read(it) }
     }
 
-    /** Every text file in the repo except build output and VCS/IDE folders (for the secrets scan). */
+    /**
+     * Every tracked text file in the repo (for the secrets scan): what `git ls-files` lists, plus files not yet added. Reading the
+     * whole folder took 30 s and scanned release mappings and other agents' working copies (docs/code-health.md). Without git it
+     * falls back to walking the folder, skipping build output and VCS/IDE folders.
+     */
     val allText: List<SourceFile> by lazy {
-        val skipDirs = setOf(".git", ".gradle", ".idea", ".kotlin", "build")
-        root.walkTopDown()
-            .onEnter { it.name !in skipDirs }
-            .filter { it.isFile && it.extension in TEXT_EXTENSIONS }
-            .map { read(it) }
+        val listed = gitFiles()
+        val files = listed ?: root.walkTopDown()
+            .onEnter { it.name !in setOf(".git", ".gradle", ".idea", ".kotlin", "build", ".claude", "release-mappings") }
+            .filter { it.isFile }
             .toList()
+        files.filter { it.isFile && it.extension in TEXT_EXTENSIONS }.map { read(it) }
+    }
+
+    /** Tracked and untracked-but-not-ignored files, or null when git cannot be run. */
+    private fun gitFiles(): List<File>? = try {
+        val process = ProcessBuilder("git", "ls-files", "--cached", "--others", "--exclude-standard")
+            .directory(root).redirectErrorStream(false).start()
+        val names = process.inputStream.bufferedReader().readLines()
+        if (process.waitFor() == 0 && names.isNotEmpty()) names.map { File(root, it) } else null
+    } catch (e: java.io.IOException) {
+        null
     }
 
     private val TEXT_EXTENSIONS = setOf("kt", "kts", "java", "xml", "json", "properties", "pro", "toml", "md", "sh", "py", "html", "yml", "yaml", "txt", "svg")

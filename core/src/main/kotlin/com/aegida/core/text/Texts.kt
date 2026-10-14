@@ -10,8 +10,6 @@ import com.aegida.core.url.Links
  */
 object Texts {
     const val APP_NAME = "Aegida"
-    const val CANT_CHECK = "Aegida can't check this on your phone"
-    const val YOU_TOLD_ME = "You told Aegida this is on"
 
     const val STATUS_NOTICE = "Aegida is looking out for you"
     const val CHANNEL_STATUS = "Aegida is looking out for you"
@@ -233,7 +231,6 @@ object Texts {
         const val NOT_NOW = "Not now"
         const val SAVE = "Save"
         const val DONE = "Done"
-        const val OPEN_SETTINGS = "Open settings"
         const val YOUR_PICTURE = "Your picture: %s"
     }
 
@@ -310,7 +307,6 @@ object Texts {
         const val ALLOWED_REMOVE = "Warn me again"
         const val ON = "On"
         const val OFF = "Off"
-        const val CANT_TELL = "Can't tell"
         const val CHANGE = "Change"
         const val CREDITS_TITLE = "Where the lists come from"
         const val LISTS_UPDATED = "Lists updated %s."
