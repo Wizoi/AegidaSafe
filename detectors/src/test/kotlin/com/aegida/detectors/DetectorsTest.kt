@@ -126,6 +126,28 @@ class PopupSpamDetectorTest {
         assertEquals(emptyList<Any>(), detector.evaluate(inputs(event = headline, setup = Setup(null, setOf(site)))))
         val malware = headline.copy(title = "New Android malware found in 40 apps", text = "Researchers say the virus spreads by text")
         assertEquals(emptyList<Any>(), detector.evaluate(inputs(event = malware).copy(baseline = baselineWith(setOf(site)))))
+        for (news in listOf( // findings #119: the wider fake-virus words still leave news alone
+            headline.copy(title = "Hackers stole card data", text = "Shoppers are urged to check their statements"),
+            headline.copy(title = "New virus found in bats", text = "Scientists say there is no risk to people"),
+            headline.copy(title = "Your favourite retailer was hacked", text = "What it means for shoppers"),
+        )) {
+            assertEquals(news.title, emptyList<Any>(), detector.evaluate(inputs(event = news).copy(baseline = baselineWith(setOf(site)))))
+        }
+    }
+
+    /** WP15 variants (findings #119): the common fake-virus wordings are about her phone, even from a site she said Yes to. */
+    @Test fun aSiteSheSaidYesToSayingVirusFoundOrYourPhoneIsInfectedIsStillHidden() {
+        val known = baselineWith(setOf(site))
+        for (scare in listOf(
+            headline.copy(title = "3 viruses found! Remove now", text = "Tap here"),
+            headline.copy(title = "Virus found", text = "Tap to remove"),
+            headline.copy(title = "Malware detected. Remove immediately", text = ""),
+            headline.copy(title = "Your Samsung is infected", text = "Tap here"),
+            headline.copy(title = "Your Galaxy S25 is infected", text = "Tap here"),
+            headline.copy(title = "Your iPhone is infected", text = "Tap here"),
+        )) {
+            assertEquals(scare.title, Problem.SiteNotifications, detector.evaluate(inputs(event = scare).copy(baseline = known)).singleOrNull()?.key?.problem)
+        }
     }
 
     @Test fun aSiteSheSaidYesToThatWarnsAboutHerPhoneIsStillHidden() {
