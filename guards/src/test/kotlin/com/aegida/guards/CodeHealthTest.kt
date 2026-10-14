@@ -81,7 +81,7 @@ class DuplicationTest {
         const val WINDOW = 8
 
         /** Today's number from `python scripts/duplication-report.py` (OkHttpHttpClient's two request paths). */
-        const val ALLOWED_DUPLICATED_LINES = 18
+        const val ALLOWED_DUPLICATED_LINES = 0
     }
 
     private fun normalized(text: String): List<String> =

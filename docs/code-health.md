@@ -90,3 +90,11 @@ report above covers repeated lines, not near-copies), item 8 (the weekly cleanup
   22 swallowed exceptions, 19 return counts, ...). Only new issues fail. The two unused items it found were deleted at once.
 - **PMD CPD: considered, skipped.** It would add near-copies with renamed names; today's exact-copy count is 18 lines, so the benefit is small.
 - **CI** runs on every push and pull request (Kevin).
+
+## No baselines (Oct 14, Kevin: "there should not be things grandfathered")
+
+Every issue detekt and Lint found was fixed in code, none suppressed, and the baseline files are gone: 312 detekt issues across eight
+modules and 8 Lint issues. Lint now fails on warnings too (`warningsAsErrors`). The duplication guard allows 0 copied lines (the
+one copied block in `OkHttpHttpClient` became one helper). The rule settings in `config/detekt/detekt.yml` (lines up to 160,
+named thresholds, Compose function names) are the only tuning; a new one needs a strong reason written next to it.
+The sections above describe the baselines as they were on the way here.

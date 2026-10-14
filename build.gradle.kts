@@ -12,15 +12,14 @@ plugins {
     alias(libs.plugins.detekt) apply false
 }
 
-// detekt on every Kotlin module (not the fixture app). The baseline in each module holds the issues found when it was added (Oct 14);
-// only new ones fail. Regenerate a baseline (./gradlew detektBaseline) only after fixing entries, never to hide a new one.
+// detekt on every Kotlin module (not the fixture app), with no baseline: every issue fails the build (Kevin, Oct 14: fix what is
+// found). A rule setting changes in config/detekt/detekt.yml only for a strong reason, written there.
 subprojects {
     if (name == "noisyfixture") return@subprojects
     apply(plugin = "io.gitlab.arturbosch.detekt")
     extensions.configure<io.gitlab.arturbosch.detekt.extensions.DetektExtension> {
         buildUponDefaultConfig = true
         config.setFrom(rootProject.file("config/detekt/detekt.yml"))
-        baseline = file("detekt-baseline.xml")
     }
 }
 
