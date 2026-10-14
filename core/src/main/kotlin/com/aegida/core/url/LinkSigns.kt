@@ -95,9 +95,12 @@ object LinkSigns {
         }
     }
 
-    /** The words of one name between dots, without the "ups" of an English "-ups" word such as "pop-ups". */
+    /**
+     * The words of one name between dots, without the "ups" of an English "-ups" word such as "pop-ups". Only when that word ends the
+     * name: "pick-ups-redelivery" goes on, so the "ups" in it is the parcel company (findings #120).
+     */
     private fun brandWords(words: List<String>): List<String> =
-        words.filterIndexed { i, w -> !(w == "ups" && i > 0 && words[i - 1] in UPS_WORDS) }
+        words.filterIndexed { i, w -> !(w == "ups" && i == words.lastIndex && i > 0 && words[i - 1] in UPS_WORDS) }
 
     private fun deleet(token: String): String =
         DELEET.fold(token.map { HOMOGLYPHS[it] ?: it }.joinToString("")) { acc, (from, to) -> acc.replace(from, to) }
