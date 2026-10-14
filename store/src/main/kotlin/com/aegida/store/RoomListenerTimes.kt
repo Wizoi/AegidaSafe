@@ -4,21 +4,17 @@ import com.aegida.core.health.ListenerTimes
 import com.aegida.core.health.ListenerTimesStore
 import java.time.Instant
 
-/** When the listener was last bound and unbound, as two named values in the settings table (finding #112; no new table). */
+/**
+ * The last time a check saw the listener bound, as one named value in the settings table (findings #112, #134; no new table).
+ * Rows left by 0.3.9 (listener_connected_at, listener_disconnected_at) are not read.
+ */
 internal class RoomListenerTimes(private val dao: SettingDao) : ListenerTimesStore {
-    override suspend fun times(): ListenerTimes {
-        val v = dao.all().associate { it.name to it.value }
-        return ListenerTimes(v[CONNECTED_AT].toInstant(), v[DISCONNECTED_AT].toInstant())
-    }
+    override suspend fun times(): ListenerTimes =
+        ListenerTimes(dao.all().firstOrNull { it.name == LAST_SEEN_BOUND }?.value?.toLongOrNull()?.let(Instant::ofEpochMilli))
 
-    override suspend fun connected(at: Instant) = dao.put(listOf(SettingEntity(CONNECTED_AT, at.toEpochMilli().toString())))
+    override suspend fun seenBound(at: Instant) = dao.put(listOf(SettingEntity(LAST_SEEN_BOUND, at.toEpochMilli().toString())))
 
-    override suspend fun disconnected(at: Instant) = dao.put(listOf(SettingEntity(DISCONNECTED_AT, at.toEpochMilli().toString())))
-
-    private fun String?.toInstant(): Instant? = this?.toLongOrNull()?.let(Instant::ofEpochMilli)
-
-    private companion object {
-        const val CONNECTED_AT = "listener_connected_at"
-        const val DISCONNECTED_AT = "listener_disconnected_at"
+    internal companion object {
+        const val LAST_SEEN_BOUND = "listener_last_seen_bound"
     }
 }

@@ -293,6 +293,14 @@ class HealthDetectorTest {
         assertEquals(setOf(Problem.NotificationsBlocked), problems(inputs(snapshot().copy(canPostNotifications = false), setup = finished)))
     }
 
+    /** A bound listener is never "can't see your notices", even if the stored last-seen time is old (its write failed; finding #134). */
+    @Test fun aListenerThatIsBoundNowIsNeverReportedAsNotListening() {
+        val stale = com.aegida.core.health.ListenerTimes(lastSeenBound = Fixtures.now.minus(Duration.ofHours(5)))
+        val bound = inputs(snapshot(), setup = finished).copy(listener = stale)
+        assertEquals(emptySet<Problem>(), problems(bound))
+        assertEquals(setOf(Problem.ListenerNotConnected), problems(bound.copy(snapshot = snapshot().copy(listenerBound = false))))
+    }
+
     /**
      * Before setup is finished she has not been asked yet, or is half way through the step that asks. Raising "Aegida can no
      * longer see your notifications" then is untrue and alarming (findings #65). If she skips the step, it is raised the

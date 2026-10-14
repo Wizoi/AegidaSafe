@@ -11,6 +11,7 @@ import android.os.Build
 import android.provider.Settings
 import android.telecom.TelecomManager
 import androidx.core.net.toUri
+import com.aegida.core.health.ListenerBinding
 import com.aegida.core.model.InstalledApp
 import com.aegida.core.model.PrivateDns
 import com.aegida.core.model.Snapshot
@@ -26,13 +27,15 @@ import java.time.Instant
  * Reads the phone with plain Android calls. Each field is something Aegida actually read; anything it
  * cannot read stays out (design principle: never claim what it cannot verify).
  *
- * [listener] is the app's own notification listener service (named by :app, which owns the class).
+ * [listener] is the app's own notification listener service (named by :app, which owns the class); [binding] says whether the
+ * system has it bound in this process now.
  */
 class AndroidSnapshotter(
     private val context: Context,
     private val clock: Clock,
     private val oem: OemSource,
     private val listener: ComponentName,
+    private val binding: ListenerBinding = ListenerBinding.None,
 ) : Snapshotter {
 
     override fun take(): Snapshot {
@@ -54,6 +57,8 @@ class AndroidSnapshotter(
             deviceAdmins = context.getSystemService(DevicePolicyManager::class.java)?.activeAdmins.orEmpty().map { it.packageName }.toSet(),
             apps = apps,
             makerStores = oem.appStores().filter { store -> apps.any { it.packageName == store && it.isSystem } }.toSet(),
+            listenerBound = binding.boundNow,
+            aegidaUpdatedAt = runCatching { Instant.ofEpochMilli(context.packageManager.getPackageInfo(context.packageName, 0).lastUpdateTime) }.getOrNull(),
         )
     }
 

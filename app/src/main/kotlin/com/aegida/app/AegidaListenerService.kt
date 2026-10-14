@@ -51,9 +51,12 @@ class AegidaListenerService : NotificationListenerService() {
         }
     }
 
-    /** The system can drop the connection (for example after an update); record when, and ask to be bound again. */
+    /**
+     * The system can drop the connection (for example after an update): no longer bound, and ask to be bound again. Android does
+     * not reliably call this (finding #134); the daily check also asks for a rebind when the listener is not bound.
+     */
     override fun onListenerDisconnected() {
-        scope.launch { link.disconnected() }
+        link.disconnected()
         requestRebind(ComponentName(this, AegidaListenerService::class.java))
     }
 
@@ -85,6 +88,7 @@ class AegidaListenerService : NotificationListenerService() {
     }
 
     override fun onDestroy() {
+        link.disconnected()
         scope.cancel()
         super.onDestroy()
     }

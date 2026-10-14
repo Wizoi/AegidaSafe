@@ -28,6 +28,7 @@ import com.aegida.detectors.PopupSpamDetector
 import com.aegida.testkit.FakeBaselines
 import com.aegida.testkit.FakeCheckLog
 import com.aegida.testkit.FakeFeedStore
+import com.aegida.testkit.FakeListenerBinding
 import com.aegida.testkit.FakeListenerTimes
 import com.aegida.testkit.FakeNotificationShade
 import com.aegida.testkit.FakeOutbox
@@ -45,6 +46,7 @@ import java.time.temporal.ChronoUnit
  * docs/scenarios/health.md: what Android itself does to the listener (snooze returning, unbinding, binding again) and what
  * Home says then. The listener here does what AegidaListenerService does (that class needs Hilt, so it is not run on the
  * JVM): binding and unbinding go to ListenerLink, a posted notice runs a check and hides or snoozes what the check names.
+ * "Unbinding" here is the service being destroyed (onDestroy); nothing relies on onListenerDisconnected (finding #134).
  */
 class HealthScenariosTest {
     private var now = Instant.now().truncatedTo(ChronoUnit.SECONDS)
@@ -65,11 +67,13 @@ class HealthScenariosTest {
     )
     private var listenerEnabled = true
     private var bootedAt: Instant? = now.minus(Duration.ofDays(2))
+    private var updatedAt: Instant? = now.minus(Duration.ofDays(3))
     private val clock = object : Clock {
         override fun now() = now
         override fun bootedAt() = this@HealthScenariosTest.bootedAt
     }
     private val listenerTimes = FakeListenerTimes()
+    private val binding = FakeListenerBinding()
 
     private val evaluator = Evaluator(
         setOf(LinkDetector(), PopupSpamDetector(), DnsDetector(), HealthDetector()), clock,
@@ -80,13 +84,13 @@ class HealthScenariosTest {
         {
             Snapshot(
                 now, PrivateDns.Hostname("security.cloudflare-dns.com"), "com.android.chrome", listenerEnabled, true,
-                Reading.NotPresent, Reading.NotPresent,
+                Reading.NotPresent, Reading.NotPresent, listenerBound = binding.boundNow, aegidaUpdatedAt = updatedAt,
             )
         },
         evaluator, pipeline, BaselineKeeper(setupStore, baselines), OutboxFlusher(outbox, NtfySender(http), history, guardians, { now }), AlertGate(),
     )
     private val shade = FakeNotificationShade(now)
-    private val link = ListenerLink(runner, listenerTimes, clock)
+    private val link = ListenerLink(runner, listenerTimes, binding)
 
     /** What AegidaListenerService does with each callback. */
     private val listener = object : FakeNotificationShade.Listener {
@@ -95,7 +99,7 @@ class HealthScenariosTest {
             actions.hide.forEach(shade::cancel)
             actions.snooze.forEach { shade.snooze(it, Duration.ofHours(1)) }
         }
-        override suspend fun onDisconnected() { link.disconnected() }
+        override suspend fun onDisconnected() = link.disconnected()
         override suspend fun onPosted(event: NotificationEvent) {
             val outcome = runner.run(Trigger.NotificationPosted, event)
             outcome.notificationsToHide.forEach(shade::cancel)
@@ -213,14 +217,36 @@ class HealthScenariosTest {
         assertEquals(1, http.posts.size)
     }
 
-    /** Gap kept on purpose: with no unbind recorded Aegida cannot tell which notices she has already seen (health H3f). */
-    @Test fun whenAegidaWasStoppedWithoutBeingToldNothingInTheShadeIsCheckedLate() = runTest {
+    @Test fun whenAegidaWasStoppedWithoutBeingToldTheNoticesThatCameSinceItWasLastSeenListeningAreCheckedOnce() = runTest {
         shade.connect(listener)
-        shade.lose()
+        shade.post(aScamText(now, text = "See you at lunch", id = 7))
+        advance(Duration.ofMinutes(5))
+        kill()
         advance(Duration.ofMinutes(1))
         shade.post(scamText.copy(postedAt = now))
+        advance(Duration.ofMinutes(1))
         shade.connect(listener)
-        assertEquals(0, latePosts())
+        assertEquals("only the one that came after the last notice it heard", 1, latePosts() - 1)
+        assertEquals(listOf(Problem.ScamLink), owner.shown.map { it.problem })
+    }
+
+    @Test fun androidUnbindingAegidaWithoutCallingOnListenerDisconnectedStillGetsTheLateCheck() = runTest {
+        shade.connect(listener)
+        shade.lose() // the emulator never called onListenerDisconnected (finding #134); onDestroy clears the flag
+        binding.boundNow = false
+        advance(Duration.ofMinutes(1))
+        shade.post(scamText.copy(postedAt = now))
+        advance(Duration.ofMinutes(10))
+        shade.connect(listener)
+        assertEquals("the usual warning, late", listOf(Problem.ScamLink), owner.shown.map { it.problem })
+    }
+
+    @Test fun onAFreshInstallNothingInTheShadeIsCheckedLate() = runTest {
+        shade.post(scamText.copy(postedAt = now))
+        advance(Duration.ofMinutes(1))
+        shade.connect(listener)
+        assertEquals("never seen listening, so it cannot tell what she has seen", 0, latePosts())
+        assertEquals(emptyList<Any>(), owner.shown)
     }
 
     // H4 (finding #112): notification access is on, but the phone has stopped letting Aegida listen.
@@ -272,6 +298,7 @@ class HealthScenariosTest {
         shade.connect(listener)
         advance(Duration.ofHours(8))
         shade.restart()
+        binding.boundNow = false
         bootedAt = now
         advance(Duration.ofMinutes(59))
         runner.run(Trigger.Daily)
@@ -290,11 +317,26 @@ class HealthScenariosTest {
         assertEquals(listOf(Problem.ListenerOff), findings.open().map { it.key.problem })
     }
 
-    @Test fun aegidaNotListeningIsNotRaisedWhenNothingWasRecordedYet() = runTest {
-        advance(Duration.ofHours(5))
+    @Test fun afterAnUpdateFromAVersionThatDidNotRecordItAegidaNotListeningCountsFromTheUpdate() = runTest {
+        updatedAt = now
+        advance(Duration.ofMinutes(59))
         runner.run(Trigger.Daily)
-        assertEquals("a new install, or an update from a version that did not record it", emptyList<Any>(), findings.open())
+        assertEquals("never seen listening: counted from the update, not from the restart two days ago", emptyList<Any>(), findings.open())
+        advance(Duration.ofMinutes(2))
+        runner.run(Trigger.Daily)
+        assertEquals(listOf(Problem.ListenerNotConnected), findings.open().map { it.key.problem })
     }
+
+    @Test fun androidUnbindingAegidaWithoutCallingOnListenerDisconnectedIsNoticedAfterAnHour() = runTest {
+        shade.connect(listener)
+        shade.lose()
+        binding.boundNow = false
+        advance(Duration.ofMinutes(61))
+        runner.run(Trigger.Daily)
+        assertEquals(listOf(Problem.ListenerNotConnected), findings.open().map { it.key.problem })
+    }
+
+
 
     @Test fun aegidaNotListeningIsNotRaisedWhenTheClockWasSetBack() = runTest {
         shade.connect(listener)
@@ -312,6 +354,9 @@ class HealthScenariosTest {
     }
 
     private fun latePosts() = checkLog.runs.count { it.trigger == Trigger.NotificationPosted }
+
+    /** The process is killed: the listener is not told, and a new process starts with the flag unset. */
+    private fun kill() { shade.lose(); binding.boundNow = false }
 
     private suspend fun lostForOverAnHour() {
         shade.connect(listener)

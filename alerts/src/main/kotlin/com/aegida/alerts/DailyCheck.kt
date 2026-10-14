@@ -5,6 +5,7 @@ import com.aegida.core.alert.HistoryLog
 import com.aegida.core.feed.FeedUpdate
 import com.aegida.core.feed.FeedUpdater
 import com.aegida.core.health.CheckLog
+import com.aegida.core.health.ListenerBinding
 import com.aegida.core.health.Trigger
 import com.aegida.core.notice.NoticeLog
 import com.aegida.core.notice.NoticeRules
@@ -29,7 +30,8 @@ data class DailyResult(
  * The daily job. The check always runs, even offline: a failed or missing feed update only means the lists
  * get older, which HealthDetector reports after 3 days. History and resolved findings older than 90 days are dropped, and so are
  * check-log rows older than 30 days (the newest daily one is always kept). The 9 MB feed is downloaded only when
- * the caller says the network is not metered, or when the stored lists are older than HealthDetector's limit.
+ * the caller says the network is not metered, or when the stored lists are older than HealthDetector's limit. When the
+ * notification listener is not bound, Android is asked to bind it again (finding #134): the app can repair itself.
  */
 class DailyCheck @Inject constructor(
     private val feed: DailyFeed,
@@ -37,12 +39,13 @@ class DailyCheck @Inject constructor(
     private val pruning: DailyPruning,
     private val heartbeat: DailyHeartbeat,
     private val checkLog: CheckLog,
-    private val clock: Clock,
+    private val binding: ListenerBinding = ListenerBinding.None,
 ) {
     suspend fun run(downloadFeed: Boolean = true): DailyResult {
         val feedUpdate = feed.update(downloadFeed)
         val check = runner.run(Trigger.Daily)
-        val pruned = pruning.prune(clock.now())
+        if (!binding.boundNow) binding.requestRebind()
+        val pruned = pruning.prune()
         return DailyResult(feedUpdate, check, pruned.history, heartbeat.keepInStep(), pruned.checkRuns, pruned.findings)
     }
 
@@ -76,8 +79,10 @@ class DailyPruning @Inject constructor(
     private val findings: FindingStore,
     private val checkLog: CheckLog,
     private val notices: NoticeLog = NoticeLog.None,
+    private val clock: Clock,
 ) {
-    suspend fun prune(now: Instant): Pruned {
+    suspend fun prune(): Pruned {
+        val now = clock.now()
         val pruned = history.prune(now.minus(HISTORY_KEPT))
         val findingsPruned = findings.prune(now.minus(HISTORY_KEPT), now.plus(NoticeRules.CLOCK_SKEW))
         val runsPruned = checkLog.prune(now.minus(CHECK_LOG_KEPT))
