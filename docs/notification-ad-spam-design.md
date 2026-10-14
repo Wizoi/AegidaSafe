@@ -82,7 +82,7 @@ or text is kept beyond the warning page for one example notice, cleared when she
 1. A new problem, `NoisyApp`, needs a tap, never urgent. Owner sentence: "The “Image to PDF” app keeps sending you ads as notices." Button "Show me":
    the app's notification page, with plain words: "Turn off Allow notifications for this app. You can also remove the app."
 2. A second button on the page: "Remove this app" opens its App info page, where Uninstall is.
-3. Optional (second version, consent): "Let Aegida hide this app's notices", a list she picks. Aegida then removes them as they arrive, or snoozes them. The app
+3. **Not built** (idea, `ideas.md`): "Let Aegida hide this app's notices", a list she picks. Aegida then removes them as they arrive, or snoozes them. The app
    keeps trying, so this is a help and not a cure.
 4. The guardian is told once, with the app's name like the other app notes: "An app (“Image to PDF”) kept sending ads as notices on Ruth's phone. Aegida
    showed Ruth how to turn them off." Backed off like other non-urgent notes.

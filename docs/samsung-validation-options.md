@@ -2,7 +2,7 @@
 Supports section 8b of `aegida-technical-design.md`. Samsung checks come last; this lists how to do them.
 
 ## Which Galaxy is useful
-- Needs **One UI 6 (Android 14) or newer**: Auto Blocker arrived with One UI 6, and the sleeping-apps behaviour we depend on is the newer one. Ideal: a Galaxy S23-generation phone or newer, since Mom has an S23+ on One UI 8.
+- Needs **One UI 6 (Android 14) or newer**: Auto Blocker arrived with One UI 6, and the sleeping-apps behavior we depend on is the newer one. Ideal: a Galaxy S23-generation phone or newer, since the target phone is an S23+ on One UI 8.
 - A **Galaxy S8 is not useful**: its last update was Android 9, below the Android 10 `RoleManager` API Aegida needs and far below the Android level the Play build targets.
 - Before using any old Galaxy: Settings > About phone > Software information (One UI version) and check that Settings > Security and privacy > Auto Blocker exists.
 
@@ -11,7 +11,7 @@ Real Galaxy phones rented remotely in a browser (Chrome) with a free Samsung dev
 - Free to sign up; the page does not state session length or limits, but says the Partner Program gives "longer device reservations", which implies standard sessions are short. **Unconfirmed: exact session limit.**
 - Labs in several countries; device list changes; the program page featured recent devices (Galaxy S26 Ultra, Z Fold8, Z Flip8, Tab S11). **Unconfirmed: whether a Galaxy S23/S24-class phone on One UI 6/7/8 is offered.**
 - Not addressed on the pages I could read: installing our own APK, signing in to a Google account / Play Store, opening Settings, adb access. A Samsung forum thread titled "When I try to install the apk file to test the app in Remote Test Lab" suggests APK install exists but can have problems (thread content not readable). **All of this needs a first session to check.**
-- Likely good for: the One UI settings screens (Auto Blocker, Never sleeping list, default apps, Private DNS), whether the Never-sleeping deep link opens the right screen, Samsung Internet's notification behaviour with our fixture page, and whether Auto Blocker is readable.
+- Likely good for: the One UI settings screens (Auto Blocker, Never sleeping list, default apps, Private DNS), whether the Never-sleeping deep link opens the right screen, Samsung Internet's notification behavior with our fixture page, and whether Auto Blocker is readable.
 - Likely NOT good for: multi-day tests (sleeping after 3 days, deep sleep after about 16 days), reboots/updates, real messages, a real Google account.
 
 First session checklist (15–30 min):
@@ -33,10 +33,10 @@ First session checklist (15–30 min):
 BrowserStack, TestingBot and similar list real Galaxy phones; pricing and exact models not checked.
 
 ## Option C: a physical Galaxy
-Needed for the multi-day tests (sleeping, deep sleeping, reboot/update persistence). Any Galaxy on One UI 6+; used S22/S23 is the closest match to Mom's phone.
+Needed for the multi-day tests (sleeping, deep sleeping, reboot/update persistence). Any Galaxy on One UI 6+; used S22/S23 is the closest match to the target phone.
 
 ## Fallback if none of these is available
-The **observe-only first release to Mom** with the opt-in support log: guardians can see what Aegida could and couldn't read on her actual S23+ without touching it.
+Not built: an observe-only first release with an opt-in support log (`ideas.md`). Without it, the owner's own S23+ is the validation, with the guardian told if Aegida goes quiet.
 
 ## Sources
 - Samsung Developers, Remote Test Lab: developer.samsung.com/remote-test-lab
