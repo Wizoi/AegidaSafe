@@ -165,6 +165,95 @@ class PopupSpamDetectorTest {
         }
     }
 
+    // Scenario row WP17 (docs/scenarios/website-popups.md, findings #126): each case is a row of its table, named by its ID.
+    private fun onAKnownSite(cases: List<Triple<String, String, String>>, expected: Problem?): List<String> = cases.filter { (_, title, text) ->
+        val event = headline.copy(title = title, text = text)
+        detector.evaluate(inputs(event = event).copy(baseline = baselineWith(setOf(site)))).singleOrNull()?.key?.problem != expected
+    }.map { it.first }
+
+    @Test fun aNewsStoryFromASiteSheSaidYesToStaysWhereItIs() {
+        val news = listOf(
+            Triple("S1", "New malware found: what to know", "Security researchers say the app was downloaded a million times"),
+            Triple("S2", "Malware found.", "Researchers say 40 apps on the Play Store carried it"),
+            Triple("S3", "Bird flu virus found", "Officials confirm the virus in a dairy herd in Texas"),
+            Triple("S4", "Your favourite retailer has been infected with ransomware", "Here is what shoppers should know"),
+            Triple("S5", "Malware found on Google Play", "Google has removed the apps from its store"),
+            Triple("S6", "Trojan detected in banking apps", "Researchers warn the malware targets 60 banks"),
+            Triple("S7", "Mpox virus detected in county", "Health officials urge vaccination"),
+            Triple("S8", "Retailer hacked", "Millions of customer records stolen in data breach"),
+            Triple("S9", "New Android malware found in 40 apps", "Researchers say the virus spreads by text"),
+            Triple("S10", "New virus found in bats", "Scientists say there is no risk to people"),
+            Triple("S11", "Your favourite retailer was hacked", "What it means for shoppers"),
+            Triple("S12", "Hospital systems infected with ransomware", "Patients are being sent to other hospitals"),
+            Triple("S13", "West Nile virus found in mosquitoes in three counties", "Residents are asked to use insect repellent"),
+            Triple("S14", "City water system hacked", "Officials say drinking water was not affected"),
+            Triple("S15", "Measles virus detected in wastewater", "The health department asks parents to check vaccination records"),
+            Triple("S16", "Pharmacy chain hacked, prescriptions delayed", "Customers are told to call their store"),
+            Triple("S17", "Police: man hacked ex-partner's email", "He faces three charges"),
+            Triple("S18", "Spyware found on journalists' phones", "The group says the attack used a flaw in messaging apps"),
+            Triple("S19", "Banking trojan spreads through fake delivery texts", "Experts say the malware asks for card numbers"),
+            Triple("S20", "Norovirus outbreak: 200 infected on cruise ship", "The ship returned to port early"),
+            Triple("S21", "Two new viruses found in deer", "Scientists say they pose no risk to humans"),
+            Triple("S22", "3 new strains of the virus detected in Europe", "Scientists are tracking how fast they spread"),
+            Triple("S23", "Election office computers infected with malware, officials say", "No votes were changed"),
+            Triple("S24", "Teen charged after school website hacked", "Police say no student data was taken"),
+            Triple("S25", "Bird flu virus detected in milk samples", "FDA says pasteurised milk carries no live virus"),
+            Triple("S26", "Car maker infected by ransomware, plants shut", "Production should restart next week"),
+            Triple("S27", "Fake shopping apps carry spyware, researchers warn", "The apps have been removed from the store"),
+            Triple("S28", "Google to remove 40 infected apps from Play Store", "The apps showed ads and stole contacts"),
+            Triple("S29", "Microsoft says staff email was hacked", "Customer data was not touched"),
+            Triple("S30", "How a virus found in cats is changing vaccines", "Researchers at the university explain"),
+            Triple("S31", "Zika virus found in local mosquitoes; spraying set for Tuesday", "Stay indoors at dusk, officials say"),
+            Triple("S32", "Bank's app hit by trojan; customers told to change passwords", "The bank says no money was taken"),
+            Triple("S33", "Clean-up continues after malware attack on port", "Ships are moving again"),
+        )
+        assertEquals("hidden as fake, but news", emptyList<String>(), onAKnownSite(news, expected = null))
+    }
+
+    @Test fun aFakeVirusWarningFromASiteSheSaidYesToIsHidden() {
+        val fake = listOf(
+            Triple("H1", "Viruses found - tap to fix", ""),
+            Triple("H2", "Virus found, clean up now", ""),
+            Triple("H3", "13 viruses found", "Download cleaner"),
+            Triple("H4", "Security alert: virus found", "Click OK"),
+            Triple("H5", "(3) viruses were found", ""),
+            Triple("H6", "System infected", "Remove virus immediately"),
+            Triple("H7", "Your Samsung Galaxy A15 is infected", ""),
+            Triple("H8", "Your Galaxy S25 Ultra 5G is infected", ""),
+            Triple("H9", "Your Samsung is now infected", ""),
+            Triple("H10", "Your Samsung may be infected", ""),
+            Triple("H11", "Your iPhone has been hacked", ""),
+            Triple("H12", "3 viruses found! Remove now", "Tap here"),
+            Triple("H13", "Virus found", "Tap to remove"),
+            Triple("H14", "Malware detected. Remove immediately", ""),
+            Triple("H15", "Your phone is infected", "Tap here"),
+            Triple("H16", "Your device has been hacked", "Tap to fix"),
+            Triple("H17", "Security warning", "Battery damaged by virus. Clean now"),
+            Triple("H18", "Alert", "Trojan detected on this phone"),
+            Triple("H19", "Warning", "You are infected"),
+            Triple("H20", "Is your phone infected? Here's how to check", ""),
+            Triple("H21", "Have you been hacked? Here's how to check", ""),
+            Triple("H22", "Your Android is infected with 4 viruses", "Clean now"),
+            Triple("H23", "(2) viruses detected", "Your phone may be damaged"),
+            Triple("H24", "Your phone is infected with (5) viruses", "Scan now to remove them"),
+            Triple("H25", "Virus alert!", "Your device is infected. Tap to clean"),
+            Triple("H26", "Warning! Your mobile has been hacked", "Install the cleaner now"),
+            Triple("H27", "Malware found", "Tap to scan and remove"),
+            Triple("H28", "Your Pixel 8 is infected", ""),
+            Triple("H29", "Spyware detected!", "Click here to delete it"),
+            Triple("H30", "You have a virus", "Download the cleaner to fix it"),
+            Triple("H31", "Battery 28% damaged by a virus", ""),
+            Triple("H32", "Your iPhone has been infected with viruses", ""),
+            Triple("H33", "Infected!", "Fix your device now"),
+            Triple("H34", "Hacked!", "Your Chrome browser has been hacked"),
+            Triple("H35", "WARNING: VIRUS FOUND!", "Clean up your phone now"),
+            Triple("H36", "Your phone has been hacked!", "Press OK to clean it"),
+            Triple("H37", "2 viruses detected", "Please remove them now"),
+            Triple("H38", "Delete these apps now: malware found on Google Play", ""),
+        )
+        assertEquals("left alone, but a fake warning", emptyList<String>(), onAKnownSite(fake, expected = Problem.SiteNotifications))
+    }
+
     @Test fun aNewSitePostingAScareHeadlineIsStillCalledFake() {
         val known = baselineWith(setOf("https://news.example"))
         assertEquals(Problem.SiteNotifications, detector.evaluate(inputs(event = headline).copy(baseline = known)).single().key.problem)

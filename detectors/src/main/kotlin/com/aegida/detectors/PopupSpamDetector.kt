@@ -14,8 +14,8 @@ import javax.inject.Inject
  * Owns "is a website sending notifications the owner did not already have?". Chrome posts each site on its own
  * channel "web:<origin>;<n>" (findings #18).
  *  - A site she already had when setup ended or said Yes to (the baseline's websites) is left alone, unless it uses scare wording
- *    about her phone ("your phone is infected"): then it is called fake and hidden ([Problem.SiteNotifications]). A news story
- *    ("Retailer hacked") from such a site stays (findings #109).
+ *    about her phone ("your phone is infected", "tap to fix"): then it is called fake and hidden ([Problem.SiteNotifications]). A
+ *    news story ("Retailer hacked") from such a site stays (findings #109, #126).
  *  - A site that is not in that list and talks calmly is hidden and she is asked "Was that you?" ([Problem.NewWebsiteNotifications],
  *    Kevin, Oct 9); yes adds it to the list. Scare wording on a new site is still called fake, since "was that you?" would offer to
  *    allow a fake virus warning.
@@ -46,7 +46,7 @@ class PopupSpamDetector @Inject constructor() : Detector {
         val words = notice.event.title + " " + notice.event.text
         val anyScareWord = com.aegida.core.model.ScareWords.REGEX.containsMatchIn(words)
         // A site she said Yes to or had at setup may report news ("Retailer hacked"); it is fake only when it talks about her phone.
-        val scary = anyScareWord && com.aegida.core.model.ScareWords.ABOUT_HER_PHONE.containsMatchIn(words)
+        val scary = anyScareWord && com.aegida.core.model.ScareWords.isAboutHerPhone(notice.event.title, notice.event.text)
         val recorded = input.baseline?.websites
         return when {
             recorded == null -> if (site in input.setup.allowedSites && !scary) null else Problem.SiteNotifications
