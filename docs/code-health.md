@@ -55,8 +55,7 @@ Track weekly: Kotlin deletion ratio (6.6% now), duplicated fakes (7), unused tex
 No dependency or plugin was added (Android Lint is part of AGP; the rest is Gradle, Kotlin and Python standard library).
 
 - **Android Lint with a baseline** for `:app`, `:platform`, `:store` (`lint { baseline = lint-baseline.xml; abortOnError = true }`).
-  `./gradlew lint` (part of `build`) fails only on issues not in the baseline. Baseline today: 11 entries (UseKtx 5, ModifierParameter 1,
-  MonochromeLauncherIcon 1 in `:app`; 4 UseKtx in `:platform`; 1 in `:store`). Regenerate with `./gradlew updateLintBaseline` only when an
+  `./gradlew lint` (part of `build`) fails only on issues not in the baseline. Baseline today: 11 entries (`:app` 5, `:platform` 5, `:store` 1; rules UseKtx, ModifierParameter, MonochromeLauncherIcon). Regenerate with `./gradlew updateLintBaseline` only when an
   entry is fixed, never to hide a new one.
 - **File-size guard** (`FileSizeTest` in `:guards`): main Kotlin over 350 lines and test Kotlin over 450 fail, with an allow list that holds each
   offender's exact size (grow or shrink-without-updating both fail). Today one row: `ScreensTest.kt` 547. Largest main file is 345.
