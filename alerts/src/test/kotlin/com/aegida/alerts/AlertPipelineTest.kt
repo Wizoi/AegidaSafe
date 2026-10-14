@@ -36,7 +36,10 @@ class AlertPipelineTest {
     private val http = Http()
     private val outbox = FakeOutbox()
     private val settings = FakeGuardians(Guardians(alertsOn = true, ownerName = "Ruth", firstTopic = topic))
-    private val pipeline = AlertPipeline(findings, owner, history, GuardianLine(settings, NtfySender(http), outbox)) { now }
+    private val pipeline = AlertPipeline(findings, owner, history, GuardianLine(settings, NtfySender(http), outbox)) { clockAt }
+
+    /** The pipeline's clock; tests that need a later check move it on. */
+    private var clockAt = now
 
     private fun finding(problem: Problem, subject: String, detector: DetectorId) =
         Finding(FindingKey(detector, problem, subject), emptyMap(), now.minus(Duration.ofSeconds(1)), now)
@@ -218,6 +221,75 @@ class AlertPipelineTest {
         pipeline.handle(check(atSetup.copy(apps = listOf(app))), setOf(DetectorId.NewApp), phone = atSetup.copy(apps = listOf(app)))
         pipeline.handle(check(atSetup), setOf(DetectorId.NewApp), phone = atSetup)
         assertEquals(Outcome.Fixed, history.entries.last().outcome)
+    }
+
+    /** HC1 (findings #129): the closing line says which app it was, so History can turn the question green. */
+    @Test fun aRemovedAppsQuestionTurnsGreenInHistoryWhenItsFixedLineIsWritten() = runTest {
+        val app = com.aegida.core.model.InstalledApp("org.new.byhand", "By hand", null, false)
+        val atSetup = com.aegida.core.model.Snapshot(
+            now, com.aegida.core.model.PrivateDns.Automatic, null, true, true,
+            com.aegida.core.oem.Reading.NotPresent, com.aegida.core.oem.Reading.NotPresent,
+        )
+        val baseline = com.aegida.core.model.Baseline.of(atSetup)
+        fun check(phone: com.aegida.core.model.Snapshot) =
+            com.aegida.detectors.NewAppDetector()
+                .evaluate(com.aegida.detectors.Inputs(phone, clockAt, com.aegida.core.model.Setup.NotDone, null, null, null, baseline = baseline))
+        pipeline.handle(check(atSetup.copy(apps = listOf(app))), setOf(DetectorId.NewApp), phone = atSetup.copy(apps = listOf(app)))
+        clockAt = now.plus(Duration.ofHours(6))
+        pipeline.handle(check(atSetup), setOf(DetectorId.NewApp), phone = atSetup)
+
+        val rows = com.aegida.core.alert.HistoryRows.of(history.entries)
+        val question = rows.single { it.at == now }
+        assertTrue(question.detail, Outcome.OwnerWarned.forMom in question.detail)
+        assertTrue(question.handled)
+        assertEquals(question.facts, rows.single { it.at == clockAt }.facts) // the Fixed line names the same app
+    }
+
+    /** HC4 (findings #118, #129): the spying-app list now names the app; the question closes with "See the newer warning.". */
+    @Test fun aNewAppQuestionTakenOverByTheSpyingAppWarningSaysSeeTheNewerWarning() = runTest {
+        val app = com.aegida.testkit.anAppOpenedFromAFile("org.new.helper")
+        val atSetup = com.aegida.core.model.Snapshot(
+            now, com.aegida.core.model.PrivateDns.Automatic, null, true, true,
+            com.aegida.core.oem.Reading.NotPresent, com.aegida.core.oem.Reading.NotPresent,
+        )
+        val baseline = com.aegida.core.model.Baseline.of(atSetup)
+        val phone = atSetup.copy(apps = listOf(app))
+        val ran = setOf(DetectorId.NewApp, DetectorId.Stalkerware)
+        fun check(feed: com.aegida.core.feed.ThreatFeed?): List<Finding> {
+            val inputs = com.aegida.detectors.Inputs(phone, clockAt, com.aegida.core.model.Setup.NotDone, feed, null, null, baseline = baseline)
+            return com.aegida.detectors.NewAppDetector().evaluate(inputs) + com.aegida.detectors.StalkerwareDetector().evaluate(inputs)
+        }
+        pipeline.handle(check(null), ran, phone = phone)
+        clockAt = now.plus(Duration.ofHours(6))
+        val feed = com.aegida.core.feed.ThreatFeed.of(
+            now, emptyList(), emptyList(), emptyList(), apps = com.aegida.core.feed.AppKeys(packageNames = listOf(app.packageName)),
+        )
+        pipeline.handle(check(feed), ran, phone = phone)
+
+        val closing = history.entries.single { it.problem == Problem.NewAppOutsidePlay && it.at == clockAt }
+        assertEquals(Outcome.SeeNewerWarning, closing.outcome)
+        val rows = com.aegida.core.alert.HistoryRows.of(history.entries)
+        assertTrue(rows.single { it.at == now }.handled) // the question
+        assertTrue(rows.single { it.title == Problem.StalkerwareApp.whatHappened }.handled.not()) // the newer warning still needs her
+    }
+
+    /** HC14: the baseline was retaken while the question was open; there is no newer warning, so no line says there is one. */
+    @Test fun aQuestionClosedWithNoNewerWarningNeverSaysSeeTheNewerWarning() = runTest {
+        val app = com.aegida.testkit.anAppOpenedFromAFile("org.new.helper")
+        val atSetup = com.aegida.core.model.Snapshot(
+            now, com.aegida.core.model.PrivateDns.Automatic, null, true, true,
+            com.aegida.core.oem.Reading.NotPresent, com.aegida.core.oem.Reading.NotPresent,
+        )
+        val phone = atSetup.copy(apps = listOf(app))
+        fun check(baseline: com.aegida.core.model.Baseline) = com.aegida.detectors.NewAppDetector()
+            .evaluate(com.aegida.detectors.Inputs(phone, clockAt, com.aegida.core.model.Setup.NotDone, null, null, null, baseline = baseline))
+        pipeline.handle(check(com.aegida.core.model.Baseline.of(atSetup)), setOf(DetectorId.NewApp), phone = phone)
+        clockAt = now.plus(Duration.ofHours(6))
+        val after = check(com.aegida.core.model.Baseline.of(phone))
+        assertEquals(emptyList<Finding>(), after)
+        pipeline.handle(after, setOf(DetectorId.NewApp), phone = phone)
+
+        assertTrue(history.entries.none { it.outcome == Outcome.SeeNewerWarning })
     }
 
     @Test fun theGuardianMessageNeverContainsTheLinkOrEvidence() = runTest {

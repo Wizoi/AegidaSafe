@@ -26,6 +26,24 @@ class HistoryScreenTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark, 
         reachable(Texts.History.KEPT)
     }
 
+    /** HC4 (findings #129): the question taken over by the spying-app warning reads "See the newer warning.", next to that warning. */
+    @Test fun aQuestionTakenOverByANewerWarningSaysSoInPlainWords() {
+        val at = now.minus(Duration.ofMinutes(5))
+        val helper = com.aegida.core.alert.HistoryDetail.of(
+            com.aegida.core.text.Problem.NewAppOutsidePlay, mapOf(com.aegida.core.model.Evidence.APP_LABEL to "Helper"),
+        )
+        val entries = listOf(
+            com.aegida.core.alert.HistoryEntry(at.minus(Duration.ofDays(1)), com.aegida.core.text.Problem.NewAppOutsidePlay,
+                com.aegida.core.alert.Outcome.OwnerWarned, helper),
+            com.aegida.core.alert.HistoryEntry(at, com.aegida.core.text.Problem.StalkerwareApp, com.aegida.core.alert.Outcome.OwnerWarned),
+            com.aegida.core.alert.HistoryEntry(at, com.aegida.core.text.Problem.NewAppOutsidePlay,
+                com.aegida.core.alert.Outcome.SeeNewerWarning, helper),
+        )
+        show { HistoryScreen(com.aegida.core.alert.HistoryRows.of(entries), picture, now, zone, locale) }
+        reachable(com.aegida.core.alert.Outcome.SeeNewerWarning.forMom)
+        reachable(com.aegida.core.text.Problem.StalkerwareApp.whatHappened)
+    }
+
     @Test fun emptyHistorySaysNothingHasHappened() {
         show { HistoryScreen(emptyList(), picture, now, zone, locale) }
         reachable(Texts.History.EMPTY)
