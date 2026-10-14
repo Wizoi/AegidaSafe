@@ -38,19 +38,21 @@ object ShippedSources {
      * falls back to walking the folder, skipping build output and VCS/IDE folders.
      */
     val allText: List<SourceFile> by lazy {
-        val listed = gitFiles()
-        val files = listed ?: root.walkTopDown()
+        val listed = gitFiles() ?: root.walkTopDown()
             .onEnter { it.name !in setOf(".git", ".gradle", ".idea", ".kotlin", "build", ".claude", "release-mappings") }
             .filter { it.isFile }
             .toList()
-        files.filter { it.isFile && it.extension in TEXT_EXTENSIONS }.map { read(it) }
+        // Everything under a module's src ships or builds the app, ignored by git or not: a key dropped into assets is caught (findings #105).
+        val sources = root.listFiles().orEmpty().filter { it.isDirectory && File(it, "src").isDirectory }
+            .flatMap { module -> File(module, "src").walkTopDown().onEnter { it.name != "build" }.filter { it.isFile }.toList() }
+        (listed + sources).distinctBy { it.canonicalPath }.filter { it.isFile && it.extension in TEXT_EXTENSIONS }.map { read(it) }
     }
 
-    /** Tracked and untracked-but-not-ignored files, or null when git cannot be run. */
+    /** Tracked and untracked-but-not-ignored files, or null when git cannot be run. NUL-separated, so odd names are not quoted. */
     private fun gitFiles(): List<File>? = try {
-        val process = ProcessBuilder("git", "ls-files", "--cached", "--others", "--exclude-standard")
-            .directory(root).redirectErrorStream(false).start()
-        val names = process.inputStream.bufferedReader().readLines()
+        val process = ProcessBuilder("git", "ls-files", "-z", "--cached", "--others", "--exclude-standard")
+            .directory(root).redirectError(ProcessBuilder.Redirect.DISCARD).start()
+        val names = process.inputStream.bufferedReader().readText().split('\u0000').filter { it.isNotEmpty() }
         if (process.waitFor() == 0 && names.isNotEmpty()) names.map { File(root, it) } else null
     } catch (e: java.io.IOException) {
         null

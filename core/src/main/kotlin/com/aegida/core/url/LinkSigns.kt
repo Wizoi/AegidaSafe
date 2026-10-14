@@ -64,6 +64,8 @@ object LinkSigns {
         val scripts = label.codePoints().toArray()
             .map { UnicodeScript.of(it) }
             .filter { it != UnicodeScript.COMMON && it != UnicodeScript.INHERITED }
+            // Japanese writes Kanji, Hiragana and Katakana together; browsers count them as one script (findings #105).
+            .map { if (it == UnicodeScript.HIRAGANA || it == UnicodeScript.KATAKANA) UnicodeScript.HAN else it }
             .toSet()
         return scripts.size > 1
     }

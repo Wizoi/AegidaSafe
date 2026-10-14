@@ -36,5 +36,3 @@ __pycache__/
 # Generated from release-notes/<versionCode>.txt by :app:syncReleaseNotes
 app/src/release/
 
-# Agents' scratch working copies (never committed, never scanned)
-.claude/worktrees/

@@ -10,6 +10,7 @@ import com.aegida.core.url.LinkSign
 import com.aegida.core.url.LinkSigns
 import com.aegida.core.url.LinkText
 import com.aegida.core.url.Links
+import com.aegida.core.url.TopLevelDomains
 import javax.inject.Inject
 
 /**
@@ -24,9 +25,13 @@ class LinkDetector @Inject constructor() : Detector {
         val event = input.event ?: return emptyList()
         if (event.packageName == Aegida.PACKAGE) return emptyList()
         if (event.channelId?.startsWith(PopupSpamDetector.SITE_CHANNEL_PREFIX) == true) return emptyList()
-        // Prepared like the screens prepare it, and searched thoroughly: odd dots, invisible characters and broken fragments
-        // do not hide a link from the check (findings #104).
-        val links = listOf(event.title, event.text).flatMap { Links.findThorough(LinkText.prepare(it)) }.distinct()
+        // The links in the text as written are checked as always. Links that only appear once odd dots, invisible characters or a
+        // broken fragment are dealt with (findings #104) count only with a real ending or a scheme, so Japanese full stops and
+        // middle dots between ordinary words never make a "link" (findings #105).
+        val plain = Links.extractParts(event.title, event.text)
+        val prepared = listOf(event.title, event.text).flatMap { Links.findThorough(LinkText.prepare(it)) }
+            .filter { it.raw.contains("://") || TopLevelDomains.isDomain(it.host.substringAfterLast('.')) }
+        val links = (plain + prepared).distinctBy { it.host to it.path }
         return links.mapNotNull { link ->
             val signs = LinkSigns.of(link)
             val problem = when {

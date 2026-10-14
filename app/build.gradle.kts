@@ -144,5 +144,6 @@ tasks.withType<Test>().configureEach {
     inputs.file("build.gradle.kts")
 }
 
-// Unit tests run once, on the debug variant: no test depends on release, and running both doubled the time (docs/code-health.md).
-tasks.withType<Test>().matching { it.name.endsWith("ReleaseUnitTest") }.configureEach { enabled = false }
+// Unit tests run once, on the debug variant (docs/code-health.md), except ManifestPolicyTest, which also checks the release merged
+// manifest: that is the one that ships (findings #35, #105).
+tasks.withType<Test>().matching { it.name == "testReleaseUnitTest" }.configureEach { filter { includeTestsMatching("*ManifestPolicyTest") } }

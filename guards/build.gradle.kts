@@ -21,12 +21,12 @@ tasks.test {
     systemProperty("aegida.root", rootDir.absolutePath)
     // Room writes store/schemas during KSP; read it after that in the same build, not in parallel.
     mustRunAfter(":store:kspDebugKotlin", ":store:kspReleaseKotlin")
-    // Inputs are every file the guards read (ShippedSources.allText is the widest: the whole repo
-    // minus build output), so editing a doc or script re-runs the secrets scan too (findings #9).
+    // Inputs are every file the guards read (ShippedSources.allText is the widest: the tracked files plus everything under
+    // */src), so editing a doc or script re-runs the secrets scan too (findings #9). Agents' scratch copies are not inputs.
     inputs.files(
         fileTree(rootDir) {
             // release-mappings/ is a git-ignored copy of each release's R8 mapping, written by :app:archiveReleaseMapping.
-            exclude("**/build/**", "**/.gradle/**", ".git/**", "**/.idea/**", "**/.kotlin/**", "release-mappings/**")
+            exclude("**/build/**", "**/.gradle/**", ".git/**", "**/.idea/**", "**/.kotlin/**", "release-mappings/**", ".claude/**")
         },
     ).withPropertyName("shippedSources").withPathSensitivity(PathSensitivity.RELATIVE)
 }
