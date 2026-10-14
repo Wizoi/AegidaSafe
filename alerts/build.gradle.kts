@@ -18,3 +18,8 @@ dependencies {
     testImplementation(testFixtures(project(":core")))
     testImplementation(libs.coroutines.test)
 }
+
+// NetworkVsPrivacyPageTest reads the public privacy page, so an edit to that page alone re-runs the tests (findings #114).
+tasks.test {
+    inputs.file(rootProject.file("docs/site/privacy.html")).withPropertyName("privacyPage").withPathSensitivity(PathSensitivity.RELATIVE)
+}
