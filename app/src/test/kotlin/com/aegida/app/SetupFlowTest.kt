@@ -5,7 +5,13 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
+import com.aegida.app.ui.AppRoot
 import com.aegida.app.ui.SetupFlow
+import com.aegida.app.ui.Tab
+import com.aegida.core.model.Setup
+import com.aegida.testkit.FakeSetupStore
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import com.aegida.core.model.SafetyPicture
 import com.aegida.core.model.SetupStep
 import com.aegida.core.text.Texts
@@ -56,4 +62,44 @@ class SetupFlowTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark, font
         scheduler.advanceUntilIdle()
         assertEquals(listOf(SetupStep.About, SetupStep.Picture), finished)
     }
+
+    /** The real SetupCommands over a store that behaves like the real one; the loader reads that store like MainStateLoader does. */
+    private fun realViewModel(store: FakeSetupStore, blockerRelevant: Boolean): MainViewModel {
+        val commands = SetupCommands(store, mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true))
+        val loader = mockk<MainStateLoader>()
+        coEvery { loader.load() } coAnswers { MainState(loaded = true, setup = store.value, blockerRelevant = blockerRelevant) }
+        return MainViewModel(loader, mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), commands)
+            .also { it.work = StandardTestDispatcher(scheduler) }
+    }
+
+    private fun settle() {
+        compose.waitForIdle()
+        scheduler.advanceUntilIdle()
+        compose.waitForIdle()
+    }
+
+    private fun setupFromFilterToDone(blockerRelevant: Boolean) {
+        val store = FakeSetupStore(Setup.NotDone.copy(stepsDone = SetupStep.Filter.ordinal))
+        val vm = realViewModel(store, blockerRelevant)
+        show { AppRoot(vm) }
+        settle()
+        compose.onNodeWithText(Texts.Common.NOT_NOW).performScrollTo().performClick() // the Filter step's way on
+        settle()
+        if (blockerRelevant) {
+            compose.onNodeWithText(Texts.Common.NOT_NOW).performScrollTo().performClick() // the Samsung step
+            settle()
+        }
+        assertFalse("setup is not done until she taps Done", store.value.done)
+        compose.onNodeWithText(Texts.Setup.DONE_TITLE).assertExists()
+        compose.onNodeWithText(Texts.Common.DONE).performScrollTo().performClick()
+        settle()
+        assertEquals(SetupStep.entries.size, store.value.stepsDone)
+        assertTrue(store.value.done)
+        compose.onNodeWithText(Texts.Setup.DONE_TITLE).assertDoesNotExistOrFail()
+        compose.onNodeWithText(Tab.Home.label).assertExists()
+    }
+
+    @Test fun setupFromFilterToAllSetFinishesOnlyWhenSheTapsDone() = setupFromFilterToDone(blockerRelevant = false)
+
+    @Test fun setupFromFilterThroughTheSamsungStepToAllSetFinishesOnlyWhenSheTapsDone() = setupFromFilterToDone(blockerRelevant = true)
 }
