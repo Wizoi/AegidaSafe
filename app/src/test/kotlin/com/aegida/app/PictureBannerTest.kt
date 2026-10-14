@@ -71,4 +71,20 @@ class PictureBannerTest {
         gate.complete(Unit)
         assertSame(fish, banner.bitmap())
     }
+
+    /** R5: with a store that never answers, bitmap() still returns (it never reads the database), so a blocking read fails here instead of hanging. */
+    @Test fun theBannerReturnsEvenWhenTheStoreNeverAnswers() {
+        val never = object : SetupStore {
+            override suspend fun setup(): Setup = CompletableDeferred<Setup>().await()
+            override suspend fun save(setup: Setup) = Unit
+        }
+        val banner = PictureBanner(context, never, CoroutineScope(Dispatchers.Unconfined))
+        val call = Thread { banner.bitmap() }.apply { isDaemon = true; start() }
+        call.join(STORE_WAIT_LIMIT_MS)
+        assertEquals("bitmap() waited on the store", false, call.isAlive)
+    }
+
+    private companion object {
+        const val STORE_WAIT_LIMIT_MS = 5_000L
+    }
 }
