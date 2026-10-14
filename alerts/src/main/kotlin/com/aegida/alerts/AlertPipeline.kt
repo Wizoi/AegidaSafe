@@ -148,13 +148,20 @@ class AlertPipeline @Inject constructor(
         sendOrHold(topic, message, problem, clock.now())
     }
 
-    /** The guardian heard about this very warning, and that alarm has left the outbox (so the all-clear cannot arrive first). */
+    /**
+     * The guardian heard about this very warning, about this app, and that alarm has left the outbox (so the all-clear cannot arrive
+     * first). History is matched by what the entry says it was (the app), not only by kind: two apps of the same kind may be told apart
+     * (findings #115). An alarm delivered later from the outbox has no line of its own, so it counts only after a failed try for this app.
+     */
     private suspend fun toldAndNotWaiting(key: FindingKey): Boolean {
         val problem = key.problem
         val finding = findings.get(key) ?: return false
-        val told = history.since(finding.firstSeen).any {
-            it.problem == problem && (it.outcome == Outcome.GuardianTold || it.outcome == Outcome.GuardianReminded)
-        }
+        val what = HistoryDetail.of(problem, finding.evidence)
+        val entries = history.since(finding.firstSeen).filter { it.problem == problem }
+        val toldOutcomes = setOf(Outcome.GuardianTold, Outcome.GuardianReminded)
+        val told = entries.any { it.detail == what && it.outcome in toldOutcomes } ||
+            (entries.any { it.detail == what && it.outcome == Outcome.GuardianNotReached } &&
+                entries.any { it.detail == null && it.outcome in toldOutcomes })
         return told && !line.isWaiting(problem)
     }
 
