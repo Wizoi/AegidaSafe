@@ -16,6 +16,7 @@ import com.aegida.core.model.Finding
 import com.aegida.core.model.FindingKey
 import com.aegida.core.model.FindingState
 import com.aegida.core.model.Severity
+import com.aegida.core.model.Snapshot
 import com.aegida.core.text.Problem
 import com.aegida.core.net.NtfyTopic
 import com.aegida.core.text.Texts
@@ -39,11 +40,12 @@ class AlertPipeline @Inject constructor(
     private val reminder = OldWarningReminder(findings, history, line)
     private val telling = FindingTelling(history, line)
 
-    suspend fun handle(current: List<Finding>, ran: Set<DetectorId>, installed: Set<String> = emptySet()): PipelineResult {
+    /** [phone] is the phone as read in this check, for what History says when a new-app question closes by itself. */
+    suspend fun handle(current: List<Finding>, ran: Set<DetectorId>, phone: Snapshot? = null): PipelineResult {
         val now = clock.now()
         val tally = Tally()
         current.forEach { process(it, now, tally) }
-        val resolved = resolveGone(current, ran, installed, now)
+        val resolved = resolveGone(current, ran, phone, now)
         tally.notReached += reminder.remind(now)
         return PipelineResult(
             alerted = tally.alerted,
@@ -105,13 +107,13 @@ class AlertPipeline @Inject constructor(
     }
 
     /** Settings-based findings that stopped appearing are closed. Returns how many. */
-    private suspend fun resolveGone(current: List<Finding>, ran: Set<DetectorId>, installed: Set<String>, now: Instant): Int {
+    private suspend fun resolveGone(current: List<Finding>, ran: Set<DetectorId>, phone: Snapshot?, now: Instant): Int {
         val stillThere = current.map { it.key }.toSet()
         val resolved = findings.open().filter { it.key.detectorId in ran && it.key.detectorId in SETTING_BASED && it.key !in stillThere }
         resolved.forEach { finding ->
             findings.put(finding.copy(state = FindingState.Resolved, lastSeen = now))
             owner.clear(finding.key)
-            history.add(HistoryEntry(now, finding.key.problem, closedOutcome(finding, installed)))
+            closedOutcome(finding, phone)?.let { history.add(HistoryEntry(now, finding.key.problem, it)) }
         }
         return resolved.size
     }
@@ -178,12 +180,21 @@ class AlertPipeline @Inject constructor(
 
     companion object {
         /**
-         * What History says when a question closes by itself. A new-app question whose app is still on the phone closed because Aegida
-         * learned more (an app from the phone maker's own store, findings #106), not because she did anything: "No longer a concern."
-         * Everything else that stops appearing was changed back, so "Fixed." [installed] is the package names on the phone now.
+         * What History says when a question closes by itself, or null for no line. A new-app question whose app now comes from Play or
+         * the phone maker's own store closed because Aegida learned more (findings #106), not because she did anything: "No longer a
+         * concern." A new-app question whose app is gone, and everything else that stops appearing, was changed back: "Fixed." [phone]
+         * is the phone as read in this check (null: nothing known about its apps, so as if gone).
          */
-        internal fun closedOutcome(finding: Finding, installed: Set<String>): Outcome =
-            if (finding.key.problem == Problem.NewAppOutsidePlay && finding.key.subject in installed) Outcome.NoLongerAConcern else Outcome.Fixed
+        internal fun closedOutcome(finding: Finding, phone: Snapshot?): Outcome? {
+            val app = phone?.apps?.firstOrNull { it.packageName == finding.key.subject }
+            return when {
+                finding.key.problem != Problem.NewAppOutsidePlay || app == null -> Outcome.Fixed
+                // Still on the phone: reassuring only when it now comes from a store Aegida trusts. Anything else (the spying-app list
+                // now names it, findings #118) has its own warning, so this question closes without a line.
+                app.fromPlayStore || app.fromStoreIn(phone.makerStores) -> Outcome.NoLongerAConcern
+                else -> null
+            }
+        }
 
 
         /** A question still open after this is no longer put aside again and again (findings #94). */

@@ -163,12 +163,45 @@ class AlertPipelineTest {
         pipeline.handle(before, setOf(DetectorId.NewApp))
 
         val after = check(atSetup.copy(apps = listOf(app), makerStores = setOf(store)))
-        val result = pipeline.handle(after, setOf(DetectorId.NewApp), installed = setOf(app.packageName))
+        val result = pipeline.handle(after, setOf(DetectorId.NewApp), phone = atSetup.copy(apps = listOf(app), makerStores = setOf(store)))
         assertEquals(1, result.resolved)
         assertEquals(FindingState.Resolved, findings.rows[before.single().key]!!.state)
         // Kevin, Oct 14: she did nothing, so History does not say "Fixed."
         assertEquals(Outcome.NoLongerAConcern, history.entries.last().outcome)
         assertEquals("No longer a concern.", history.entries.last().outcome.forMom)
+    }
+
+    /**
+     * GS2 variant (findings #118): the spying-app feed now lists the app she was asked about. The new-app question closes because the urgent
+     * warning took over, not because the app became fine, so History never says "No longer a concern." about it; it says nothing (the urgent
+     * warning has its own lines).
+     */
+    @Test fun aNewAppQuestionClosedBecauseTheFeedNowListsTheAppIsNeverCalledNoLongerAConcern() = runTest {
+        val app = com.aegida.testkit.anAppOpenedFromAFile("org.new.helper")
+        val atSetup = com.aegida.core.model.Snapshot(
+            now, com.aegida.core.model.PrivateDns.Automatic, null, true, true,
+            com.aegida.core.oem.Reading.NotPresent, com.aegida.core.oem.Reading.NotPresent,
+        )
+        val baseline = com.aegida.core.model.Baseline.of(atSetup)
+        val phone = atSetup.copy(apps = listOf(app))
+        fun inputs(feed: com.aegida.core.feed.ThreatFeed?) =
+            com.aegida.detectors.Inputs(phone, now, com.aegida.core.model.Setup.NotDone, feed, null, null, baseline = baseline)
+        val ran = setOf(DetectorId.NewApp, DetectorId.Stalkerware)
+        fun check(feed: com.aegida.core.feed.ThreatFeed?) =
+            com.aegida.detectors.NewAppDetector().evaluate(inputs(feed)) + com.aegida.detectors.StalkerwareDetector().evaluate(inputs(feed))
+        val question = check(null).single()
+        pipeline.handle(listOf(question), ran, phone = phone)
+
+        val feed = com.aegida.core.feed.ThreatFeed.of(
+            now, emptyList(), emptyList(), emptyList(), apps = com.aegida.core.feed.AppKeys(packageNames = listOf(app.packageName)),
+        )
+        val after = check(feed)
+        assertEquals(listOf(com.aegida.core.text.Problem.StalkerwareApp), after.map { it.key.problem }) // the urgent warning opens instead
+        pipeline.handle(after, ran, phone = phone)
+
+        assertEquals(FindingState.Resolved, findings.rows[question.key]!!.state)
+        val linesForTheQuestion = history.entries.filter { it.problem == question.key.problem }.map { it.outcome }
+        assertTrue(linesForTheQuestion.toString(), Outcome.NoLongerAConcern !in linesForTheQuestion && Outcome.Fixed !in linesForTheQuestion)
     }
 
     /** GS2's other side: the app she was asked about is gone, so the question closed because she removed it. */
@@ -182,8 +215,8 @@ class AlertPipelineTest {
         fun check(phone: com.aegida.core.model.Snapshot) =
             com.aegida.detectors.NewAppDetector()
                 .evaluate(com.aegida.detectors.Inputs(phone, now, com.aegida.core.model.Setup.NotDone, null, null, null, baseline = baseline))
-        pipeline.handle(check(atSetup.copy(apps = listOf(app))), setOf(DetectorId.NewApp), installed = setOf(app.packageName))
-        pipeline.handle(check(atSetup), setOf(DetectorId.NewApp), installed = emptySet())
+        pipeline.handle(check(atSetup.copy(apps = listOf(app))), setOf(DetectorId.NewApp), phone = atSetup.copy(apps = listOf(app)))
+        pipeline.handle(check(atSetup), setOf(DetectorId.NewApp), phone = atSetup)
         assertEquals(Outcome.Fixed, history.entries.last().outcome)
     }
 
