@@ -2,11 +2,13 @@ package com.aegida.store
 
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import com.aegida.core.alert.Covered
 import com.aegida.core.alert.Guardians
 import com.aegida.core.alert.HistoryEntry
 import com.aegida.core.notice.AllowedItem
 import com.aegida.core.notice.NoticeRow
 import com.aegida.core.alert.Outcome
+import com.aegida.core.alert.QueuedMessage
 import com.aegida.core.feed.FeedCodec
 import com.aegida.core.feed.FeedSource
 import com.aegida.core.feed.ThreatFeed
@@ -44,6 +46,22 @@ class RoomStoresTest {
     @get:Rule val temp = TemporaryFolder()
 
     @After fun close() = db.close()
+
+    @Test fun aHeldNoteKeepsItsDetailAndTheOtherWarningsAReminderCoversExactly() = runTest { // findings #116, #131
+        val outbox = RoomOutbox(db.outbox())
+        val base = QueuedMessage(0, "aegida_t", "Ruth", "A note", false, Problem.NewAppOutsidePlay, now, 1, now)
+        outbox.add(base.copy(detail = "The “Alpha” app."))
+        outbox.add(base.copy(detail = null, alsoCovers = listOf(Covered(Problem.NoisyApp, "The “Bravo” app."), Covered(Problem.ListenerAdded, null))))
+        outbox.add(base)
+        assertEquals(
+            listOf(
+                "The “Alpha” app." to emptyList<Covered>(),
+                null to listOf(Covered(Problem.NoisyApp, "The “Bravo” app."), Covered(Problem.ListenerAdded, null)),
+                null to emptyList(),
+            ),
+            outbox.all().map { it.detail to it.alsoCovers },
+        )
+    }
 
     private val finding = Finding(
         FindingKey(DetectorId.PopupSpam, Problem.SiteNotifications, "http://localhost:8765"),

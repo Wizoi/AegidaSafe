@@ -1,5 +1,6 @@
 package com.aegida.alerts
 
+import com.aegida.core.alert.Covered
 import com.aegida.core.alert.HistoryEntry
 import com.aegida.core.alert.HistoryLog
 import com.aegida.core.alert.Outcome
@@ -22,9 +23,9 @@ internal class FindingTelling(
         if (backedOff(finding, now)) null else messageFor(finding)?.let { line.send(it.first, it.second) }
 
     /** A message that did not go is kept and retried by [OutboxFlusher]; the owner is not asked to do anything. */
-    suspend fun hold(finding: Finding, now: Instant) {
+    suspend fun hold(finding: Finding, now: Instant, detail: String?) {
         val (topic, message) = messageFor(finding) ?: return
-        line.hold(topic, message, finding.key.problem, now)
+        line.hold(topic, message, listOf(Covered(finding.key.problem, detail)), now)
     }
 
     /**

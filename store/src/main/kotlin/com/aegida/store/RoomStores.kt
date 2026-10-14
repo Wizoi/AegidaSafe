@@ -7,6 +7,7 @@ import com.aegida.core.store.BaselineStore
 import com.aegida.core.alert.Guardians
 import com.aegida.core.alert.HistoryEntry
 import com.aegida.core.alert.HistoryLog
+import com.aegida.core.alert.Covered
 import com.aegida.core.alert.Outbox
 import com.aegida.core.alert.Outcome
 import com.aegida.core.alert.QueuedMessage
@@ -195,13 +196,15 @@ internal class RoomOutbox(private val dao: OutboxDao) : Outbox {
             topic = message.topic, title = message.title, body = message.body, urgent = message.urgent,
             outboxProblem = message.problem.name, queuedAtMillis = message.queuedAt.toEpochMilli(),
             attempts = message.attempts, lastTriedMillis = message.lastTriedAt.toEpochMilli(),
+            outboxDetail = OutboxCodec.encode(message.detail, message.alsoCovers),
         ),
     )
 
     override suspend fun all(): List<QueuedMessage> = dao.all().map {
+        val (detail, also) = OutboxCodec.decode(it.outboxDetail)
         QueuedMessage(
             it.rowId, it.topic, it.title, it.body, it.urgent, Problem.valueOf(it.outboxProblem),
-            Instant.ofEpochMilli(it.queuedAtMillis), it.attempts, Instant.ofEpochMilli(it.lastTriedMillis),
+            Instant.ofEpochMilli(it.queuedAtMillis), it.attempts, Instant.ofEpochMilli(it.lastTriedMillis), detail, also,
         )
     }
 
@@ -244,4 +247,27 @@ internal class RoomAllowList(private val dao: AllowedDao) : AllowList {
 
     override suspend fun all(): List<AllowedItem> =
         dao.all().map { AllowedItem(Problem.valueOf(it.problem), it.subject, it.label, Instant.ofEpochMilli(it.atMillis)) }
+}
+
+/**
+ * The outbox's one detail column holds the History detail of the held note and, for a reminder that covers several warnings, the
+ * others as "kind, detail" pairs (findings #116, #131). Details are plain sentences; the separators are control characters they never contain.
+ */
+internal object OutboxCodec {
+    private const val RECORD = '\u001E'
+    private const val FIELD = '\u001F'
+
+    fun encode(detail: String?, also: List<Covered>): String? =
+        if (also.isEmpty()) detail
+        else (listOf(detail.orEmpty()) + also.map { it.problem.name + FIELD + it.detail.orEmpty() }).joinToString(RECORD.toString())
+
+    fun decode(stored: String?): Pair<String?, List<Covered>> {
+        if (stored == null || RECORD !in stored) return stored to emptyList()
+        val parts = stored.split(RECORD)
+        val also = parts.drop(1).map { part ->
+            val (problem, detail) = part.split(FIELD, limit = 2)
+            Covered(Problem.valueOf(problem), detail.ifEmpty { null })
+        }
+        return parts.first().ifEmpty { null } to also
+    }
 }

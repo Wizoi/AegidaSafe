@@ -1,5 +1,6 @@
 package com.aegida.alerts
 
+import com.aegida.core.alert.Covered
 import com.aegida.core.alert.FindingStore
 import com.aegida.core.alert.HistoryDetail
 import com.aegida.core.alert.HistoryEntry
@@ -44,7 +45,8 @@ internal class OldWarningReminder(
             SendResult.Delivered -> due.forEach { history.add(HistoryEntry(now, it.key.problem, Outcome.GuardianReminded, detailOf(it))) }
             is SendResult.NotDelivered -> {
                 notReached++
-                line.hold(topic, message, due.first().key.problem, now)
+                // One message, held once; every warning it covers is listed so each gets its own History line on delivery (findings #131).
+                line.hold(topic, message, due.map { Covered(it.key.problem, detailOf(it)) }, now)
                 due.forEach { history.add(HistoryEntry(now, it.key.problem, Outcome.GuardianNotReached, detailOf(it))) }
             }
         }

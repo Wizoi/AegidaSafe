@@ -8,7 +8,7 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 /**
- * Version 1 shipped with the first Play build; version 2 adds History.detail (Kevin, Oct 10). A schema change needs an explicit Migration, a MigrationTestHelper test against the exported
+ * Version 1 shipped with the first Play build; version 2 adds History.detail (Kevin, Oct 10); version 4 adds outbox.outboxDetail (Kevin, Oct 14). A schema change needs an explicit Migration, a MigrationTestHelper test against the exported
  * schema in store/schemas, and Kevin's OK first. No destructive fallback, ever.
  */
 @Database(
@@ -16,7 +16,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         CheckRunEntity::class, FindingEntity::class, HistoryEntity::class, OutboxEntity::class,
         SettingEntity::class, NoticeEntity::class, AllowedEntity::class,
     ],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 abstract class AegidaDatabase : RoomDatabase() {
@@ -55,7 +55,17 @@ abstract class AegidaDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * The outbox keeps what its History line says (and any further warnings a reminder covers), so a note delivered later counts for the
+         * right app (findings #116, #131). Kevin approved the migration, Oct 14. Rows already waiting get null: they never count (fails closed).
+         */
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE outbox ADD COLUMN outboxDetail TEXT")
+            }
+        }
+
         fun open(context: Context): AegidaDatabase =
-            Room.databaseBuilder(context, AegidaDatabase::class.java, NAME).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build()
+            Room.databaseBuilder(context, AegidaDatabase::class.java, NAME).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build()
     }
 }

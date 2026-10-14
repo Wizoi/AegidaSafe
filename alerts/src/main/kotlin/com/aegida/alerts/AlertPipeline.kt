@@ -3,6 +3,7 @@ package com.aegida.alerts
 import com.aegida.core.alert.FindingStore
 import com.aegida.core.alert.GuardianSettings
 import com.aegida.core.alert.Guardians
+import com.aegida.core.alert.Covered
 import com.aegida.core.alert.HistoryDetail
 import com.aegida.core.alert.HistoryEntry
 import com.aegida.core.alert.HistoryLog
@@ -97,7 +98,7 @@ class AlertPipeline @Inject constructor(
             SendResult.Delivered -> history.add(HistoryEntry(now, finding.key.problem, Outcome.GuardianTold, detail))
             is SendResult.NotDelivered -> {
                 tally.notReached++
-                telling.hold(finding, now)
+                telling.hold(finding, now, detail)
                 history.add(HistoryEntry(now, finding.key.problem, Outcome.GuardianNotReached, detail))
             }
             null -> Unit
@@ -154,8 +155,9 @@ class AlertPipeline @Inject constructor(
     /**
      * The guardian heard about this very warning, about this app, and that alarm has left the outbox (so the all-clear cannot arrive
      * first). History is matched by what the entry says it was (the app), not only by kind: two apps of the same kind may be told apart
-     * (findings #115). An alarm delivered later from the outbox has no line of its own, so it counts only after a failed try for this app.
-     * One rule for every line: the detail is made by [HistoryDetail] from the finding as it was told, before seen took the message words
+     * (findings #115). An alarm delivered later from the outbox carries the same detail
+     * and [OutboxFlusher] writes it with the delivery, so it counts exactly like one delivered at once; a note queued before the detail was
+     * stored has none, and so never counts (no all-clear, findings #116). One rule for every line: the detail is made by [HistoryDetail] from the finding as it was told, before seen took the message words
      * out, exactly as the alarm's and the reminder's lines were made, so they always match (findings #117).
      */
     private suspend fun toldAndNotWaiting(finding: Finding): Boolean {
@@ -163,9 +165,7 @@ class AlertPipeline @Inject constructor(
         val what = HistoryDetail.of(problem, finding.evidence)
         val entries = history.since(finding.firstSeen).filter { it.problem == problem }
         val toldOutcomes = setOf(Outcome.GuardianTold, Outcome.GuardianReminded)
-        val told = entries.any { it.detail == what && it.outcome in toldOutcomes } ||
-            (entries.any { it.detail == what && it.outcome == Outcome.GuardianNotReached } &&
-                entries.any { it.detail == null && it.outcome in toldOutcomes })
+        val told = entries.any { it.detail == what && it.outcome in toldOutcomes }
         return told && !line.isWaiting(problem)
     }
 
@@ -174,7 +174,7 @@ class AlertPipeline @Inject constructor(
         when (line.send(topic, message)) {
             SendResult.Delivered -> history.add(HistoryEntry(now, problem, Outcome.GuardianTold, detail))
             is SendResult.NotDelivered -> {
-                line.hold(topic, message, problem, now)
+                line.hold(topic, message, listOf(Covered(problem, detail)), now)
                 history.add(HistoryEntry(now, problem, Outcome.GuardianNotReached, detail))
             }
         }
@@ -245,11 +245,17 @@ class GuardianLine @Inject constructor(
 
     suspend fun send(topic: NtfyTopic, message: GuardianMessage): SendResult = ntfy.send(topic, message)
 
-    /** Keeps a message that did not go, to be retried by [OutboxFlusher]. */
-    suspend fun hold(topic: NtfyTopic, message: GuardianMessage, problem: Problem, now: Instant) {
-        outbox.add(QueuedMessage(0, topic.value, message.title, message.body, message.urgent, problem, now, 1, now))
+    /**
+     * Keeps a message that did not go, to be retried by [OutboxFlusher]. [covers] is what it was about, the first being the kind it is
+     * queued under: one warning (its kind and History detail), or for a reminder every warning it covers (findings #116, #131).
+     */
+    suspend fun hold(topic: NtfyTopic, message: GuardianMessage, covers: List<Covered>, now: Instant) {
+        val first = covers.first()
+        outbox.add(
+            QueuedMessage(0, topic.value, message.title, message.body, message.urgent, first.problem, now, 1, now, first.detail, covers.drop(1)),
+        )
     }
 
-    /** True while an earlier message about [problem] is still waiting to be sent. */
-    suspend fun isWaiting(problem: Problem): Boolean = outbox.all().any { it.problem == problem }
+    /** True while an earlier message about [problem] (or a reminder that also covers it) is still waiting to be sent. */
+    suspend fun isWaiting(problem: Problem): Boolean = outbox.all().any { it.problem == problem || it.alsoCovers.any { c -> c.problem == problem } }
 }
