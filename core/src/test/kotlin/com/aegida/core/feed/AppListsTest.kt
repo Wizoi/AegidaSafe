@@ -15,8 +15,10 @@ class AppListsTest {
     private val sources = listOf(FeedSource("Echap", "CC BY 4.0", 3))
     private val feed = ThreatFeed.of(
         now, sources, hostKeys = listOf("evil.example"), urlKeys = emptyList(),
-        packageNames = listOf("com.spyzee", "COM.Fone"),
-        certificateSha1s = listOf("31A6ECECD97CF39BC4126B8745CD94A7C30BF81C"),
+        apps = AppKeys(
+            packageNames = listOf("com.spyzee", "COM.Fone"),
+            certificateSha1s = listOf("31A6ECECD97CF39BC4126B8745CD94A7C30BF81C"),
+        ),
     )
 
     @Test fun aListedPackageNameMatchesWhateverTheCase() {
@@ -27,7 +29,10 @@ class AppListsTest {
 
     @Test fun aListedSigningCertificateMatchesEvenUnderANewPackageName() {
         assertEquals(AppMatch.Certificate, feed.matchApp("org.renamed.app", setOf("31a6ececd97cf39bc4126b8745cd94a7c30bf81c")))
-        assertEquals(AppMatch.Certificate, feed.matchApp("org.renamed.app", setOf("0000000000000000000000000000000000000000", "31A6ECECD97CF39BC4126B8745CD94A7C30BF81C")))
+        assertEquals(
+            AppMatch.Certificate,
+            feed.matchApp("org.renamed.app", setOf("0000000000000000000000000000000000000000", "31A6ECECD97CF39BC4126B8745CD94A7C30BF81C")),
+        )
         assertNull(feed.matchApp("org.renamed.app", setOf("0000000000000000000000000000000000000000")))
     }
 

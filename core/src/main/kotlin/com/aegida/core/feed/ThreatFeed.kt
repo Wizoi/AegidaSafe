@@ -61,15 +61,14 @@ class ThreatFeed(
             sources: List<FeedSource>,
             hostKeys: Collection<String>,
             urlKeys: Collection<String>,
-            packageNames: Collection<String> = emptyList(),
-            certificateSha1s: Collection<String> = emptyList(),
+            apps: AppKeys = AppKeys(),
         ) = ThreatFeed(
             generatedAt,
             sources,
             hostKeys.map(FeedHash::of).toLongArray(),
             urlKeys.map(FeedHash::of).toLongArray(),
-            packageNames.map { FeedHash.of(PACKAGE_PREFIX + it.lowercase()) }.toLongArray(),
-            certificateSha1s.map { FeedHash.of(CERTIFICATE_PREFIX + it.lowercase()) }.toLongArray(),
+            apps.packageNames.map { FeedHash.of(PACKAGE_PREFIX + it.lowercase()) }.toLongArray(),
+            apps.certificateSha1s.map { FeedHash.of(CERTIFICATE_PREFIX + it.lowercase()) }.toLongArray(),
         )
 
         /** Sorted copy without duplicates, made without boxing (a real feed has about 1.1 million entries). */
@@ -93,12 +92,22 @@ sealed interface AppMatch {
     data object Certificate : AppMatch
 }
 
+/** The known spying apps to put in a feed: package names, and SHA-1 hex of signing certificates. */
+data class AppKeys(
+    val packageNames: Collection<String> = emptyList(),
+    val certificateSha1s: Collection<String> = emptyList(),
+)
+
 /** Where entries came from, shown in About with the licence. */
 data class FeedSource(val name: String, val licence: String, val entries: Int)
 
 object FeedHash {
+    private const val HASH_BYTES = 8
+    private const val BITS_PER_BYTE = 8
+    private const val BYTE_MASK = 0xFF
+
     fun of(key: String): Long {
         val digest = MessageDigest.getInstance("SHA-256").digest(key.toByteArray(Charsets.UTF_8))
-        return (0 until 8).fold(0L) { acc, i -> (acc shl 8) or (digest[i].toLong() and 0xFF) }
+        return (0 until HASH_BYTES).fold(0L) { acc, i -> (acc shl BITS_PER_BYTE) or (digest[i].toLong() and BYTE_MASK.toLong()) }
     }
 }
