@@ -16,6 +16,9 @@ class FakeNotificationShade(private var now: Instant) {
     interface Listener {
         suspend fun onConnected()
         suspend fun onPosted(event: NotificationEvent)
+
+        /** onListenerDisconnected; not called when the process is killed or the phone is switched off. */
+        suspend fun onDisconnected() {}
     }
 
     private val shown = linkedMapOf<String, NotificationEvent>()
@@ -38,8 +41,18 @@ class FakeNotificationShade(private var now: Instant) {
         l.onConnected()
     }
 
-    /** The system unbinds the listener (an update, low memory, a restart). Notices still arrive in the shade. */
-    fun disconnect() { listener = null }
+    /** The system unbinds the listener (an update, low memory). Notices still arrive in the shade. */
+    suspend fun disconnect() {
+        val l = listener ?: return
+        listener = null
+        l.onDisconnected()
+    }
+
+    /** The process is killed, or the phone switched off: the listener is gone and is not told. */
+    fun lose() { listener = null }
+
+    /** The phone restarts: the listener is gone without being told, and the shade is cleared. */
+    fun restart() { lose(); shown.clear(); snoozed.clear() }
 
     suspend fun post(event: NotificationEvent) {
         shown[event.key] = event

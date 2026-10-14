@@ -20,6 +20,8 @@ class HealthDetector @Inject constructor() : Detector {
         // step is raised when setup ends, and her guardian is told then (findings #65).
         if (input.setup.done) {
             if (!input.snapshot.listenerEnabled) add(Problem.ListenerOff)
+            // Access is on but the phone stopped letting Aegida listen (finding #112); while access is off, ListenerOff says it.
+            else if (input.listener.lost(input.now, input.bootedAt)) add(Problem.ListenerNotConnected)
             if (!input.snapshot.canPostNotifications) add(Problem.NotificationsBlocked)
         }
         val lastDaily = input.lastDailyCheck

@@ -60,6 +60,8 @@ abstract class AppModule {
 
         @Provides fun ownerNotifier(poster: NotificationPoster): OwnerNotifier = poster
 
+        @Provides fun listenerTimes(store: AegidaStore): com.aegida.core.health.ListenerTimesStore = store.listenerTimes
+
         @Provides fun oem(@ApplicationContext context: Context): OemSource = AndroidOemSource(context)
 
         /** One snapshotter, so there is one 5-minute app-list cache, not one per injection (R5). */

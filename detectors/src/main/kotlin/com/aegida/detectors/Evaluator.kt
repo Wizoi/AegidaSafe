@@ -3,6 +3,7 @@ package com.aegida.detectors
 import com.aegida.core.alert.Outbox
 import com.aegida.core.health.CheckLog
 import com.aegida.core.health.CheckRun
+import com.aegida.core.health.ListenerTimesStore
 import com.aegida.core.health.Trigger
 import com.aegida.core.model.DetectorId
 import com.aegida.core.model.Finding
@@ -51,7 +52,7 @@ class Evaluator @Inject constructor(
             emptyList()
         }
         val allowedApps = allowList.all().filter { it.problem == Problem.NoisyApp }.map { it.subject }.toSet()
-        val input = memory.inputs(snapshot, started, event, recent, allowedApps)
+        val input = memory.inputs(snapshot, started, event, recent, allowedApps).copy(bootedAt = clock.bootedAt())
         val findings = detectors.sortedBy { it.id }.flatMap { it.evaluate(input) }.distinctBy { it.key }
         memory.record(CheckRun(trigger, started, clock.now()))
         findings
@@ -65,11 +66,12 @@ class EvaluatorMemory @Inject constructor(
     private val checkLog: CheckLog,
     private val outbox: Outbox,
     private val baselines: BaselineStore,
+    private val listener: ListenerTimesStore = ListenerTimesStore.None,
 ) {
     suspend fun inputs(snapshot: Snapshot, started: Instant, event: NotificationEvent?, recent: List<NoticeRow>, allowedApps: Set<String>): Inputs =
         Inputs(
             snapshot, started, setupStore.setup(), feedStore.current(), event, checkLog.latest(Trigger.Daily), outbox.all().minOfOrNull { it.queuedAt },
-            baselines.baseline(), recent, allowedApps,
+            baselines.baseline(), recent, allowedApps, listener.times(),
         )
 
     suspend fun record(run: CheckRun) = checkLog.record(run)

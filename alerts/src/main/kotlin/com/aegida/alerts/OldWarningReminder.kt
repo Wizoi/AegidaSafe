@@ -58,7 +58,7 @@ internal class OldWarningReminder(
 
     private suspend fun dueWarnings(owner: String, now: Instant): List<Finding> {
         val candidates = findings.open().filter { it.state == FindingState.Open && it.severity >= Severity.NeedsTap }
-            .filter { it.key.problem.forGuardian(owner) != null }
+            .filter { it.key.problem.forGuardian(owner) != null || it.key.problem.remindsGuardianOnly }
         return candidates.filter { finding ->
             val putRight = withFirstSeenPutRight(finding, now)
             if (putRight != finding) findings.put(putRight)
