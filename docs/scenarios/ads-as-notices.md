@@ -17,4 +17,5 @@ is never counted. `GAP` means nothing covers it yet.
 | AN10 | "Warn me again" | Warns at once | Note | n/a | Emulator | GAP | GAP | warn-me-again-ends-the-quiet-week |
 | AN11 | "An app named like a web address" | The label is cleaned before it is shown | Masked | Line-separator characters in the label | Invented labels | SettingsScreenTest#anAllowedAppsOwnLabelIsCleanedBeforeItIsShown; LinkTextScenariosTest#aNoisyAppNoteNeverCarriesAnAddressFromTheAppsName | none | allow-note-masked |
 | AN12 | "An ad shape from a Samsung phone" | Counted like any ad | Same | Real Samsung channels and categories | Samsung dump needed | GAP | GAP | GAP |
-| AN13 | "Real bank, news and pharmacy notices" | Never flagged | Nothing | Today's data is invented | Real notice dumps needed | GAP | GAP | GAP |
+| AN13 | "Real bank, news and pharmacy notices" | Never flagged | Nothing | One real day from a Pixel: 239 notices, 27 apps, none ad-like (Life360 120 a day); bank and pharmacy words still invented | Pixel 11 snapshot (findings #107) | NoticeRulesTest#realChannelNamesFromAPixelScoreNothing | GAP | GAP |
+| AN14 | "Uber keeps sending discounts" | Counted as ad-like; a question only if they keep coming | Note, if flagged | A bank called Discover is not a discount | Pixel 11 snapshot (findings #107) | NoticeRulesTest#aDiscountChannelIsAnAdWord | none | discount-is-an-ad-word |

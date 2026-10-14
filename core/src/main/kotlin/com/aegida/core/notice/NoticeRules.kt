@@ -22,8 +22,8 @@ object NoticeRules {
     /** What the sending app says the notice is, when it is something real. Never counted. */
     private val REAL_KINDS = setOf("msg", "call", "email", "alarm", "navigation", "progress", "service", "status", "transport", "reminder", "event", "social")
 
-    /** Ad words in a channel's name or description. Not "news" or "discover": breaking news and a bank called Discover are real. */
-    private val AD_CHANNEL_WORDS = Regex("""\b(promo\w*|offers?|deals?|ads?|advert\w*|sales?|marketing|recommend\w*)\b""", RegexOption.IGNORE_CASE)
+    /** Ad words in a channel's name or description ("discount": Uber's promo channel, findings #107). Not "news" or "discover": breaking news and a bank called Discover are real. */
+    private val AD_CHANNEL_WORDS = Regex("""\b(promo\w*|offers?|deals?|discounts?|ads?|advert\w*|sales?|marketing|recommend\w*)\b""", RegexOption.IGNORE_CASE)
 
     /** Words that push an action, the way the fake-ad notices do. Not "free", "win", "install" or "ready!": banks, scores, updates and pharmacies say those. */
     private val PUSH_WORDS = Regex(

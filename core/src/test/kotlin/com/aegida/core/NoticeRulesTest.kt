@@ -82,6 +82,23 @@ class NoticeRulesTest {
         assertEquals("a delivery", 0, NoticeRules.signals(event(title = "Your order", text = "Arriving today. Install the app update for tracking", channelName = "Orders", importance = 4), null))
     }
 
+    /** Findings #107: Uber's promo channel on Kevin's Pixel is called "Discounts and News"; "discount" is an ad word. */
+    @Test fun aDiscountChannelIsAnAdWord() {
+        assertEquals(1, NoticeRules.signals(event(channelName = "Discounts and News"), null))
+        assertEquals(1, NoticeRules.signals(event(channelName = "Discount"), null))
+        assertEquals("a bank called Discover is not a discount", 0, NoticeRules.signals(event(channelName = "Discover Card alerts"), null))
+    }
+
+    /** Findings #107: every channel that sent notices on Kevin's Pixel 11 in one day (Oct 13-14), none of them ads, scores nothing. */
+    @Test fun realChannelNamesFromAPixelScoreNothing() {
+        val channels = listOf(
+            "Info", "Place Left", "Miscellaneous", "Your interests", "Audio Briefing", "Chat Notifications", "Post Notifications", "General",
+            "Alarms", "Critical alerts", "Other Notifications", "I have memories on this day in previous years", "MoEHeadsUpChannel",
+            "Notifications", "All Notifications", "General Notifications",
+        )
+        for (name in channels) assertEquals(name, 0, NoticeRules.signals(event(channelName = name, importance = 4), 7))
+    }
+
     // when to flag
 
     private fun rows(vararg ago: Pair<Long, Int>) = ago.map { (minutes, signals) -> NoticeRow(now.minus(Duration.ofMinutes(minutes)), signals) }
