@@ -6,6 +6,7 @@ package com.aegida.core.model
  */
 object ScareWords {
     val REGEX = Regex(
-        """(?i)\b(virus(es)?|infected|malware|hacked|trojan|spyware)\b|battery (is )?damaged|security (alert|warning)|clean (your|now|it)|your (phone|device) (is|has been)""",
+        """(?i)\b(virus(es)?|infected|malware|hacked|trojan|spyware)\b|battery (is )?damaged|security (alert|warning)""" +
+            """|clean (your|now|it)|your (phone|device) (is|has been)""",
     )
 }

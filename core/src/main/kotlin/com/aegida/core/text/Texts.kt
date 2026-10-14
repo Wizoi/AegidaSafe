@@ -1,5 +1,7 @@
 package com.aegida.core.text
 
+import com.aegida.core.text.AddressWords.isOrdinaryWord
+import com.aegida.core.text.AddressWords.looksLikeAddress
 import com.aegida.core.url.HostMask
 import com.aegida.core.url.Links
 
@@ -23,11 +25,14 @@ object Texts {
         const val CONFIRMED = "%1\$s confirmed the change Aegida asked about. Nothing more to do."
         /** For urgent kinds: it could be a scammer coaching the owner, so it never says everything is fine. */
         const val CONFIRMED_URGENT = "%1\$s confirmed the change Aegida asked about. If you were not expecting it, please call %1\$s."
-        const val CHANGED = "%1\$s picked a different guardian in Aegida. You will not get messages about %1\$s's phone from now on. If you did not expect this, please call %1\$s."
+        const val CHANGED = "%1\$s picked a different guardian in Aegida. You will not get messages about %1\$s's phone from now on. " +
+            "If you did not expect this, please call %1\$s."
         /** %1 the owner, %2 the app. Sent when the owner tells Aegida an app is fine (finding #92); the guardian is always told. */
-        const val ALLOWED = "%1\$s told Aegida that an app (“%2\$s”) is fine, so Aegida will stop warning about it. If that surprises you, it may be a good time to ask %1\$s."
+        const val ALLOWED = "%1\$s told Aegida that an app (“%2\$s”) is fine, so Aegida will stop warning about it. " +
+            "If that surprises you, it may be a good time to ask %1\$s."
         /** The same for an app with no name: its package name looks like a web address and is never sent (findings #98). */
-        const val ALLOWED_NO_NAME = "%1\$s told Aegida that an app is fine, so Aegida will stop warning about it. If that surprises you, it may be a good time to ask %1\$s."
+        const val ALLOWED_NO_NAME = "%1\$s told Aegida that an app is fine, so Aegida will stop warning about it. " +
+            "If that surprises you, it may be a good time to ask %1\$s."
         const val NOT_CHECKED_IN = "Aegida hasn't checked in on %1\$s's phone for 2 days. The phone may be off or asleep. It may be a good time to call %1\$s."
     }
 
@@ -106,7 +111,9 @@ object Texts {
          * like an address at all (see [looksLikeAddress]) shows as "(link)" whole. Only an ordinary word with a dot stays (findings #99-#101).
          */
         fun withoutLinks(text: String): String =
-            com.aegida.core.url.LinkText.prepare(text).split(WORD_GAPS).joinToString(" ") { word -> if (looksLikeAddress(word) && !isOrdinaryWord(word)) LINK_REMOVED else word }
+            com.aegida.core.url.LinkText.prepare(text).split(WORD_GAPS).joinToString(" ") { word ->
+                if (looksLikeAddress(word) && !isOrdinaryWord(word)) LINK_REMOVED else word
+            }
 
         /**
          * An app's label as it may be sent off the phone. After the same preparation, a word that looks like an address is sent as the
@@ -123,31 +130,7 @@ object Texts {
                 },
             )
 
-        /** Fails closed: a scheme, a dot followed by two letters, an IPv4 address, or anything the link finder sees. */
-        private fun looksLikeAddress(word: String): Boolean =
-            word.contains("://") || DOT_LETTERS.containsMatchIn(word) || IPV4.containsMatchIn(word) || Links.findThorough(word).isNotEmpty()
-
-        /**
-         * "Mr.Smith", "St.Louis", "held.Please" (no space after a full stop): plain ASCII, two parts, no scheme, path or @, the first a
-         * title or a lowercase word, and the ending a capitalised word in no IANA top-level-domain list. Only for what Mom sees.
-         */
-        private fun isOrdinaryWord(word: String): Boolean {
-            val w = word.trim { !it.isLetterOrDigit() }
-            if (w.any { it.code > 127 } || w.any { it in "/?@:" }) return false
-            val parts = w.split('.')
-            if (parts.size != 2) return false
-            val (first, ending) = parts
-            if (ending.length < 2 || !ending.first().isUpperCase() || !ending.drop(1).all { it.isLowerCase() }) return false
-            if (com.aegida.core.url.TopLevelDomains.isDomain(ending)) return false
-            return first in TITLES || (first.isNotEmpty() && first.all { it.isLowerCase() })
-        }
-
         private val WORD_GAPS = Regex("""[\s\p{Z}]+""")
-
-        /** A dot and two letters, with any marks between them ("evil.ćom" too, findings #102). */
-        private val DOT_LETTERS = Regex("""\.\p{M}*\p{L}(\p{M}*\p{L})+""")
-        private val IPV4 = Regex("""\d{1,3}(\.\d{1,3}){3}""")
-        private val TITLES = setOf("Mr", "Mrs", "Ms", "Dr", "St", "Mt", "Jr", "Sr", "Ft")
 
         /** "It said: “…”" for what a website's notification said (its title), cleaned and cut short. */
         fun saidLine(title: String?): String? {
@@ -230,7 +213,8 @@ object Texts {
         const val INVITE_NO_EMAIL_APP = "This phone has no email app set up. Ask a guardian to help."
 
         const val ALERTS_TITLE = "Let Aegida tell your guardian about serious problems"
-        const val ALERTS_BODY = "For example: \"A website was sending fake warnings to Ruth's phone. Aegida hid them.\" It never sends your messages, calls or where you are."
+        const val ALERTS_BODY = "For example: \"A website was sending fake warnings to Ruth's phone. Aegida hid them.\" " +
+            "It never sends your messages, calls or where you are."
         const val ALERTS_YES = "Yes, tell my guardian"
         const val ALERTS_NO = "No, I'll tell them myself"
 
@@ -245,20 +229,26 @@ object Texts {
         const val ACCESS_DONE = "Aegida can see your notifications."
         const val BANNERS_DONE = "Aegida can warn you."
         const val ACCESS_SKIP_TITLE = "Skip this step?"
-        const val ACCESS_SKIP_BODY = "Without this, Aegida can't see scam links in your messages. If you chose to tell your guardian about problems, they will be told this is off."
+        const val ACCESS_SKIP_BODY = "Without this, Aegida can't see scam links in your messages. " +
+            "If you chose to tell your guardian about problems, they will be told this is off."
         const val ACCESS_SKIP_BACK = "Go back"
         const val ACCESS_SKIP_ANYWAY = "Skip anyway"
 
         const val FILTER_TITLE = "Block scam websites"
         const val FILTER_BODY = "Your phone can refuse to open known scam websites. It takes one setting."
         const val FILTER_COPY_AND_OPEN = "Copy the address and open settings"
-        const val FILTER_STEPS = "1. Tap the big button below. It copies the address and opens Settings.\n2. Find Private DNS. It is usually under Network or Connections, then More or Advanced.\n3. Choose the hostname option.\n4. Press and hold in the box, tap Paste, and the address is filled in. (It is %s.)\n5. Tap Save, then come back here."
+        const val FILTER_STEPS = "1. Tap the big button below. It copies the address and opens Settings.\n" +
+            "2. Find Private DNS. It is usually under Network or Connections, then More or Advanced.\n" +
+            "3. Choose the hostname option.\n" +
+            "4. Press and hold in the box, tap Paste, and the address is filled in. (It is %s.)\n" +
+            "5. Tap Save, then come back here."
         const val FILTER_ON = "Website protection is on."
         const val FILTER_NOT_YET = "Not on yet. When you're done, come back here."
         const val FILTER_CHECK = "Check it"
 
         const val BLOCKER_TITLE = "One more switch to try"
-        const val BLOCKER_BODY = "Some Samsung phones have a switch called Auto Blocker. It helps stop bad apps. Aegida can't see whether it is on, so it will never say it is."
+        const val BLOCKER_BODY = "Some Samsung phones have a switch called Auto Blocker. It helps stop bad apps. " +
+            "Aegida can't see whether it is on, so it will never say it is."
         const val BLOCKER_SHOW = "Show me"
         const val BLOCKER_IS_ON = "I turned it on"
 
@@ -284,12 +274,14 @@ object Texts {
         const val CREDITS_TITLE = "Where the lists come from"
         const val LISTS_UPDATED = "Lists updated %s."
         const val LISTS_NOT_YET = "The lists have not been downloaded yet."
-        const val CREDITS = "Scam websites: Phishing.Database (MIT license). Spying apps: Stalkerware Indicators by Echap (CC BY 4.0). Both are stored in a shortened, scrambled form."
+        const val CREDITS = "Scam websites: Phishing.Database (MIT license). Spying apps: Stalkerware Indicators by Echap (CC BY 4.0). " +
+            "Both are stored in a shortened, scrambled form."
         const val RESEND_INVITE = "Send the invitation again"
         const val CHANGE_GUARDIAN = "Pick a different guardian"
         const val CHANGE_GUARDIAN_TITLE = "Pick a new guardian"
         const val CHANGE_GUARDIAN_POPUP_TITLE = "Please tell %s"
-        const val CHANGE_GUARDIAN_POPUP_BODY = "Aegida will send %s a short message that you changed your guardian. Please tell them yourself too, so they aren't left wondering."
+        const val CHANGE_GUARDIAN_POPUP_BODY = "Aegida will send %s a short message that you changed your guardian. " +
+            "Please tell them yourself too, so they aren't left wondering."
         const val CHANGE_GUARDIAN_POPUP_OK = "I will"
         const val CHANGE_GUARDIAN_POPUP_BACK = "Go back"
     }
@@ -300,14 +292,17 @@ object Texts {
         const val SUBJECT = "%s has picked you as a guardian"
         const val SUBJECT_NO_NAME = "You have been picked as a guardian"
         const val BODY = "Hi %s,\n\n" +
-            "I've picked you as my guardian. If I have switched on “Tell my guardian about serious problems” in my Aegida app, you will get a first message saying it is set up, and then a message if my phone needs help. If it has not come within a day of adding the name, please ask me.\n\n" +
+            "I've picked you as my guardian. If I have switched on “Tell my guardian about serious problems” in my Aegida app, " +
+            "you will get a first message saying it is set up, and then a message if my phone needs help. " +
+            "If it has not come within a day of adding the name, please ask me.\n\n" +
             "1. Get the free ntfy app.\n" +
             "   Android: https://play.google.com/store/apps/details?id=io.heckel.ntfy\n" +
             "   iPhone: https://apps.apple.com/app/ntfy/id1625396347\n\n" +
             "2. Open ntfy, tap +, then copy this name and paste it:\n" +
             "   %s\n" +
             "   (On Android you can instead tap this link once ntfy is installed: ntfy://ntfy.sh/%s)\n\n" +
-            "3. Optional, to read them on a computer too: open https://ntfy.sh/%s in a web browser. It only shows messages while that page is open, so it does not replace step 2.\n\n" +
+            "3. Optional, to read them on a computer too: open https://ntfy.sh/%s in a web browser. " +
+            "It only shows messages while that page is open, so it does not replace step 2.\n\n" +
             "Please save this email. The name above is all you need to get my messages on another phone or computer later.\n\n" +
             "Please keep this name private. Anyone who has it can see my messages.\n\n" +
             "This was written by my Aegida app.\n%s"

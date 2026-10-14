@@ -19,7 +19,8 @@ object HistoryDetail {
                 Texts.Home.adviceFrom(evidence[Evidence.APP_LABEL]),
                 Texts.Home.senderLine(evidence[Evidence.MESSAGE_TITLE]),
                 Texts.Home.saysLine(evidence[Evidence.MESSAGE_TEXT]),
-                evidence[Evidence.HOST]?.takeIf { it.isNotBlank() }?.let { Texts.History.LINK_WENT.format(it) }, // on the phone, whole; masked only when sent (Kevin, Oct 11)
+                // On the phone, whole; masked only when sent (Kevin, Oct 11).
+                evidence[Evidence.HOST]?.takeIf { it.isNotBlank() }?.let { Texts.History.LINK_WENT.format(it) },
             )
             Problem.SiteNotifications, Problem.NewWebsiteNotifications -> listOf(
                 evidence[Evidence.SITE]?.let(HostMask::hostOf)?.takeIf { it.isNotEmpty() }?.let { Texts.History.WEBSITE_WAS.format(it) },

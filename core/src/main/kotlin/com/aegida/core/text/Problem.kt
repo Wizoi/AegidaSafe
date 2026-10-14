@@ -14,11 +14,6 @@ enum class Problem(
     private val guardianTemplate: String?,
     /** The History line, past tense, with no instruction in it. */
     val whatHappened: String,
-    /**
-     * Aegida hides the notification that caused it. Only website notifications: they are the fake virus
-     * pop-ups. A message with a scam link is left in place (it may be from family) and the owner gets a warning.
-     */
-    val hidesNotification: Boolean = false,
     /** What "Fix my phone" does for it. */
     val fix: Fix = Fix.None,
     /**
@@ -33,7 +28,7 @@ enum class Problem(
         "An app keeps showing %1\$s ads as notices. Aegida told %1\$s how to turn them off.",
         whatHappened = "An app sent ads as notices",
         fix = Fix.AppNotices,
-        quietAfterSeen = java.time.Duration.ofDays(7),
+        quietAfterSeen = ONE_WEEK,
     ),
     /**
      * Not a warning: the owner told Aegida an app is fine (finding #93). Used only for her History line and for the note to the
@@ -59,7 +54,6 @@ enum class Problem(
         "A website was sending you warnings. They are not real. Aegida hid them. Tap to stop that website.",
         "A website was sending fake warnings to %s's phone. Aegida hid them.",
         whatHappened = "A website sent fake warnings",
-        hidesNotification = true,
         fix = Fix.SettingsThenAcknowledge,
     ),
     NewWebsiteNotifications(
@@ -67,10 +61,9 @@ enum class Problem(
         "A website you have not used before wants to send you notifications. Was that you?",
         "A website that was not there before started sending notifications on %1\$s's phone. Aegida asked %1\$s: “Was that you?”",
         whatHappened = "A new website started sending notifications",
-        hidesNotification = true,
         fix = Fix.ConfirmEvent,
         // "No" does not stop a site sending; the same question is not asked again for a week (findings #94).
-        quietAfterSeen = java.time.Duration.ofDays(7),
+        quietAfterSeen = ONE_WEEK,
     ),
     WebsiteFilterOff(
         Severity.NeedsTap,
@@ -180,6 +173,12 @@ enum class Problem(
     ;
 
     /**
+     * Aegida hides the notification that caused it. Only website notifications: they are the fake virus
+     * pop-ups. A message with a scam link is left in place (it may be from family) and the owner gets a warning.
+     */
+    val hidesNotification: Boolean get() = this == SiteNotifications || this == NewWebsiteNotifications
+
+    /**
      * The note for the guardian. For a scam link or a look-alike it also names the app the message came from and a masked
      * web address; for a website that was sending notifications, a masked address of the site. Only those, nothing of the
      * message. [appLabel] is cleaned and cut short because an app picks its own label.
@@ -200,6 +199,8 @@ enum class Problem(
     }
 
 }
+
+private val ONE_WEEK: java.time.Duration = java.time.Duration.ofDays(7)
 
 /** How a problem is put right, so the screens do the same thing for it every time. */
 enum class Fix {

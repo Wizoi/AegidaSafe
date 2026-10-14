@@ -57,12 +57,13 @@ object NoticeRules {
 
     /** Whether this notice is one Aegida counts at all. [roleApps] are the default messages, phone and browser apps. */
     fun counted(event: NotificationEvent, apps: List<InstalledApp>, roleApps: Set<String>): Boolean {
-        if (event.packageName == Aegida.PACKAGE || event.packageName in roleApps) return false
-        if (event.channelId?.startsWith("web:") == true) return false
-        if (event.category in REAL_KINDS || event.ongoing || event.conversation || event.groupSummary) return false
-        if (apps.firstOrNull { it.packageName == event.packageName }?.isSystem == true) return false
-        return true
+        if (event.packageName == Aegida.PACKAGE || event.packageName in roleApps || event.channelId?.startsWith("web:") == true) return false
+        return !isNotAnAppNotice(event) && apps.firstOrNull { it.packageName == event.packageName }?.isSystem != true
     }
+
+    /** A notice the app labels as something real, a running service, a chat or a group summary. */
+    private fun isNotAnAppNotice(event: NotificationEvent) =
+        event.category in REAL_KINDS || event.ongoing || event.conversation || event.groupSummary
 
     /** The notice's score: 0 without a content sign; otherwise its content signs plus its context signs (1 to 6). [appCategory] may be null. */
     fun signals(event: NotificationEvent, appCategory: Int?): Int {
