@@ -37,7 +37,7 @@ class AlertPipeline @Inject constructor(
     private val outbox: Outbox,
     private val clock: Clock,
 ) {
-    suspend fun handle(current: List<Finding>, ran: Set<DetectorId>): PipelineResult {
+    suspend fun handle(current: List<Finding>, ran: Set<DetectorId>, installed: Set<String> = emptySet()): PipelineResult {
         val now = clock.now()
         var alerted = 0
         var notReached = 0
@@ -83,7 +83,7 @@ class AlertPipeline @Inject constructor(
         resolved.forEach { finding ->
             findings.put(finding.copy(state = FindingState.Resolved, lastSeen = now))
             owner.clear(finding.key)
-            history.add(HistoryEntry(now, finding.key.problem, Outcome.Fixed))
+            history.add(HistoryEntry(now, finding.key.problem, closedOutcome(finding, installed)))
         }
         notReached += remindAboutOldWarnings(now)
         return PipelineResult(alerted = alerted, resolved = resolved.size, guardiansNotReached = notReached, quieted = quieted, openLong = openLong)
@@ -228,7 +228,16 @@ class AlertPipeline @Inject constructor(
     private fun withFirstSeenPutRight(finding: Finding, now: Instant): Finding =
         if (finding.firstSeen.isAfter(now.plus(CLOCK_SKEW))) finding.copy(firstSeen = now) else finding
 
+
     companion object {
+        /**
+         * What History says when a question closes by itself. A new-app question whose app is still on the phone closed because Aegida
+         * learned more (an app from the phone maker's own store, findings #106), not because she did anything: "No longer a concern."
+         * Everything else that stops appearing was changed back, so "Fixed." [installed] is the package names on the phone now.
+         */
+        internal fun closedOutcome(finding: Finding, installed: Set<String>): Outcome =
+            if (finding.key.problem == Problem.NewAppOutsidePlay && finding.key.subject in installed) Outcome.NoLongerAConcern else Outcome.Fixed
+
         private val BACKOFF_FIRST: Duration = Duration.ofHours(24)
         private val BACKOFF_LOOKBACK: Duration = Duration.ofDays(7)
         private val REMIND_AFTER: Duration = Duration.ofHours(24)

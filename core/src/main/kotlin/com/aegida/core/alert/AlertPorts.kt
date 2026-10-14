@@ -45,6 +45,8 @@ enum class Outcome(val forMom: String) {
     GuardianNeverReached("Aegida could not reach your guardian, and gave up."),
     GuardianReminded("Your guardian was reminded."),
     Fixed("Fixed."),
+    /** The question closed though nothing on the phone changed: Aegida learned the app was fine (Kevin, Oct 14). */
+    NoLongerAConcern("No longer a concern."),
     Acknowledged("You saw it."),
 }
 

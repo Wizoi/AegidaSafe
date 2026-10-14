@@ -46,7 +46,6 @@
     <ID>MaxLineLength:HistoryDetail.kt$HistoryDetail$evidence[Evidence.HOST]?.takeIf { it.isNotBlank() }?.let { Texts.History.LINK_WENT.format(it) }</ID>
     <ID>MaxLineLength:HistoryDetailTest.kt$HistoryDetailTest$mapOf(Evidence.APP_LABEL to "Messages", Evidence.MESSAGE_TITLE to "Chase Bank", Evidence.MESSAGE_TEXT to "Refund: paypa1-help.example/claim now", Evidence.HOST to "paypa1-help.example")</ID>
     <ID>MaxLineLength:HistoryRows.kt$HistoryRows$(problem.hidesNotification &amp;&amp; problem.fix != com.aegida.core.text.Fix.ConfirmEvent)</ID>
-    <ID>MaxLineLength:HistoryRows.kt$HistoryRows$private val OUTCOME_ORDER = listOf(Outcome.OwnerWarned, Outcome.GuardianTold, Outcome.GuardianNotReached, Outcome.GuardianNeverReached, Outcome.GuardianReminded, Outcome.Acknowledged, Outcome.Fixed)</ID>
     <ID>MaxLineLength:LinkTextScenariosTest.kt$LinkTextScenariosTest$assertEquals("Mr.Smith says your parcel is held.Please call St.Louis", Texts.Home.withoutLinks("Mr.Smith says your parcel is held.Please call St.Louis"))</ID>
     <ID>MaxLineLength:LinksDifferentialTest.kt$LinksDifferentialTest$val alphabet = listOf("a", "b", "c", "1", "9", ".", ".", "-", "/", ":", "@", " ", "h", "t", "p", "s", "://", "http://", "HTTPS://", "_", "'","\n", "?", "com", "x")</ID>
     <ID>MaxLineLength:NoticeRulesTest.kt$NoticeRulesTest$assertEquals("a bank", 0, NoticeRules.signals(event(title = "Card purchase", text = "\$42.10 at Grocer. Free ATM withdrawals this month", channelName = "Transactions", importance = 4), 7))</ID>

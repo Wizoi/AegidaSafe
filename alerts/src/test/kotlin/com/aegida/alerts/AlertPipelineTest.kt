@@ -159,9 +159,28 @@ class AlertPipelineTest {
         pipeline.handle(before, setOf(DetectorId.NewApp))
 
         val after = check(atSetup.copy(apps = listOf(app), makerStores = setOf(store)))
-        val result = pipeline.handle(after, setOf(DetectorId.NewApp))
+        val result = pipeline.handle(after, setOf(DetectorId.NewApp), installed = setOf(app.packageName))
         assertEquals(1, result.resolved)
         assertEquals(FindingState.Resolved, findings.rows[before.single().key]!!.state)
+        // Kevin, Oct 14: she did nothing, so History does not say "Fixed."
+        assertEquals(Outcome.NoLongerAConcern, history.entries.last().outcome)
+        assertEquals("No longer a concern.", history.entries.last().outcome.forMom)
+    }
+
+    /** GS2's other side: the app she was asked about is gone, so the question closed because she removed it. */
+    @Test fun aNewAppQuestionClosedBecauseTheAppWasRemovedSaysFixed() = runTest {
+        val app = com.aegida.core.model.InstalledApp("org.new.byhand", "By hand", null, false)
+        val atSetup = com.aegida.core.model.Snapshot(
+            now, com.aegida.core.model.PrivateDns.Automatic, null, true, true,
+            com.aegida.core.oem.Reading.NotPresent, com.aegida.core.oem.Reading.NotPresent,
+        )
+        val baseline = com.aegida.core.model.Baseline.of(atSetup)
+        fun check(phone: com.aegida.core.model.Snapshot) =
+            com.aegida.detectors.NewAppDetector()
+                .evaluate(com.aegida.detectors.Inputs(phone, now, com.aegida.core.model.Setup.NotDone, null, null, null, baseline = baseline))
+        pipeline.handle(check(atSetup.copy(apps = listOf(app))), setOf(DetectorId.NewApp), installed = setOf(app.packageName))
+        pipeline.handle(check(atSetup), setOf(DetectorId.NewApp), installed = emptySet())
+        assertEquals(Outcome.Fixed, history.entries.last().outcome)
     }
 
     @Test fun theGuardianMessageNeverContainsTheLinkOrEvidence() = runTest {

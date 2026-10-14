@@ -3,7 +3,7 @@
   <ManuallySuppressedIssues/>
   <CurrentIssues>
     <ID>ComplexCondition:AlertPipeline.kt$AlertPipeline$stored != null &amp;&amp; quiet != null &amp;&amp; now.isBefore(stored.lastSeen.plus(quiet)) &amp;&amp; !stored.lastSeen.isAfter(now.plus(CLOCK_SKEW))</ID>
-    <ID>CyclomaticComplexMethod:AlertPipeline.kt$AlertPipeline$suspend fun handle(current: List&lt;Finding&gt;, ran: Set&lt;DetectorId&gt;): PipelineResult</ID>
+    <ID>CyclomaticComplexMethod:AlertPipeline.kt$AlertPipeline$suspend fun handle(current: List&lt;Finding&gt;, ran: Set&lt;DetectorId&gt;, installed: Set&lt;String&gt; = emptySet()): PipelineResult</ID>
     <ID>CyclomaticComplexMethod:OutboxFlusher.kt$OutboxFlusher$suspend fun flush(): Int</ID>
     <ID>LongParameterList:AlertPipeline.kt$AlertPipeline$( private val findings: FindingStore, private val owner: OwnerNotifier, private val history: HistoryLog, private val guardians: GuardianSettings, private val ntfy: NtfySender, private val outbox: Outbox, private val clock: Clock, )</ID>
     <ID>LongParameterList:DailyCheck.kt$DailyCheck$( private val feedUpdater: FeedUpdater, private val runner: CheckRunner, private val history: HistoryLog, private val findings: FindingStore, private val checkLog: CheckLog, private val feedStore: FeedStore, private val switch: DeadMansSwitch, private val guardianAlerts: GuardianAlerts, private val gate: AlertGate, private val notices: NoticeLog = NoticeLog.None, private val clock: Clock, )</ID>

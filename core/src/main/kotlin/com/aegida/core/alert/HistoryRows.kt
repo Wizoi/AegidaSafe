@@ -6,7 +6,10 @@ import java.time.Instant
 data class HistoryRow(val at: Instant, val title: String, val detail: String, val handled: Boolean, val facts: String? = null)
 
 object HistoryRows {
-    private val OUTCOME_ORDER = listOf(Outcome.OwnerWarned, Outcome.GuardianTold, Outcome.GuardianNotReached, Outcome.GuardianNeverReached, Outcome.GuardianReminded, Outcome.Acknowledged, Outcome.Fixed)
+    private val OUTCOME_ORDER = listOf(
+        Outcome.OwnerWarned, Outcome.GuardianTold, Outcome.GuardianNotReached, Outcome.GuardianNeverReached, Outcome.GuardianReminded,
+        Outcome.Acknowledged, Outcome.Fixed, Outcome.NoLongerAConcern,
+    )
 
     /**
      * Newest first. Entries the pipeline wrote for the same problem at the same moment (the warning to the owner
@@ -22,7 +25,7 @@ object HistoryRows {
                     title = problem.whatHappened,
                     detail = outcomes.joinToString(" ") { it.forMom },
                     // A hidden fake warning needs nothing, but a hidden "Was that you?" still does (findings #94); an Info line never needs her.
-                    handled = Outcome.Fixed in outcomes || Outcome.Acknowledged in outcomes ||
+                    handled = Outcome.Fixed in outcomes || Outcome.Acknowledged in outcomes || Outcome.NoLongerAConcern in outcomes ||
                         (problem.hidesNotification && problem.fix != com.aegida.core.text.Fix.ConfirmEvent) || problem.severity == com.aegida.core.model.Severity.Info,
                     facts = group.firstNotNullOfOrNull { it.detail },
                 )
