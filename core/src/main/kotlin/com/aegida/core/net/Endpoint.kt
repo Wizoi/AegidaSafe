@@ -50,10 +50,11 @@ value class NtfyTopic(val value: String) {
 
     companion object {
         private const val MIN_LENGTH = 32
-        private const val ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+        /** 57 characters: no I, l, 1, O or 0, so a guardian typing the name cannot pick the wrong one (findings #110). Names already given out are never re-checked against this. */
+        private const val ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789"
         private const val RANDOM_LENGTH = 40
 
-        /** "aegida_" plus 40 random letters and digits (about 238 bits). Pass a SecureRandom; the default is one. */
+        /** "aegida_" plus 40 random letters and digits without look-alikes (57 characters, about 233 bits). Pass a SecureRandom; the default is one. */
         fun generate(random: java.util.Random = java.security.SecureRandom()): NtfyTopic =
             NtfyTopic("aegida_" + String(CharArray(RANDOM_LENGTH) { ALPHABET[random.nextInt(ALPHABET.length)] }))
     }

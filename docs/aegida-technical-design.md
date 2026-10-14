@@ -187,7 +187,7 @@ Scenario scripts the emulator can drive through `adb` (each is a repeatable test
 ### Fixtures from the real thing
 Capture `dumpsys package`, `dumpsys notification`, `settings get`, role holders, real notification payloads, real feed files **from the emulator first, then diff against Kevin's Pixel once**; differences go in `emulator-vs-device.md` (the running list of gaps, and where section 8a comes from). Samsung fixtures are added only when a Samsung device is available and are labelled as such. Tests parse fixtures with the *same* adapters production uses. A fixture that no real device produces is a review finding (TagPup #246/#247, #590).
 
-**Snapshots vs hand-built scenarios** (SmugView rule): recorded payloads for *parsing* tests (feed formats: Phishing.Database, URLhaus, Echap, Safe Browsing responses; ntfy responses); hand-written scenarios for *logic* tests (new app arrives with a remote-control cert; DNS switched off after baseline).
+**Snapshots vs hand-built scenarios** (SmugView rule): recorded payloads for *parsing* tests (feed formats: Phishing.Database, Echap; ntfy responses); hand-written scenarios for *logic* tests (new app arrives with a remote-control cert; DNS switched off after baseline).
 
 **Every fix:** write the test, run it on the old code and see it fail, then fix. No `git stash`; comment out the fix or use a worktree.
 

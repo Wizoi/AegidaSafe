@@ -17,4 +17,19 @@ class EndpointTest {
         assertThrows(IllegalArgumentException::class.java) { NtfyTopic("short") }
         assertThrows(IllegalArgumentException::class.java) { NtfyTopic("evil.example/" + "a".repeat(40)) }
     }
+
+    @Test fun newPrivateNamesNeverHoldLettersThatLookAlike() {
+        val random = java.util.Random(7)
+        val lookAlikes = "Il1O0"
+        repeat(2000) {
+            val random40 = NtfyTopic.generate(random).value.removePrefix("aegida_")
+            assertEquals(40, random40.length)
+            assertEquals("found a look-alike in $random40", null, random40.firstOrNull { it in lookAlikes })
+        }
+    }
+
+    @Test fun aNameAlreadyGivenToAGuardianWithLookAlikesStillWorks() {
+        val old = "aegida_" + "Il1O0Il1O0".repeat(4)
+        assertEquals("https://ntfy.sh/$old", Endpoint.Ntfy(NtfyTopic(old)).url)
+    }
 }

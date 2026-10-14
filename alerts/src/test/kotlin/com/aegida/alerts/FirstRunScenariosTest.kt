@@ -147,8 +147,8 @@ class FirstRunScenariosTest {
     }
 
     /**
-     * Today the private name may hold letters that look alike (I, l, 1, O, 0): NtfyTopic.generate draws from all 62. The guardian is told
-     * to copy and paste it, or tap the link; a guardian who types it on another device could pick the wrong one (finding #110).
+     * A name given out before finding #110 may hold letters that look alike (I, l, 1, O, 0). It is never changed, so it must
+     * still be sent, and spelled in the invitation, letter for letter. New names no longer use those letters.
      */
     @Test fun aPrivateNameWithLookAlikeLettersReachesTheGuardianExactlyAsTheInvitationSpellsIt() = runTest {
         val lookAlike = NtfyTopic("aegida_" + "Il1IO0lO".repeat(5))
@@ -159,8 +159,6 @@ class FirstRunScenariosTest {
         assertTrue("the invitation spells the same name, as a name and as both links", phone.invitation().let {
             it.contains("\n   ${lookAlike.value}\n") && it.contains("ntfy://ntfy.sh/${lookAlike.value}") && it.contains("https://ntfy.sh/${lookAlike.value}")
         })
-        val drawnFrom = (1..200).flatMap { NtfyTopic.generate().value.removePrefix("aegida_").toList() }.toSet()
-        assertTrue("today the generator can use look-alike letters", drawnFrom.any { it in "Il1O0" })
     }
 
     @Test fun whenSheIsOfflineAtTheAlertsStepTheFirstMessageIsSentByTheNextDailyCheck() = runTest {
