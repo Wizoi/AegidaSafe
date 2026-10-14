@@ -1,6 +1,7 @@
 package com.aegida.detectors
 
 import com.aegida.core.feed.FeedCodec
+import com.aegida.testkit.aChromePopup
 import com.aegida.core.feed.FeedSource
 import com.aegida.core.feed.ThreatFeed
 import com.aegida.core.health.CheckLog
@@ -53,12 +54,5 @@ object Fixtures {
         NotificationEvent("0|com.android.shell|0|spike1|2000", "com.android.shell", "shell_cmd", title, text, now)
 
     /** The fixture site's notification exactly as Chrome posted it on the emulator (findings #18). */
-    val chromeSiteNotification = NotificationEvent(
-        key = "0|com.android.chrome|-1|p#http://localhost:8765/#1aegida-fixture|10150",
-        packageName = "com.android.chrome",
-        channelId = "web:http://localhost:8765;13435952006713133",
-        title = "VIRUS DETECTED! Your phone is infected",
-        text = "Tap now to clean your device (Aegida test fixture)",
-        postedAt = now,
-    )
+    val chromeSiteNotification = aChromePopup(now, text = "Tap now to clean your device (Aegida test fixture)")
 }

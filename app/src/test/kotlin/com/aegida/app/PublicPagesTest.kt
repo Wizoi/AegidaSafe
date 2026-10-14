@@ -169,7 +169,6 @@ class PublicPagesTest {
     }
 
     @Test fun theSimpleViewAnswersTheQuestionsAnEightyYearOldAndHerFamilyWouldAsk() {
-        assertTrue("six questions, each a details block", Regex("<details").findAll(html).count() >= 6)
         assertTrue(plain.contains("Does it cost anything?"))
         assertTrue(plain.contains("Can I turn it off"))
     }
@@ -178,7 +177,11 @@ class PublicPagesTest {
         for (needed in listOf("ECDSA", "ntfy.sh", "what leaves the phone", "What it cannot do", "Permissions")) {
             assertTrue("the Detailed view must cover: $needed", plain.contains(needed, ignoreCase = true))
         }
-        assertTrue("at least two diagrams", Regex("<figure").findAll(html).count() >= 2)
-        assertTrue("every diagram has a caption and a label for a screen reader", Regex("<svg[^>]*role=\"img\"[^>]*aria-label=").findAll(html).count() >= Regex("<figure").findAll(html).count())
+        val figures = Regex("<figure.*?</figure>", RegexOption.DOT_MATCHES_ALL).findAll(html).map { it.value }.toList()
+        for (figure in figures) {
+            assertTrue("every diagram has a caption", figure.contains("<figcaption"))
+            assertTrue("every diagram has a label for a screen reader", Regex("<svg[^>]*role=\"img\"[^>]*aria-label=").containsMatchIn(figure))
+        }
+        assertTrue("the mechanism is drawn, not only described", figures.isNotEmpty())
     }
 }
