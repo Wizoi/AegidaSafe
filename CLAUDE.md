@@ -3,7 +3,8 @@
 Short on purpose. Every rule here comes from a lesson in SmugView or TagPup. The reasoning is in
 [docs/aegida-technical-design.md](docs/aegida-technical-design.md); what the app does is in
 [docs/product-brief.md](docs/product-brief.md); why decisions were made is in
-[docs/decisions.md](docs/decisions.md). Findings live in [docs/findings.md](docs/findings.md).
+[docs/decisions.md](docs/decisions.md). Open findings live in [docs/findings.md](docs/findings.md);
+closed ones in [docs/findings-finished.md](docs/findings-finished.md).
 
 Aegida is an Android app that helps an 80+ parent keep her phone safe and tells her family
 "guardians" when something serious happens. The user cannot follow technical prompts. Plain words, big
@@ -61,7 +62,9 @@ New code goes where design section 2 puts it. Modules (compile-time layering, im
   `REPLACE` is not append).
 - **Design for how it fails first:** offline, killed mid-check, two triggers at once, permission revoked,
   put to sleep by the phone. Decide what Mom sees in each state.
-- **Record every review finding in `docs/findings.md` before fixing it.**
+- **Record every review finding in `docs/findings.md` before fixing it.** When it is fixed or decided, move its row to
+  `docs/findings-finished.md` in the same change. Close what is found: no baselines or grandfathered issues without a strong,
+  stated reason (Kevin, Oct 14).
 - **Ask before one-way choices:** a Room migration, a new default Mom did not choose, changing what
   "alert" or "resolved" means, anything that sends to guardians.
 
