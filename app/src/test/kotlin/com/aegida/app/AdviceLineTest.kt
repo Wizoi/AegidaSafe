@@ -47,7 +47,7 @@ class AdviceLineTest {
     }
 
     @Test fun aLongMessageIsCutShortAndALinkNeverShowsAsText() {
-        val line = Texts.Home.saysLine("Hello https://evil.example/x?token=1 and " + "word ".repeat(60), "evil.example")!!
+        val line = Texts.Home.saysLine("Hello https://evil.example/x?token=1 and " + "word ".repeat(60))!!
         assertEquals(false, line.contains("evil.example") || line.contains("http"))
         assertEquals(true, line.length <= 120)
     }

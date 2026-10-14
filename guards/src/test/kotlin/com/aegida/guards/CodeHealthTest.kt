@@ -30,8 +30,6 @@ class FileSizeTest {
                 .toList()
         }
 
-    private fun isMain(file: File) = file.invariantSeparatorsPath.contains("/src/main/")
-
     internal fun problems(files: List<Pair<String, Int>>, limitFor: (String) -> Int, allowed: Map<String, Int>): List<String> {
         val found = files.toMap()
         val over = files.filter { (path, lines) ->

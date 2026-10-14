@@ -111,9 +111,9 @@ class LinkTextScenariosTest {
     }
 
     @Test fun aLinkIsTakenOutOfTheWordsByTheSameCodeThatFindsLinksNotByTheStoredHost() { // finding #94
-        val lookalike = Texts.Home.saysLine("Refund at \u0440\u0430ypal.com/claim now", "xn--ypal-43d9g.com")!!
+        val lookalike = Texts.Home.saysLine("Refund at \u0440\u0430ypal.com/claim now")!!
         assertFalse(lookalike, lookalike.contains("ypal"))
-        val two = Texts.Home.saysLine("Pay at evil.example/x or other-site.example/y today", "evil.example")!!
+        val two = Texts.Home.saysLine("Pay at evil.example/x or other-site.example/y today")!!
         assertFalse(two, two.contains("other-site") || two.contains("evil"))
         assertEquals("From: “Visit (link) now”", Texts.Home.senderLine("Visit paypa1-help.example now"))
     }

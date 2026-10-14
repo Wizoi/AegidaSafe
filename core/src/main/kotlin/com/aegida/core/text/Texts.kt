@@ -94,9 +94,9 @@ object Texts {
         /**
          * "It says: “...”" with the first words of the message. Every link in it is replaced by "(link)", found by the same code that
          * finds links ([Links]), so a look-alike in another alphabet or a second link is taken out too (findings #94); the rest is
-         * cleaned and cut short. [host] is no longer needed and kept for callers.
+         * cleaned and cut short.
          */
-        fun saysLine(text: String?, host: String?): String? {
+        fun saysLine(text: String?): String? {
             val clean = cleanLabel(withoutLinks(text.orEmpty()), SAYS_MAX)
             return if (clean.isEmpty()) null else SAYS_LINE.format("“$clean”")
         }

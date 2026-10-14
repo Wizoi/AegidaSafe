@@ -19,7 +19,7 @@ object AdviceLines {
             Texts.Home.adviceFrom(e[Evidence.APP_LABEL]),
             e[Evidence.MESSAGE_AT]?.toLongOrNull()?.let { TimeText.cameInLine(Instant.ofEpochMilli(it), now, zone, locale) },
             Texts.Home.senderLine(e[Evidence.MESSAGE_TITLE]),
-            Texts.Home.saysLine(e[Evidence.MESSAGE_TEXT], e[Evidence.HOST]),
+            Texts.Home.saysLine(e[Evidence.MESSAGE_TEXT]),
             Texts.Home.SCAM_ADVICE,
         )
     }

@@ -18,7 +18,7 @@ object HistoryDetail {
             Problem.ScamLink, Problem.LookalikeLink -> listOf(
                 Texts.Home.adviceFrom(evidence[Evidence.APP_LABEL]),
                 Texts.Home.senderLine(evidence[Evidence.MESSAGE_TITLE]),
-                Texts.Home.saysLine(evidence[Evidence.MESSAGE_TEXT], evidence[Evidence.HOST]),
+                Texts.Home.saysLine(evidence[Evidence.MESSAGE_TEXT]),
                 evidence[Evidence.HOST]?.takeIf { it.isNotBlank() }?.let { Texts.History.LINK_WENT.format(it) }, // on the phone, whole; masked only when sent (Kevin, Oct 11)
             )
             Problem.SiteNotifications, Problem.NewWebsiteNotifications -> listOf(
