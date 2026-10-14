@@ -1,6 +1,8 @@
 package com.aegida.alerts
 
 import com.aegida.core.alert.Guardians
+import com.aegida.testkit.aScamText
+import com.aegida.testkit.aChromePopup
 import com.aegida.core.feed.FeedSource
 import com.aegida.core.feed.ThreatFeed
 import com.aegida.core.health.Trigger
@@ -76,11 +78,9 @@ class HealthScenariosTest {
 
     private suspend fun home() = HomeState.of(findings.open(), checkLog.latest())
 
-    private val scamText = NotificationEvent("0|com.google.android.apps.messaging|7|null|10123", "com.google.android.apps.messaging", "msg", "+1 555 0100",
-        "USPS: your parcel is held. Pay the fee at https://evil.example/pay", now)
+    private val scamText = aScamText(now)
 
-    private fun newSite() = NotificationEvent("0|com.android.chrome|-1|p#https://shop.example/#1|10150", "com.android.chrome", "web:https://shop.example;1343595",
-        "Spring sale", "Our new collection is here", now)
+    private fun newSite() = aChromePopup(now, site = "https://shop.example/", title = "Spring sale", text = "Our new collection is here")
 
     @Test fun aNewWebsitesNoticeThatComesBackFromItsSnoozeIsPutAsideAgainWithoutTellingAnyoneTwice() = runTest {
         shade.connect(listener)

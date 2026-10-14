@@ -1,6 +1,7 @@
 package com.aegida.alerts
 
 import com.aegida.core.health.Trigger
+import com.aegida.testkit.aScamText
 import com.aegida.core.model.NotificationEvent
 import com.aegida.core.model.PrivateDns
 import com.aegida.core.net.BytesResult
@@ -49,8 +50,7 @@ class NetworkVsPrivacyPageTest {
         html.replace(Regex("<[^>]+>"), " ").replace("&nbsp;", " ").replace(Regex("\\s+"), " ")
     }
 
-    private val scamText = NotificationEvent("0|com.google.android.apps.messaging|7|null|10123", "com.google.android.apps.messaging", "msg", "+1 555 0100",
-        "USPS: your parcel is held. Pay the fee at https://evil.example/pay now", phone.now)
+    private val scamText = aScamText(phone.now, text = "USPS: your parcel is held. Pay the fee at https://evil.example/pay now")
 
     /** First launch, setup with the given answer, then three days: a scam text, a daily check each day, the filter turned off. */
     private suspend fun aFewDays(alertsOn: Boolean) {

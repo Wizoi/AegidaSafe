@@ -11,7 +11,6 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -59,6 +58,7 @@ class PictureBannerTest {
         assertEquals(atStart, store.reads)
     }
 
+    /** R5: posting a banner may happen on the main thread, so bitmap() and set() must return while the store is still loading (a blocking call would hang here). */
     @Test fun aPickMadeBeforeTheFirstLoadFinishesIsNotOverwrittenByTheOldStoredOne() {
         val gate = CompletableDeferred<Unit>()
         val store = object : SetupStore {
@@ -70,11 +70,5 @@ class PictureBannerTest {
         val fish = banner.bitmap()
         gate.complete(Unit)
         assertSame(fish, banner.bitmap())
-    }
-
-    /** R5: posting a banner may happen on the main thread, so it must never block on the database. */
-    @Test fun theBannerSourceDoesNotUseRunBlocking() {
-        val source = java.io.File("src/main/kotlin/com/aegida/app/ui/PictureBanner.kt").readText()
-        assertFalse(source.contains("runBlocking"))
     }
 }

@@ -56,3 +56,18 @@ an `Http` fake that never returns ntfy's 429 or models its 12-hour cache, and fi
   names a test that does not exist.
 
 Template: ID | Situation (Mom's words) | Mom sees | Guardian gets | Variants (repeat, undo, failure, hostile) | Data source | Test | Emulator | Mutant.
+
+## Phase 2 (Oct 14)
+
+- **Shape tests replaced.** `PictureBannerTest.theBannerSourceDoesNotUseRunBlocking` (read the source text) is deleted. The rule it
+  protected (posting a banner may happen on the main thread, so it must not block on the database) is already tested as behaviour by
+  `aPickMadeBeforeTheFirstLoadFinishesIsNotOverwrittenByTheOldStoredOne`: the store is held shut, and `bitmap()`/`set()` must still return
+  (a blocking call would hang the test). `bitmapNeverReadsTheStore` covers the other half. `PublicPagesTest`: the `>= 6 <details>` and
+  `>= 2 <figure>` counts are dropped; what they stood for is checked per item (every `<figure>` has a caption and a labelled `<svg>`),
+  and the Simple view's questions are still checked by their wording. Nothing else changed in what the page tests assert.
+- **Builders in plain terms.** `core/src/testFixtures/.../testkit/Builders.kt`: `aScamText()`, `aChromePopup()`, `aPlayApp()`,
+  `aGalaxyStoreApp()`, `anAppOpenedFromAFile()`, `aSystemApp()`, `anApp()`, and `GALAXY_STORE`. Shapes: Chrome's `p#<site>#<n>` key and
+  `web:<site>;<id>` channel (emulator), Google Messages' key and `msg` category, and the Galaxy Store as installer and initiating package
+  from the Samsung dumps in `build/samsung-rtl`. Used by `AppDetectorsTest` (its made-up `org.maker.store` is now the real Galaxy Store),
+  `Fixtures.chromeSiteNotification`, `CheckRunnerTest`, `HealthScenariosTest`, `NetworkVsPrivacyPageTest` (five local copies removed).
+- **Time and size.** Slowest class is 12 s (`HistoryScreenTest`), largest test file 326 lines: no split needed.

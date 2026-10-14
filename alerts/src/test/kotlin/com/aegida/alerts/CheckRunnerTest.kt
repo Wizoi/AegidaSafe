@@ -1,6 +1,8 @@
 package com.aegida.alerts
 
 import com.aegida.testkit.FakeSetupStore
+import com.aegida.testkit.aScamText
+import com.aegida.testkit.aChromePopup
 import com.aegida.testkit.FakeFeedStore
 import com.aegida.testkit.FakeCheckLog
 import com.aegida.testkit.FakeOutbox
@@ -56,19 +58,9 @@ class CheckRunnerTest {
     private fun snapshot() = Snapshot(now, dns, "com.android.chrome", true, true, Reading.NotPresent, Reading.NotPresent)
 
     // The shapes the emulator produced (findings #18): Chrome's site channel, and a shell-posted message.
-    private fun siteNotification(n: Int) = NotificationEvent(
-        key = "0|com.android.chrome|-1|p#http://localhost:8765/#$n|10150",
-        packageName = "com.android.chrome",
-        channelId = "web:http://localhost:8765;13435952006713133",
-        title = "VIRUS DETECTED! Your phone is infected",
-        text = "Tap now to clean your device",
-        postedAt = now,
-    )
+    private fun siteNotification(n: Int) = aChromePopup(now, n = n)
 
-    private val scamText = NotificationEvent(
-        "0|com.android.shell|0|spike1|2000", "com.android.shell", "shell_cmd", "Bank alert",
-        "Locked! Verify at https://login.evil.example/x", now,
-    )
+    private val scamText = aScamText(now, "https://login.evil.example/x", text = "Locked! Verify at https://login.evil.example/x", from = "Bank alert")
 
     @Test fun aFakeVirusPopUpIsHiddenAndOwnerAndTheGuardianAreTold() = runTest {
         val outcome = runner.run(Trigger.NotificationPosted, siteNotification(1))
