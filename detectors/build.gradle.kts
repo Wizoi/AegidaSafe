@@ -15,5 +15,6 @@ dependencies {
     api(project(":core"))
     implementation(libs.coroutines.core)
     testImplementation(libs.junit)
+    testImplementation(testFixtures(project(":core")))
     testImplementation(libs.coroutines.test)
 }

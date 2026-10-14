@@ -4,6 +4,8 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.kotlin.jvm)
+    // One shared set of test fakes for every port, used by :detectors and :alerts tests (docs/code-health.md).
+    `java-test-fixtures`
 }
 
 java {

@@ -49,3 +49,15 @@ fresh context, and deleting what a change makes unused.
 
 Track weekly: Kotlin deletion ratio (6.6% now), duplicated fakes (7), unused texts (4), largest main file (345 lines), suite time
 (about 133 s) and slowest class (30 s), detekt baseline count, mutation-check pass rate.
+
+## Done (Oct 13)
+
+- Secrets scan reads tracked files only (`git ls-files`); `.claude/worktrees/` is git-ignored. It no longer takes ~30 s.
+- Unit tests run once (debug variant) in `:app`, `:platform`, `:store`.
+- The four unused texts are deleted; `UnusedTextsTest` fails the build on any unused text.
+- One shared set of fakes in `core/src/testFixtures` (`com.aegida.testkit`), used by `:core`, `:detectors`, `:alerts` and `:app` tests;
+  the seven duplicates and two more local copies are gone (purpose-built fakes that count reads or wait on a gate stay local).
+- CLAUDE.md "Keeping the code clean": search before adding, delete what a change makes unused, no new dependency without Kevin's
+  OK, tests assert behaviour.
+
+Not yet: detekt/Lint baselines, a file-size guard, a duplication report, a test-time budget, CI (needs Kevin), the findings archive.

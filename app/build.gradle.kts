@@ -86,6 +86,7 @@ dependencies {
     implementation(libs.serialization.json)
 
     testImplementation(libs.junit)
+    testImplementation(testFixtures(project(":core")))
     testImplementation(libs.mockk)
     testImplementation(libs.coroutines.test)
     testImplementation(libs.robolectric)

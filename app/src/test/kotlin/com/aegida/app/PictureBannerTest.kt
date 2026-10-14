@@ -1,5 +1,6 @@
 package com.aegida.app
 
+import com.aegida.testkit.FakeSetupStore
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.aegida.app.ui.PictureBanner
@@ -23,24 +24,20 @@ import org.robolectric.RobolectricTestRunner
 @org.robolectric.annotation.GraphicsMode(org.robolectric.annotation.GraphicsMode.Mode.NATIVE)
 class PictureBannerTest {
     private val context = ApplicationProvider.getApplicationContext<Context>()
-    private class Store(var value: Setup) : SetupStore {
-        override suspend fun setup() = value
-        override suspend fun save(setup: Setup) { value = setup }
-    }
 
     // Unconfined: the first load from the store runs at once, as it would have finished long before a banner in real use.
-    private fun banner(store: Store) = PictureBanner(context, store, CoroutineScope(Dispatchers.Unconfined))
+    private fun banner(store: FakeSetupStore) = PictureBanner(context, store, CoroutineScope(Dispatchers.Unconfined))
 
     @Test fun noPictureChosenYetMeansNoBannerArt() {
-        assertNull(banner(Store(Setup.NotDone)).bitmap())
+        assertNull(banner(FakeSetupStore(Setup.NotDone)).bitmap())
     }
 
     @Test fun herStoredPictureIsLoadedOnceAtStart() {
-        assertNotNull(banner(Store(Setup(null, emptySet(), pictureId = SafetyPicture.Owl.id))).bitmap())
+        assertNotNull(banner(FakeSetupStore(Setup(null, emptySet(), pictureId = SafetyPicture.Owl.id))).bitmap())
     }
 
     @Test fun herPictureIsDrawnOnceAndRedrawnWhenSheChangesIt() {
-        val store = Store(Setup(null, emptySet(), pictureId = SafetyPicture.Owl.id))
+        val store = FakeSetupStore(Setup(null, emptySet(), pictureId = SafetyPicture.Owl.id))
         val banner = banner(store)
         val owl = banner.bitmap()
         assertNotNull(owl)

@@ -1,5 +1,6 @@
 package com.aegida.alerts
 
+import com.aegida.testkit.FakeOutbox
 import com.aegida.core.alert.FindingStore
 import com.aegida.core.alert.GuardianSettings
 import com.aegida.core.alert.Guardians

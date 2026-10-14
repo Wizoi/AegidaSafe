@@ -1,5 +1,10 @@
 package com.aegida.alerts
 
+import com.aegida.testkit.FakeSetupStore
+import com.aegida.testkit.FakeFeedStore
+import com.aegida.testkit.FakeCheckLog
+import com.aegida.testkit.FakeOutbox
+import com.aegida.testkit.FakeBaselines
 import com.aegida.core.alert.Guardians
 import com.aegida.core.health.Trigger
 import com.aegida.core.model.FindingKey

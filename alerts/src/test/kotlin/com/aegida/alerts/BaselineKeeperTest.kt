@@ -1,5 +1,7 @@
 package com.aegida.alerts
 
+import com.aegida.testkit.FakeSetupStore
+import com.aegida.testkit.FakeBaselines
 import com.aegida.core.model.Baseline
 import com.aegida.core.model.PrivateDns
 import com.aegida.core.model.Setup
