@@ -18,3 +18,23 @@ spying apps, and Samsung-only steps. `GAP` means nothing covers it yet.
 | PC11 | "My Samsung has Auto Blocker" | A step about it | Nothing | Absent on a Pixel; absent on a Samsung without it; off at system level | Samsung dump needed | AndroidOemSourceTest#onASamsungWithAutoBlockerItIsUnreadableNeverGuessed; AndroidOemSourceTest#onASamsungThatHasNoAutoBlockerThereIsNothingToAskAbout; AndroidOemSourceTest#onAPixelTheMakerFeaturesAreNotPresent | none | auto-blocker-only-where-present |
 | PC12 | "A phone that has been upgraded" | Settings and baseline kept | Nothing | No install over an older build on the emulator; no 1-to-3 migration from real data | Real device database | GAP | GAP | GAP |
 | PC13 | "Aegida lost its access to notifications" | Home says it cannot check | Told if it lasts | Listener on but dead, unbound by the system while the daily job runs | Emulator | DetectorsTest#lostPermissionsAreFindings; DetectorsTest#lostPermissionsAreNotRaisedWhileSetupIsStillBeingDone | emulator_live.py (rebind_listener) | health-not-before-setup-ends |
+
+## Galaxy Store (findings #106, draft for review)
+
+Real data: on a Galaxy S25 (One UI 8.0) every Galaxy Store app recorded installer and initiating installer `com.sec.android.app.samsungapps` (3 of 3), and Galaxy Store is a SYSTEM, PRIVILEGED, updated system app. On Kevin's Pixel 11: 186 apps from Play, 2 Chrome web apps (installer `com.android.chrome`), none from anything else. Plan: Galaxy Store counts like the Play Store for the new-app question only; the name lives only in `OemSource`, and only when the phone is a Samsung and that installer is a system app on it.
+
+| ID | Situation (Mom's words) | Mom sees | Guardian gets | Variants | Data source | Test | Emulator | Mutant |
+|---|---|---|---|---|---|---|---|---|
+| GS1 | "I installed an app from the Galaxy Store" | Nothing | Nothing | Temu, a PDF reader; updated later from either store | Galaxy S25 lab dump | GAP | GAP | GAP |
+| GS2 | "I installed it before the update and the question is still there" | The question goes away at the next check; History says it was resolved | Nothing new (the earlier note stays sent) | Question open; she tapped No, show me and it is still open | Galaxy S25 lab dump | GAP | GAP | GAP |
+| GS3 | "I already said Yes, that was me" | Nothing changes | Nothing | | Room database | GAP | GAP | GAP |
+| GS4 | "Someone had me install AnyDesk from the Galaxy Store" (must never be quiet) | The remote-control question, as from Play | A note | TeamViewer QuickSupport | Remote-control list | GAP | GAP | GAP |
+| GS5 | "A spying app from the Galaxy Store" (must never be quiet) | The spying-app warning | A note | Matched by name only, or by certificate | Echap feed | GAP | GAP | GAP |
+| GS6 | "An app installed itself by pretending to be the Galaxy Store" (hostile, must never be quiet) | The new-app question | A note | A non-system app named `com.sec.android.app.samsungapps` on a Pixel or a phone without Galaxy Store; a name that only starts with `com.sec.` or `com.samsung.` | Invented, by the platform test | GAP | GAP | GAP |
+| GS7 | "I opened a file someone sent me and it installed an app" on a Samsung (must never be quiet) | The new-app question | A note | Via My Files, Chrome, Samsung Internet, Messages; installer null | Galaxy S25 lab dump | GAP | GAP | GAP |
+| GS8 | "An app from another store" | The new-app question, as today | A note | Amazon Appstore, a carrier store, Huawei AppGallery | Invented installers | GAP | GAP | GAP |
+| GS9 | "I put a website on my home screen as an app" (Chrome web app) | Today: the new-app question. **Kevin to decide** | Today: a note | `org.chromium.webapk.*`, installer `com.android.chrome` | Pixel 11 dump | GAP | GAP | GAP |
+| GS10 | "A Pixel or the emulator" | Unchanged: only Play is trusted | Unchanged | | Emulator | GAP | GAP | GAP |
+| GS11 | Aegida cannot read whether Galaxy Store is a system app | The new-app question, as today (fails toward asking) | A note | Package lookup throws; Galaxy Store missing | Robolectric | GAP | GAP | GAP |
+| GS12 | "Someone on the phone had me install an ordinary-looking app from the Galaxy Store" | Nothing (accepted, same as Play) | Nothing | Remote-control and spying lists still apply | | GAP | GAP | GAP |
+| GS13 | Public pages and Play listing say "outside the Play Store" | n/a | n/a | how-it-works, privacy page, Play full description | Docs | GAP | GAP | GAP |
