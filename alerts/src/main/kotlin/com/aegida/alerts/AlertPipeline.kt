@@ -16,6 +16,7 @@ import com.aegida.core.model.Finding
 import com.aegida.core.model.FindingKey
 import com.aegida.core.model.FindingState
 import com.aegida.core.model.Severity
+import com.aegida.core.model.Snapshot
 import com.aegida.core.text.Problem
 import com.aegida.core.net.NtfyTopic
 import com.aegida.core.text.Texts
@@ -39,11 +40,12 @@ class AlertPipeline @Inject constructor(
     private val reminder = OldWarningReminder(findings, history, line)
     private val telling = FindingTelling(history, line)
 
-    suspend fun handle(current: List<Finding>, ran: Set<DetectorId>, installed: Set<String> = emptySet()): PipelineResult {
+    /** [phone] is the phone as read in this check, for what History says when a new-app question closes by itself. */
+    suspend fun handle(current: List<Finding>, ran: Set<DetectorId>, phone: Snapshot? = null): PipelineResult {
         val now = clock.now()
         val tally = Tally()
         current.forEach { process(it, now, tally) }
-        val resolved = resolveGone(current, ran, installed, now)
+        val resolved = resolveGone(current, ran, phone, now)
         tally.notReached += reminder.remind(now)
         return PipelineResult(
             alerted = tally.alerted,
@@ -105,13 +107,13 @@ class AlertPipeline @Inject constructor(
     }
 
     /** Settings-based findings that stopped appearing are closed. Returns how many. */
-    private suspend fun resolveGone(current: List<Finding>, ran: Set<DetectorId>, installed: Set<String>, now: Instant): Int {
+    private suspend fun resolveGone(current: List<Finding>, ran: Set<DetectorId>, phone: Snapshot?, now: Instant): Int {
         val stillThere = current.map { it.key }.toSet()
         val resolved = findings.open().filter { it.key.detectorId in ran && it.key.detectorId in SETTING_BASED && it.key !in stillThere }
         resolved.forEach { finding ->
             findings.put(finding.copy(state = FindingState.Resolved, lastSeen = now))
             owner.clear(finding.key)
-            history.add(HistoryEntry(now, finding.key.problem, closedOutcome(finding, installed)))
+            closedOutcome(finding, phone)?.let { history.add(HistoryEntry(now, finding.key.problem, it)) }
         }
         return resolved.size
     }
@@ -136,13 +138,14 @@ class AlertPipeline @Inject constructor(
      * family-approved install does not need a phone call to settle. Nothing is sent to a guardian who was never told
      * (alerts were off, the repeat back-off held it back, or the kind has no guardian text), nor while the original alarm is still waiting in the
      * outbox (the all-clear must not arrive first). For urgent kinds the words never say everything is fine: it may
-     * be a scammer coaching her (findings #50).
+     * be a scammer coaching her (findings #50). [asTold] is the finding as it was before she marked it seen, still holding the words
+     * the guardian's History lines were made from (findings #117).
      */
-    suspend fun tellConfirmed(key: FindingKey) {
-        val problem = key.problem
+    suspend fun tellConfirmed(asTold: Finding) {
+        val problem = asTold.key.problem
         val settings = line.current()
         val topic = settings.firstTopic?.takeIf { settings.alertsOn } ?: return
-        if (!toldAndNotWaiting(key)) return
+        if (!toldAndNotWaiting(asTold)) return
         val text = if (problem.severity == Severity.Urgent) Texts.Guardian.CONFIRMED_URGENT else Texts.Guardian.CONFIRMED
         val message = GuardianMessage(title = guardianName(settings), body = text.format(guardianName(settings)), urgent = false)
         sendOrHold(topic, message, problem, clock.now())
@@ -152,10 +155,11 @@ class AlertPipeline @Inject constructor(
      * The guardian heard about this very warning, about this app, and that alarm has left the outbox (so the all-clear cannot arrive
      * first). History is matched by what the entry says it was (the app), not only by kind: two apps of the same kind may be told apart
      * (findings #115). An alarm delivered later from the outbox has no line of its own, so it counts only after a failed try for this app.
+     * One rule for every line: the detail is made by [HistoryDetail] from the finding as it was told, before seen took the message words
+     * out, exactly as the alarm's and the reminder's lines were made, so they always match (findings #117).
      */
-    private suspend fun toldAndNotWaiting(key: FindingKey): Boolean {
-        val problem = key.problem
-        val finding = findings.get(key) ?: return false
+    private suspend fun toldAndNotWaiting(finding: Finding): Boolean {
+        val problem = finding.key.problem
         val what = HistoryDetail.of(problem, finding.evidence)
         val entries = history.since(finding.firstSeen).filter { it.problem == problem }
         val toldOutcomes = setOf(Outcome.GuardianTold, Outcome.GuardianReminded)
@@ -178,12 +182,21 @@ class AlertPipeline @Inject constructor(
 
     companion object {
         /**
-         * What History says when a question closes by itself. A new-app question whose app is still on the phone closed because Aegida
-         * learned more (an app from the phone maker's own store, findings #106), not because she did anything: "No longer a concern."
-         * Everything else that stops appearing was changed back, so "Fixed." [installed] is the package names on the phone now.
+         * What History says when a question closes by itself, or null for no line. A new-app question whose app now comes from Play or
+         * the phone maker's own store closed because Aegida learned more (findings #106), not because she did anything: "No longer a
+         * concern." A new-app question whose app is gone, and everything else that stops appearing, was changed back: "Fixed." [phone]
+         * is the phone as read in this check (null: nothing known about its apps, so as if gone).
          */
-        internal fun closedOutcome(finding: Finding, installed: Set<String>): Outcome =
-            if (finding.key.problem == Problem.NewAppOutsidePlay && finding.key.subject in installed) Outcome.NoLongerAConcern else Outcome.Fixed
+        internal fun closedOutcome(finding: Finding, phone: Snapshot?): Outcome? {
+            val app = phone?.apps?.firstOrNull { it.packageName == finding.key.subject }
+            return when {
+                finding.key.problem != Problem.NewAppOutsidePlay || app == null -> Outcome.Fixed
+                // Still on the phone: reassuring only when it now comes from a store Aegida trusts. Anything else (the spying-app list
+                // now names it, findings #118) has its own warning, so this question closes without a line.
+                app.fromPlayStore || app.fromStoreIn(phone.makerStores) -> Outcome.NoLongerAConcern
+                else -> null
+            }
+        }
 
 
         /** A question still open after this is no longer put aside again and again (findings #94). */

@@ -45,7 +45,7 @@ class CheckRunner @Inject constructor(
         val snapshot = snapshotter.take()
         baseline.keep(snapshot)
         val findings = evaluator.run(trigger, snapshot, event)
-        val result = pipeline.handle(findings, evaluator.detectorIds, installed = snapshot.apps.map { it.packageName }.toSet())
+        val result = pipeline.handle(findings, evaluator.detectorIds, phone = snapshot)
         outbox.flush()
         CheckOutcome(findings, result)
     }

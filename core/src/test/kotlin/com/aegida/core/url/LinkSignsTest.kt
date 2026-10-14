@@ -72,6 +72,16 @@ class LinkSignsTest {
         }
     }
 
+    /** ST18 variant (findings #120): an English "-ups" word in front does not hide the parcel company when more follows it. */
+    @Test fun aParcelScamWithPickUpsOrSetUpsBeforeMoreWordsStillImitatesUps() {
+        for (url in listOf("http://pick-ups-redelivery.example/", "http://set-ups-redelivery.example/", "http://www.check-ups-parcel.example/")) {
+            assertEquals(url, setOf(LinkSign.BrandLookalike), signs(url))
+        }
+        for (url in listOf("https://pick-ups.example/", "https://www.pop-ups.com/", "https://sign-ups.example/", "https://check-ups.example/")) {
+            assertEquals(url, emptySet<LinkSign>(), signs(url))
+        }
+    }
+
     @Test fun wordsThatMerelyContainABrandAreNot() {
         assertEquals(emptySet<LinkSign>(), signs("https://purchase.example/"))
         assertEquals(emptySet<LinkSign>(), signs("https://groups.example/"))

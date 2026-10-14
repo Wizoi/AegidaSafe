@@ -118,13 +118,16 @@ class ChangeAcceptor @Inject constructor(
     private val clock: Clock,
 ) {
     suspend fun accept(key: FindingKey): Boolean {
-        val baseline = (if (isOpenQuestion(key)) baselines.baseline() else null) ?: return false
+        val question = openQuestion(key)
+        val baseline = (if (question != null) baselines.baseline() else null)
+        if (question == null || baseline == null) return false
         baselines.save(baseline.accepting(key.problem, key.subject, snapshotter.take()))
         val marked = seen.markSeen(key, clock.now())
-        if (marked) pipeline.tellConfirmed(key)
+        // The finding as the guardian was told about it: seen takes out the words a website said (findings #117).
+        if (marked) pipeline.tellConfirmed(question)
         return marked
     }
 
-    private suspend fun isOpenQuestion(key: FindingKey): Boolean =
-        (key.problem.fix == Fix.ConfirmChange || key.problem.fix == Fix.ConfirmEvent) && findings.get(key)?.state?.needsHer == true
+    private suspend fun openQuestion(key: FindingKey): Finding? =
+        if (key.problem.fix == Fix.ConfirmChange || key.problem.fix == Fix.ConfirmEvent) findings.get(key)?.takeIf { it.state.needsHer } else null
 }

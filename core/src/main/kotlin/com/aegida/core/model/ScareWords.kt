@@ -10,9 +10,15 @@ object ScareWords {
             """|clean (your|now|it)|your (phone|device) (is|has been)""",
     )
 
-    /** Scare wording aimed at her own phone, not a news story about someone else (findings #109). */
+    /**
+     * Scare wording aimed at her own phone, not a news story about someone else (findings #109). "Found" counts when nothing follows
+     * it but a stop, "on" or an order to her ("3 viruses found! Remove now"), not "found in 40 apps"; "your <any phone's name> is
+     * infected" covers every maker without naming one (findings #119).
+     */
     val ABOUT_HER_PHONE = Regex(
             """(?i)\byour (phone|device|mobile|android|battery)\b|\bthis (phone|device)\b|battery (is )?damaged|clean (your|now|it)|""" +
-                """\b(virus(es)?|malware|trojan|spyware) (detected|found on)\b|\byou('re| are| have been|'ve been) (infected|hacked)\b""",
+                """\b(virus(es)?|malware|trojans?|spyware) (detected\b|found( on\b|\s*[!.:]|\s*$|\s+(tap|remove|clean|delete|fix|scan)\b))|""" +
+                """\bremove (it |them )?(now|immediately)\b|\byour [\w-]+( [\w-]+)? (is|has been) infected\b|""" +
+                """\byou('re| are| have been|'ve been) (infected|hacked)\b""",
     )
 }
