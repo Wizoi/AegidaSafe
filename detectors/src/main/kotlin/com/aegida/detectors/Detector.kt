@@ -39,4 +39,8 @@ data class Inputs(
     val listener: com.aegida.core.health.ListenerTimes = com.aegida.core.health.ListenerTimes(),
     /** When the phone last started, or null if not known. */
     val bootedAt: Instant? = null,
+    /** When this app process started, or null if not known (finding #136). */
+    val processStartedAt: Instant? = null,
+    /** The problems open before this check, so a check that cannot tell yet keeps what was there (finding #136). */
+    val openBefore: Set<com.aegida.core.text.Problem> = emptySet(),
 )

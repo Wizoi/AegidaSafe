@@ -8,4 +8,7 @@ fun interface Clock {
 
     /** When the phone last started, or null if it is not known (fakes). */
     fun bootedAt(): Instant? = null
+
+    /** When this app process started, or null if it is not known (fakes). Android binds the listener seconds after (finding #136). */
+    fun processStartedAt(): Instant? = null
 }

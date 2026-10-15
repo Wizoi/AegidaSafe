@@ -25,6 +25,16 @@ data class ListenerTimes(val lastSeenBound: Instant? = null) {
     companion object {
         /** The phone often unbinds and binds again within minutes (an update, low memory); only an hour without it is a problem. */
         val LOST_AFTER: Duration = Duration.ofHours(1)
+
+        /**
+         * Android binds the listener within seconds of starting the app process, so for this long after it started "not bound" may
+         * only mean "not bound yet" (finding #136).
+         */
+        val NEW_PROCESS_GRACE: Duration = Duration.ofMinutes(2)
+
+        /** This process started less than [NEW_PROCESS_GRACE] before [now]. False when it is not known when it started. */
+        fun inNewProcessGrace(now: Instant, processStartedAt: Instant?): Boolean =
+            processStartedAt != null && !processStartedAt.isAfter(now) && Duration.between(processStartedAt, now) < NEW_PROCESS_GRACE
     }
 }
 

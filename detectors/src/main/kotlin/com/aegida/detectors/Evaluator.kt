@@ -1,5 +1,6 @@
 package com.aegida.detectors
 
+import com.aegida.core.alert.FindingStore
 import com.aegida.core.alert.Outbox
 import com.aegida.core.health.CheckLog
 import com.aegida.core.health.CheckRun
@@ -34,6 +35,7 @@ class Evaluator @Inject constructor(
     private val memory: EvaluatorMemory,
     private val notices: NoticeLog = NoticeLog.None,
     private val allowList: AllowList = AllowList.None,
+    private val findings: FindingStore? = null,
 ) {
     private val mutex = Mutex()
 
@@ -52,7 +54,11 @@ class Evaluator @Inject constructor(
             emptyList()
         }
         val allowedApps = allowList.all().filter { it.problem == Problem.NoisyApp }.map { it.subject }.toSet()
-        val input = memory.inputs(snapshot, started, event, recent, allowedApps).copy(bootedAt = clock.bootedAt())
+        val input = memory.inputs(snapshot, started, event, recent, allowedApps).copy(
+            bootedAt = clock.bootedAt(),
+            processStartedAt = clock.processStartedAt(),
+            openBefore = findings?.open().orEmpty().map { it.key.problem }.toSet(),
+        )
         val findings = detectors.sortedBy { it.id }.flatMap { it.evaluate(input) }.distinctBy { it.key }
         memory.record(CheckRun(trigger, started, clock.now()))
         findings

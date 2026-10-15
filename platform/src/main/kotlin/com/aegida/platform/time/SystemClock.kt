@@ -9,4 +9,7 @@ class SystemClock @Inject constructor() : Clock {
     override fun now(): Instant = Instant.now()
 
     override fun bootedAt(): Instant = Instant.now().minusMillis(android.os.SystemClock.elapsedRealtime())
+
+    override fun processStartedAt(): Instant =
+        Instant.now().minusMillis(android.os.SystemClock.elapsedRealtime() - android.os.Process.getStartElapsedRealtime())
 }

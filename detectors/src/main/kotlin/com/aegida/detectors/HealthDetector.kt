@@ -1,5 +1,6 @@
 package com.aegida.detectors
 
+import com.aegida.core.health.ListenerTimes
 import com.aegida.core.model.DetectorId
 import com.aegida.core.model.Finding
 import com.aegida.core.model.FindingKey
@@ -21,7 +22,10 @@ class HealthDetector @Inject constructor() : Detector {
         if (input.setup.done) {
             if (!input.snapshot.listenerEnabled) add(Problem.ListenerOff)
             // Access is on but the phone stopped letting Aegida listen (findings #112, #134); while access is off, ListenerOff says it.
-            else if (input.listener.lost(input.snapshot.listenerBound, input.now, input.bootedAt, input.snapshot.aegidaUpdatedAt)) {
+            // In a process that has just started it may only be "not bound yet": keep what was there, raise nothing new (finding #136).
+            else if (input.listener.lost(input.snapshot.listenerBound, input.now, input.bootedAt, input.snapshot.aegidaUpdatedAt) &&
+                (Problem.ListenerNotConnected in input.openBefore || !ListenerTimes.inNewProcessGrace(input.now, input.processStartedAt))
+            ) {
                 add(Problem.ListenerNotConnected)
             }
             if (!input.snapshot.canPostNotifications) add(Problem.NotificationsBlocked)

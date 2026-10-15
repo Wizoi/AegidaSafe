@@ -1,46 +1,18 @@
 package com.aegida.alerts
 
-import com.aegida.core.alert.Guardians
 import com.aegida.testkit.aScamText
 import com.aegida.testkit.aChromePopup
-import com.aegida.core.feed.FeedSource
-import com.aegida.core.feed.ThreatFeed
 import com.aegida.core.health.Trigger
-import com.aegida.core.model.Baseline
 import com.aegida.core.model.FindingState
 import com.aegida.core.model.HomeState
-import com.aegida.core.model.NotificationEvent
-import com.aegida.core.model.PrivateDns
-import com.aegida.core.model.Setup
-import com.aegida.core.model.SetupStep
-import com.aegida.core.model.Snapshot
-import com.aegida.core.net.NtfyTopic
-import com.aegida.core.oem.Reading
 import com.aegida.core.text.Problem
 import com.aegida.core.text.Texts
-import com.aegida.core.time.Clock
-import com.aegida.detectors.DnsDetector
-import com.aegida.detectors.Evaluator
-import com.aegida.detectors.EvaluatorMemory
-import com.aegida.detectors.HealthDetector
-import com.aegida.detectors.LinkDetector
-import com.aegida.detectors.PopupSpamDetector
-import com.aegida.testkit.FakeBaselines
-import com.aegida.testkit.FakeCheckLog
-import com.aegida.testkit.FakeFeedStore
-import com.aegida.testkit.FakeListenerBinding
-import com.aegida.testkit.FakeListenerTimes
-import com.aegida.testkit.FakeNotificationShade
-import com.aegida.testkit.FakeOutbox
-import com.aegida.testkit.FakeSetupStore
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Duration
-import java.time.Instant
-import java.time.temporal.ChronoUnit
 
 /**
  * docs/scenarios/health.md: what Android itself does to the listener (snooze returning, unbinding, binding again) and what
@@ -48,73 +20,7 @@ import java.time.temporal.ChronoUnit
  * JVM): binding and unbinding go to ListenerLink, a posted notice runs a check and hides or snoozes what the check names.
  * "Unbinding" here is the service being destroyed (onDestroy); nothing relies on onListenerDisconnected (finding #134).
  */
-class HealthScenariosTest {
-    private var now = Instant.now().truncatedTo(ChronoUnit.SECONDS)
-    private val topic = NtfyTopic("aegida_" + "h3J4k5L6".repeat(4))
-    private val setupStore = FakeSetupStore(Setup("security.cloudflare-dns.com", emptySet(), stepsDone = SetupStep.entries.size))
-    private val feedStore = FakeFeedStore(
-        ThreatFeed.of(now.minus(Duration.ofHours(3)), listOf(FeedSource("test", "test", 1)), listOf("evil.example"), emptyList()),
-    )
-    private val checkLog = FakeCheckLog()
-    private val findings = Findings()
-    private val owner = Owner()
-    private val history = History()
-    private val http = Http()
-    private val outbox = FakeOutbox()
-    private val guardians = FakeGuardians(Guardians(alertsOn = true, ownerName = "Ruth", firstTopic = topic))
-    private val baselines = FakeBaselines(
-        Baseline("com.android.chrome", null, null, emptySet(), emptySet(), emptySet(), websites = setOf("https://news.example")),
-    )
-    private var listenerEnabled = true
-    private var bootedAt: Instant? = now.minus(Duration.ofDays(2))
-    private var updatedAt: Instant? = now.minus(Duration.ofDays(3))
-    private val clock = object : Clock {
-        override fun now() = now
-        override fun bootedAt() = this@HealthScenariosTest.bootedAt
-    }
-    private val listenerTimes = FakeListenerTimes()
-    private val binding = FakeListenerBinding()
-
-    private val evaluator = Evaluator(
-        setOf(LinkDetector(), PopupSpamDetector(), DnsDetector(), HealthDetector()), clock,
-        EvaluatorMemory(setupStore, feedStore, checkLog, outbox, baselines, listenerTimes),
-    )
-    private val pipeline = AlertPipeline(findings, owner, history, GuardianLine(guardians, NtfySender(http), outbox)) { now }
-    private val runner = CheckRunner(
-        {
-            Snapshot(
-                now, PrivateDns.Hostname("security.cloudflare-dns.com"), "com.android.chrome", listenerEnabled, true,
-                Reading.NotPresent, Reading.NotPresent, listenerBound = binding.boundNow, aegidaUpdatedAt = updatedAt,
-            )
-        },
-        evaluator, pipeline, BaselineKeeper(setupStore, baselines), OutboxFlusher(outbox, NtfySender(http), history, guardians, { now }), AlertGate(),
-    )
-    private val shade = FakeNotificationShade(now)
-    private val link = ListenerLink(runner, listenerTimes, binding)
-
-    /** What AegidaListenerService does with each callback. */
-    private val listener = object : FakeNotificationShade.Listener {
-        override suspend fun onConnected() {
-            val actions = link.connected(shade.active(), OWN_PACKAGE)
-            actions.hide.forEach(shade::cancel)
-            actions.snooze.forEach { shade.snooze(it, Duration.ofHours(1)) }
-        }
-        override suspend fun onDisconnected() = link.disconnected()
-        override suspend fun onPosted(event: NotificationEvent) {
-            val outcome = runner.run(Trigger.NotificationPosted, event)
-            outcome.notificationsToHide.forEach(shade::cancel)
-            outcome.notificationsToSnooze.forEach { shade.snooze(it, Duration.ofHours(1)) }
-        }
-    }
-
-    private suspend fun advance(by: Duration) { now = now.plus(by); shade.advance(by) }
-
-    private suspend fun home() = HomeState.of(findings.open(), checkLog.latest())
-
-    private val scamText = aScamText(now)
-
-    private fun newSite() = aChromePopup(now, site = "https://shop.example/", title = "Spring sale", text = "Our new collection is here")
-
+class HealthScenariosTest : HealthScenarioFixture() {
     @Test fun aNewWebsitesNoticeThatComesBackFromItsSnoozeIsPutAsideAgainWithoutTellingAnyoneTwice() = runTest {
         shade.connect(listener)
         shade.post(newSite())
@@ -351,21 +257,5 @@ class HealthScenariosTest {
         runner.run(Trigger.Daily)
         assertEquals(listOf(Problem.ListenerOff), findings.open().map { it.key.problem })
         assertTrue(home() is HomeState.NeedsTaps)
-    }
-
-    private fun latePosts() = checkLog.runs.count { it.trigger == Trigger.NotificationPosted }
-
-    /** The process is killed: the listener is not told, and a new process starts with the flag unset. */
-    private fun kill() { shade.lose(); binding.boundNow = false }
-
-    private suspend fun lostForOverAnHour() {
-        shade.connect(listener)
-        shade.disconnect()
-        advance(Duration.ofMinutes(61))
-        runner.run(Trigger.Daily)
-    }
-
-    private companion object {
-        const val OWN_PACKAGE = "com.aegida"
     }
 }
