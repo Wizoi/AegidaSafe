@@ -89,6 +89,26 @@ class CheckRunnerTest {
         assertEquals(1, http.bodies.size)
     }
 
+    /** Scenario WP17 A2 (findings #148): a site she allowed is hidden each time; she is told once and the guardian never. */
+    @Test fun aWebsiteSheAllowedThatKeepsSendingAlarmingMessagesIsHiddenEachTimeAndOnlySheIsTold() = runTest {
+        setupStore.value = setupStore.value.copy(allowedSites = setOf("http://localhost:8765"))
+        val outcomes = (1..3).map { runner.run(Trigger.NotificationPosted, siteNotification(it)) }
+        assertEquals((1..3).map { siteNotification(it).key }, outcomes.flatMap { it.notificationsToHide })
+        assertEquals(listOf(Problem.SiteScaryNews), owner.shown.map { it.problem })
+        assertEquals(emptyList<String>(), http.bodies)
+        assertEquals(emptyList<Any>(), outbox.rows)
+    }
+
+    /** Scenario WP17 A7: two sites she allowed each get their own warning; one site's quiet week does not silence the other. */
+    @Test fun twoSitesSheAllowedThatSendAlarmingMessagesAreEachToldOnce() = runTest {
+        setupStore.value = setupStore.value.copy(allowedSites = setOf("http://localhost:8765", "https://news.example"))
+        runner.run(Trigger.NotificationPosted, siteNotification(1))
+        runner.run(Trigger.NotificationPosted, aChromePopup(now, site = "https://news.example/", n = 2))
+        runner.run(Trigger.NotificationPosted, siteNotification(3))
+        assertEquals(listOf("http://localhost:8765", "https://news.example"), owner.shown.map { it.subject })
+        assertEquals(emptyList<String>(), http.bodies)
+    }
+
     @Test fun anOrdinaryNotificationChangesNothing() = runTest {
         val outcome = runner.run(Trigger.NotificationPosted, scamText.copy(text = "See you at 6, bring the cake"))
         assertEquals(PipelineResult(0, 0, 0), outcome.pipeline)
