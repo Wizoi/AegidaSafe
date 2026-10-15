@@ -99,6 +99,8 @@ class LinkSignsTest {
             "U20" to "http://myups-redelivery.com/", "U21" to "http://upsmychoice-update.com/", "U22" to "http://upsglobal-track.com/",
             "U23" to "http://upsexpress-help.com/", "U24" to "http://upsdeliveries.com/", "U25" to "http://ups24.top/",
             "U26" to "http://pushups-tracking.com/",
+            // Findings #138: "express" is a parcel word only when joined to "ups"; "ups" alone or a real parcel word still warns.
+            "U27" to "http://express-ups.com/", "U28" to "http://pop-ups-express-delivery.com/", "U29" to "http://ups-express-help.com/",
         )
         assertEquals("no UPS sign, but a parcel scam", emptyList<String>(), upsSignWrongFor(scams, expected = true))
     }
@@ -116,6 +118,8 @@ class LinkSignsTest {
             "O23" to "https://ups-scs.com/", "O24" to "https://www.theupsstore.com/", "O25" to "https://upstate-shipping.com/",
             "O26" to "https://groups-tracking.com/", "O27" to "https://cups-delivery.com/", "O28" to "https://lineups.com/",
             "O29" to "https://mash-ups.com/",
+            // Findings #138: "express" on its own does not make a name about parcels.
+            "O30" to "https://pop-ups-express.com/", "O31" to "https://sign-ups-express.example/", "O32" to "https://pickups-express.com/",
         )
         assertEquals("a UPS sign on an ordinary name", emptyList<String>(), upsSignWrongFor(ordinary, expected = false))
     }

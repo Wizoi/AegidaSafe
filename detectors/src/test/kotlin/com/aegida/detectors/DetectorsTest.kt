@@ -217,6 +217,8 @@ class PopupSpamDetectorTest {
             Triple("S41", "Scan of sewage finds polio virus", "Health officials ask parents to check vaccinations"),
             Triple("S42", "Your bank was hacked: what to do next", "Experts explain"),
             Triple("S43", "Experts tell users to remove the apps now", "The malware hides in fake games"),
+            // Findings #138: "it" after a question about someone else's phone is not her phone.
+            Triple("S44", "Is the new Pixel any good? It was hacked in a contest", "Researchers say the flaw is fixed"),
         )
         assertEquals("hidden as fake, but news", emptyList<String>(), onAKnownSite(news, expected = null))
     }
@@ -231,6 +233,11 @@ class PopupSpamDetectorTest {
             Triple("A5", "Malware can take over your Android", "Here is how it spreads"),
             Triple("A6", "How to tell if your phone is hacked", "Five signs to look for"),
             Triple("A7", "New spyware found that can infect your phone", "Researchers say it hides in fake games"),
+            // Findings #138: after a question about her phone, "it" with no bad state, not first, or with a condition is not a claim.
+            Triple("A8", "Is your phone hacked? It could be, here's how to tell", ""),
+            Triple("A9", "Is your phone listening to you? It probably isn't, but spyware can", ""),
+            Triple("A10", "Is your phone slow? Experts say it may have a virus", ""),
+            Triple("A11", "Is your phone slow? It may have a virus if it does these 5 things", ""),
         )
         assertEquals("not hidden as news to the reader", emptyList<String>(), onAKnownSite(advice, expected = Problem.SiteScaryNews))
         assertEquals(null, Problem.SiteScaryNews.forGuardian("Mom", host = site))
@@ -293,6 +300,20 @@ class PopupSpamDetectorTest {
             Triple("H53", "Your system is infected", "Clean it now"),
             Triple("H54", "Your new Pixel 9 is infected", ""),
             Triple("H55", "Your Motorola is infected", ""),
+        )
+        assertEquals("left alone, but a fake warning", emptyList<String>(), onAKnownSite(fake, expected = Problem.SiteNotifications))
+    }
+
+    /** WP17 H56-H62 (findings #138): a fake that asks about her phone first, then says something about "it" or "your device". */
+    @Test fun aFakeThatAsksAboutHerPhoneFirstIsHidden() {
+        val fake = listOf(
+            Triple("H56", "Is your phone slow? It may have a virus", ""),
+            Triple("H57", "Is your phone acting strange? It is infected with 3 viruses", ""),
+            Triple("H58", "Phone running hot? It may be damaged", ""),
+            Triple("H59", "Is your phone slow?", "Your device may have a virus"),
+            Triple("H60", "Is your phone running slow?", "It has been hacked"),
+            Triple("H61", "Is your Android slow!?", "It might have a virus"),
+            Triple("H62", "Is your phone slow? It has a virus", ""),
         )
         assertEquals("left alone, but a fake warning", emptyList<String>(), onAKnownSite(fake, expected = Problem.SiteNotifications))
     }
