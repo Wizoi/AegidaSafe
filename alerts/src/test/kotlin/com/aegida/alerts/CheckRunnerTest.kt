@@ -109,6 +109,33 @@ class CheckRunnerTest {
         assertEquals(emptyList<String>(), http.bodies)
     }
 
+    /**
+     * A fake warning raised a day and more ago, while the site was not allowed (or before findings #148), still open; the stored row
+     * is the one a real check wrote, with its first-seen time moved back.
+     */
+    private suspend fun aDayOldOpenFakeWarning() {
+        runner.run(Trigger.NotificationPosted, siteNotification(1))
+        val stored = findings.open().single()
+        assertEquals(Problem.SiteNotifications, stored.key.problem)
+        findings.put(stored.copy(firstSeen = now.minus(Duration.ofHours(25))))
+        http.bodies.clear()
+    }
+
+    /** Scenario WP17 A11 (findings #149): she now allows the site, so its old fake warning is not raised again with the guardian. */
+    @Test fun anOpenFakeWarningForASiteSheNowAllowsDoesNotRemindTheGuardian() = runTest {
+        aDayOldOpenFakeWarning()
+        setupStore.value = setupStore.value.copy(allowedSites = setOf("http://localhost:8765"))
+        runner.run(Trigger.AppStart)
+        assertEquals(emptyList<String>(), http.bodies)
+    }
+
+    /** Scenario WP17 A11, must never: a fake warning from a site she has not allowed is still raised again after a day. */
+    @Test fun anOpenFakeWarningForASiteSheHasNotAllowedStillRemindsTheGuardian() = runTest {
+        aDayOldOpenFakeWarning()
+        runner.run(Trigger.AppStart)
+        assertEquals(listOf(com.aegida.core.text.Texts.Guardian.STILL_OPEN.format("Ruth")), http.bodies)
+    }
+
     @Test fun anOrdinaryNotificationChangesNothing() = runTest {
         val outcome = runner.run(Trigger.NotificationPosted, scamText.copy(text = "See you at 6, bring the cake"))
         assertEquals(PipelineResult(0, 0, 0), outcome.pipeline)

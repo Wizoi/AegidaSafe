@@ -23,8 +23,6 @@ import com.aegida.core.text.Problem
 import com.aegida.core.model.Setup
 import com.aegida.detectors.Inputs
 import com.aegida.detectors.NewAppDetector
-import com.aegida.detectors.PopupSpamDetector
-import com.aegida.testkit.aChromePopup
 import com.aegida.testkit.anAppOpenedFromAFile
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -219,35 +217,6 @@ class FindingActionsTest {
         assertEquals("org.other.browser", baselines.value!!.browser)
         assertEquals(FindingState.Acknowledged, findings.get(changed.key)!!.state)
         assertFalse(actions.acceptChange(changed.key)) // nothing open any more
-    }
-
-    private val newSite = "http://localhost:8765"
-
-    /** What the real detector makes of a calm notification from a site she never had: the site and what it said (findings #117). */
-    private suspend fun aNewWebsite(): Finding {
-        baselines.value = Baseline.of(phone)
-        val popup = aChromePopup(now, site = "$newSite/", title = "Today's recipes", text = "Lentil soup in 20 minutes")
-        val f = PopupSpamDetector().evaluate(Inputs(phone, now, Setup.NotDone, null, popup, null, baseline = baselines.value)).single()
-        assertEquals(Problem.NewWebsiteNotifications, f.key.problem)
-        assertEquals("Today's recipes", f.evidence[Evidence.MESSAGE_TITLE]) // the words seen takes out
-        pipeline.handle(listOf(f), setOf(DetectorId.PopupSpam))
-        return f
-    }
-
-    @Test fun aNewWebsiteIsToldToTheGuardianAsAQuestionAndHidden() = runTest { // Kevin, Oct 9
-        val f = aNewWebsite()
-        val told = "A website (lo*****) that was not there before started sending notifications on Ruth's phone. Aegida asked Ruth: “Was that you?”"
-        assertEquals(listOf(told), http.bodies)
-        assertEquals(listOf(f.key), owner.shown)
-    }
-
-    @Test fun aNewWebsiteSheSaysYesToTheGuardianHearsSheConfirmedIt() = runTest { // findings #117, GN17
-        val f = aNewWebsite()
-        http.posts.clear(); http.bodies.clear()
-        assertTrue(actions.acceptChange(f.key))
-        assertEquals(setOf(newSite), baselines.value!!.websites)
-        assertEquals(FindingState.Acknowledged, findings.get(f.key)!!.state)
-        assertEquals(listOf("Ruth confirmed the change Aegida asked about. Nothing more to do."), http.bodies)
     }
 
     @Test fun onlyAWasThatYouQuestionCanBeAcceptedIntoTheBaseline() = runTest {

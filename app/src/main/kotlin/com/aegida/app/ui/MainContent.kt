@@ -49,6 +49,9 @@ internal sealed interface Page {
     data class Advice(val finding: Finding) : Page
     data class NoisyApp(val finding: Finding) : Page
     data class Confirm(val finding: Finding) : Page
+
+    /** She said Yes to a website that sent fake warnings; it stays hidden and she is told so (findings #149). */
+    data object KeptHidden : Page
 }
 
 @Composable
@@ -154,6 +157,7 @@ private fun PageContent(page: Page, state: MainState, vm: MainViewModel, show: (
         )
         Page.ChangeGuardian -> ChangeGuardianPage(state, vm, show)
         is Page.Confirm -> ConfirmPage(page.finding, pictureId, vm, show)
+        Page.KeptHidden -> KeptHiddenPage(pictureId) { show(Page.None) }
         is Page.NoisyApp -> NoisyAppScreen(page.finding, state, vm, show)
         is Page.Advice -> AegidaScreen(pictureId) {
             Headline(page.finding.key.problem.forMom)
@@ -195,10 +199,13 @@ private fun ChangeGuardianPage(state: MainState, vm: MainViewModel, show: (Page)
 @Composable
 private fun ConfirmPage(finding: Finding, pictureId: String?, vm: MainViewModel, show: (Page) -> Unit) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     AegidaScreen(pictureId) {
         Headline(finding.key.problem.forMom)
         Texts.Home.confirmApp(finding.key.problem, finding.evidence[Evidence.APP_LABEL])?.let { Body(it) }
-        BigButton(Texts.Home.CONFIRM_YES, { vm.answer { acceptChange(finding.key) }; show(Page.None) })
+        BigButton(Texts.Home.CONFIRM_YES, {
+            scope.launch { show(if (vm.answerNow { acceptChange(finding.key); keptHidden(finding.key) } == true) Page.KeptHidden else Page.None) }
+        })
         QuietButton(Texts.Home.CONFIRM_NO, {
             context.startSafely(FixActions.settingsIntentFor(finding, context.packageName))
             // Something that happened once is never detected again, so "no" counts it as seen once she has been shown the switch.

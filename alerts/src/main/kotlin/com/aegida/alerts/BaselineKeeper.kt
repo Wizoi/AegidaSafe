@@ -28,4 +28,7 @@ class BaselineKeeper @Inject constructor(
                 baselines.save(kept.copy(smsApp = kept.smsApp ?: snapshot.smsApp, assistant = kept.assistant ?: snapshot.assistant))
         }
     }
+
+    /** The websites she allowed (had at setup or said Yes to), read as [com.aegida.detectors.PopupSpamDetector] reads them. */
+    suspend fun allowedSites(): Set<String> = baselines.baseline()?.websites ?: setup.setup().allowedSites
 }

@@ -43,14 +43,21 @@ class AlertPipeline @Inject constructor(
 
     /**
      * [phone] is the phone as read in this check, for what History says when a new-app question closes by itself. [lateNoticeAt]: the
-     * post time of a notice checked late, at a bind (see [process]).
+     * post time of a notice checked late, at a bind (see [process]). [allowedSites]: the websites she allowed, so the reminder skips a
+     * fake warning about one of them (findings #149).
      */
-    suspend fun handle(current: List<Finding>, ran: Set<DetectorId>, phone: Snapshot? = null, lateNoticeAt: Instant? = null): PipelineResult {
+    suspend fun handle(
+        current: List<Finding>,
+        ran: Set<DetectorId>,
+        phone: Snapshot? = null,
+        lateNoticeAt: Instant? = null,
+        allowedSites: Set<String> = emptySet(),
+    ): PipelineResult {
         val now = clock.now()
         val tally = Tally()
         current.forEach { process(it, now, tally, lateNoticeAt) }
         val resolved = resolveGone(current, ran, phone, now)
-        tally.notReached += reminder.remind(now)
+        tally.notReached += reminder.remind(now, allowedSites)
         return PipelineResult(
             alerted = tally.alerted,
             resolved = resolved,

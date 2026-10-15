@@ -86,6 +86,8 @@ object Texts {
         const val CONFIRM_YES = "Yes, that was me"
         const val CONFIRM_APP = "The app is called: %s"
         const val CONFIRM_NO = "No, show me"
+        /** She said Yes to a website that sent fake warnings: it is not allowed (findings #149, WP17 A13). */
+        const val SITE_KEPT_HIDDEN = "This website sent fake warnings before, so Aegida keeps hiding it."
         const val CONFIRM_NO_HELP = "If you did not do this, change it back, or call your guardian."
 
         const val CONFIRM_LABEL_MAX = 40
@@ -141,10 +143,11 @@ object Texts {
 
         private val WORD_GAPS = Regex("""[\s\p{Z}]+""")
 
-        /** "It said: “…”" for what a website's notification said (its title), cleaned and cut short. */
-        fun saidLine(title: String?): String? {
-            val clean = cleanLabel(withoutLinks(title.orEmpty()), SAYS_MAX) // a pop-up's title can carry a link too (findings #98)
-            return if (clean.isEmpty()) null else SAID_LINE.format("“$clean”")
+        /** "It said: “…” “…”" for what a website's notification said (its title, then its text), each cleaned and cut short. */
+        fun saidLine(title: String?, text: String? = null): String? {
+            // A pop-up's title can carry a link too (findings #98); the words that set it off may be only in its text (findings #149).
+            val parts = listOf(title, text).map { cleanLabel(withoutLinks(it.orEmpty()), SAYS_MAX) }.filter { it.isNotEmpty() }
+            return if (parts.isEmpty()) null else SAID_LINE.format(parts.joinToString(" ") { "“$it”" })
         }
 
         /**

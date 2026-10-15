@@ -17,6 +17,7 @@ import com.aegida.core.model.WebsiteFilter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -98,6 +99,16 @@ class MainViewModel @Inject constructor(
      * leaves the screen as it was.
      */
     fun answer(block: suspend FindingActions.() -> Unit) = change { quietly { actions.block() } }
+
+    /**
+     * An answer whose result chooses the next page (a Yes to a website Aegida keeps hiding, findings #149); null if it failed. The work
+     * runs in the view model's scope, so leaving the page (back) stops only the wait, never the answer half way.
+     */
+    suspend fun <T> answerNow(block: suspend FindingActions.() -> T): T? = viewModelScope.async(work) {
+        val result = quietly { actions.block() }
+        load()
+        result
+    }.await()
 
     /** A save in first-run setup or My settings; the block gets the state as it is when it runs. */
     fun edit(block: suspend SetupCommands.(MainState) -> Unit) = change { setup.block(mutableState.value) }

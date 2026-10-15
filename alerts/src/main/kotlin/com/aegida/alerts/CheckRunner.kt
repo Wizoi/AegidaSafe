@@ -48,7 +48,9 @@ class CheckRunner @Inject constructor(
         val snapshot = snapshotter.take()
         baseline.keep(snapshot)
         val findings = evaluator.run(trigger, snapshot, event)
-        val result = pipeline.handle(findings, evaluator.detectorIds, phone = snapshot, lateNoticeAt = event?.postedAt?.takeIf { late })
+        val result = pipeline.handle(
+            findings, evaluator.detectorIds, phone = snapshot, lateNoticeAt = event?.postedAt?.takeIf { late }, allowedSites = baseline.allowedSites(),
+        )
         outbox.flush()
         // Only now: a check killed before this point leaves "last seen bound" where it was, so its notice is checked again (finding #141).
         finished(snapshot.listenerBound)

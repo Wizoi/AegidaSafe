@@ -37,6 +37,23 @@ class HistoryDetailTest {
         assertEquals("The website was recipes.example.", HistoryDetail.of(Problem.NewWebsiteNotifications, mapOf(Evidence.SITE to "https://recipes.example")))
     }
 
+    /** WP17 A12 (findings #149): the words that set it off may be only in the text, so History shows the text after the title. */
+    @Test fun aWebsiteWarningShowsTheWordsOfItsTextToo() {
+        val site = Evidence.SITE to "https://recipes.example"
+        assertEquals(
+            "The website was recipes.example. It said: “New recipe posted” “Your phone is infected”.",
+            HistoryDetail.of(
+                Problem.SiteScaryNews,
+                mapOf(site, Evidence.MESSAGE_TITLE to "New recipe posted", Evidence.MESSAGE_TEXT to "Your phone is infected"),
+            ),
+        )
+        assertEquals(
+            "a link in the text is taken out, and long words are cut short",
+            "The website was recipes.example. It said: “Clean now at (link) ${"a".repeat(80)}…”.",
+            HistoryDetail.of(Problem.SiteNotifications, mapOf(site, Evidence.MESSAGE_TEXT to "Clean now at https://cleaner.example/x " + "a".repeat(200))),
+        )
+    }
+
     @Test fun anAppProblemNamesTheAppExceptWhereTheLabelIsNeverShown() {
         assertEquals("The app is called: “Fun Game”.", HistoryDetail.of(Problem.NewAppOutsidePlay, mapOf(Evidence.APP_LABEL to "Fun Game")))
         assertEquals("The app is called: “Other Browser”.", HistoryDetail.of(Problem.BrowserChanged, mapOf(Evidence.APP_LABEL to "Other Browser")))

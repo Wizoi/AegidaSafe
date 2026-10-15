@@ -10,6 +10,7 @@ import com.aegida.core.model.Finding
 import com.aegida.core.model.FindingState
 import com.aegida.core.model.Severity
 import com.aegida.core.net.NtfyTopic
+import com.aegida.core.text.Problem
 import com.aegida.core.text.Texts
 import java.time.Duration
 import java.time.Instant
@@ -27,10 +28,10 @@ internal class OldWarningReminder(
     private val line: GuardianLine,
 ) {
     /** How many guardian messages could not be delivered (0 or 1). */
-    suspend fun remind(now: Instant): Int {
+    suspend fun remind(now: Instant, allowedSites: Set<String> = emptySet()): Int {
         val settings = line.current()
         val topic = settings.firstTopic?.takeIf { settings.alertsOn } ?: return 0
-        val due = dueWarnings(guardianName(settings), now)
+        val due = dueWarnings(guardianName(settings), now, allowedSites)
         return if (due.isEmpty() || remindedRecently(now)) 0 else raise(topic, due, guardianName(settings), now)
     }
 
@@ -56,9 +57,14 @@ internal class OldWarningReminder(
 
     private fun detailOf(finding: Finding): String? = HistoryDetail.of(finding)
 
-    private suspend fun dueWarnings(owner: String, now: Instant): List<Finding> {
+    /**
+     * A fake warning about a website she now allows (one raised before findings #148, or before her Yes) is not raised again: since
+     * #148 such a site's alarming notice tells only her (findings #149, WP17 A11). It stays on Home until she taps it.
+     */
+    private suspend fun dueWarnings(owner: String, now: Instant, allowedSites: Set<String>): List<Finding> {
         val candidates = findings.open().filter { it.state == FindingState.Open && it.severity >= Severity.NeedsTap }
             .filter { it.key.problem.forGuardian(owner) != null || it.key.problem.remindsGuardianOnly }
+            .filterNot { it.key.problem == Problem.SiteNotifications && it.key.subject in allowedSites }
         return candidates.filter { finding ->
             val putRight = withFirstSeenPutRight(finding, now)
             if (putRight != finding) findings.put(putRight)
