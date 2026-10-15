@@ -5,7 +5,6 @@ import com.aegida.core.model.Evidence
 import com.aegida.core.model.Finding
 import com.aegida.core.model.FindingKey
 import com.aegida.core.model.NotificationEvent
-import com.aegida.core.model.ScareKind
 import com.aegida.core.model.ScareWords
 import com.aegida.core.model.WebsiteSites
 import com.aegida.core.text.Problem
@@ -15,11 +14,9 @@ import javax.inject.Inject
 /**
  * Owns "is a website sending notifications the owner did not already have?". Chrome posts each site on its own
  * channel "web:<origin>;<n>" (findings #18).
- *  - A site she already had when setup ended or said Yes to (the baseline's websites) is left alone, unless it uses scare wording
- *    ([ScareWords]): a fake warning about her phone ("your phone is infected", "tap to fix") is called fake and hidden
- *    ([Problem.SiteNotifications], the guardian is told); real news that speaks to the reader ("Check your phone for this spyware")
- *    is hidden without telling the guardian ([Problem.SiteScaryNews], Kevin, Oct 14); a news story ("Retailer hacked") stays
- *    (findings #109, #126, #133).
+ *  - A site she already had when setup ended or said Yes to (the baseline's websites) is left alone, unless its notice passes the
+ *    scare-word gate ([ScareWords]): then it is hidden and she is told, but the guardian is not ([Problem.SiteScaryNews]). Whether it
+ *    is real news or a fake is not guessed (Kevin, Oct 15; findings #148).
  *  - A site that is not in that list and talks calmly is hidden and she is asked "Was that you?" ([Problem.NewWebsiteNotifications],
  *    Kevin, Oct 9); yes adds it to the list. Scare wording on a new site is still called fake, since "was that you?" would offer to
  *    allow a fake virus warning.
@@ -52,21 +49,11 @@ class PopupSpamDetector @Inject constructor() : Detector {
         val recorded = input.baseline?.websites
         val known = if (recorded == null) site in input.setup.allowedSites else site in recorded
         return when {
-            known && anyScareWord -> knownSiteScare(ScareWords.kindOf(notice.event.title, notice.event.text))
+            known && anyScareWord -> Problem.SiteScaryNews
             known -> null
             recorded == null || anyScareWord -> Problem.SiteNotifications
             else -> Problem.NewWebsiteNotifications
         }
-    }
-
-    /**
-     * A site she had or said Yes to may report news ("Retailer hacked"): left alone. News that speaks to the reader ("Check your phone
-     * for this spyware") is hidden without telling the guardian; a fake warning about her phone is hidden and the guardian is told.
-     */
-    private fun knownSiteScare(kind: ScareKind): Problem? = when (kind) {
-        ScareKind.News -> null
-        ScareKind.NewsToTheReader -> Problem.SiteScaryNews
-        ScareKind.FakeWarning -> Problem.SiteNotifications
     }
 
     private fun findingFor(notice: SiteNotice, problem: Problem, now: Instant): Finding {

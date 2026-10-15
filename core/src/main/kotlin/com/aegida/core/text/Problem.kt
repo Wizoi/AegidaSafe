@@ -57,16 +57,17 @@ enum class Problem(
         fix = Fix.SettingsThenAcknowledge,
     ),
     /**
-     * A website she had or said Yes to sent real news that speaks to the reader ("Check your phone for this spyware"): hidden, so it
-     * cannot frighten her, but not called fake, and the guardian is not told (Kevin, Oct 14; findings #133).
+     * A website she had or said Yes to sent a notice with alarming words (the scare-word gate): hidden, and she is told, but it is
+     * not called fake and the guardian is not told; whether it was news or a fake is not guessed (Kevin, Oct 15; findings #148).
+     * The name is kept from before, since finding rows in the database store it.
      */
     SiteScaryNews(
         Severity.NeedsTap,
-        "A website you allowed sent a scary news story about phones. Aegida hid it. Tap to stop that website.",
+        "A website you allowed sent an alarming message. Aegida hid it. Tap to stop that website.",
         null,
-        whatHappened = "A website sent a scary news story",
+        whatHappened = "A website you allowed sent an alarming message",
         fix = Fix.SettingsThenAcknowledge,
-        // A news site may send such a story every day; she is told once a week at most (each one is still hidden).
+        // A news site may send such a message every day; she is told once a week at most (each one is still hidden).
         quietAfterSeen = ONE_WEEK,
     ),
     NewWebsiteNotifications(

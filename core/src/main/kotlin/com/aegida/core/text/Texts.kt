@@ -18,8 +18,8 @@ object Texts {
     const val CHANNEL_NEEDS_TAP = "Needs a tap"
 
     /**
-     * Not shown to anyone: the names of phones and phone makers that tell "your Motorola is infected" from "your pharmacy was hacked"
-     * on a website's notice (ScareWords, findings #133). Kept here because a maker's name may appear only in this file (OemSingleOwner).
+     * Not shown to anyone: the names of phones and phone makers that let the scare-word gate read "your Motorola is ..." on a website's
+     * notice as being about her phone (ScareWords). Kept here because a maker's name may appear only in this file (OemSingleOwner).
      */
     val PHONE_NAMES: Set<String> = setOf(
         "system", "samsung", "galaxy", "motorola", "moto", "xiaomi", "redmi", "oneplus", "huawei", "nokia", "oppo", "pixel", "iphone",
