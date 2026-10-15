@@ -165,6 +165,23 @@ class FindingActionsTest {
         assertTrue(row.handled)
     }
 
+    /** HC3 (findings #129): her answer names the app, so the question's earlier row turns green; another app's question stays amber. */
+    @Test fun sayingYesLaterTurnsThatAppsQuestionGreenAndLeavesTheOtherAppsAmber() = runTest {
+        baselines.value = Baseline.of(phone)
+        val apps = listOf(anAppOpenedFromAFile("org.new.one"), anAppOpenedFromAFile("org.new.two"))
+        val questions = NewAppDetector().evaluate(Inputs(phone.copy(apps = apps), now, Setup.NotDone, null, null, null, baseline = baselines.value))
+        assertEquals(2, questions.size)
+        pipeline.handle(questions, setOf(DetectorId.NewApp))
+
+        assertTrue(SeenMarker(findings, history, owner).markSeen(questions[0].key, now.plus(Duration.ofHours(3))))
+
+        val asked = HistoryRows.of(history.entries).filter { it.at == now }
+        assertEquals(2, asked.size)
+        val first = com.aegida.core.alert.HistoryDetail.of(Problem.NewAppOutsidePlay, questions[0].evidence)
+        assertTrue(asked.single { it.facts == first }.handled)
+        assertFalse(asked.single { it.facts != first }.handled)
+    }
+
     @Test fun markingSomethingSeenTwiceOrSomethingUnknownDoesNothing() = runTest {
         pipeline.handle(listOf(scam), setOf(DetectorId.Link))
         assertTrue(actions.acknowledge(scam.key))

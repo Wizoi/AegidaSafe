@@ -114,7 +114,9 @@ class AlertPipeline @Inject constructor(
         resolved.forEach { finding ->
             findings.put(finding.copy(state = FindingState.Resolved, lastSeen = now))
             owner.clear(finding.key)
-            closedOutcome(finding, phone)?.let { history.add(HistoryEntry(now, finding.key.problem, it)) }
+            // The closing line names what it was, as the warning did, so History can turn the warning's row green (findings #129).
+            val detail = HistoryDetail.of(finding.key.problem, finding.evidence)
+            closedOutcome(finding, phone, current)?.let { history.add(HistoryEntry(now, finding.key.problem, it, detail)) }
         }
         return resolved.size
     }
@@ -185,15 +187,18 @@ class AlertPipeline @Inject constructor(
          * What History says when a question closes by itself, or null for no line. A new-app question whose app now comes from Play or
          * the phone maker's own store closed because Aegida learned more (findings #106), not because she did anything: "No longer a
          * concern." A new-app question whose app is gone, and everything else that stops appearing, was changed back: "Fixed." [phone]
-         * is the phone as read in this check (null: nothing known about its apps, so as if gone).
+         * is the phone as read in this check (null: nothing known about its apps, so as if gone). A question taken over by an urgent
+         * warning about the same app in [current] (the spying-app list now names it) says "See the newer warning." (findings #129);
+         * with no newer warning (the baseline was retaken) there is no line.
          */
-        internal fun closedOutcome(finding: Finding, phone: Snapshot?): Outcome? {
+        internal fun closedOutcome(finding: Finding, phone: Snapshot?, current: List<Finding>): Outcome? {
             val app = phone?.apps?.firstOrNull { it.packageName == finding.key.subject }
             return when {
                 finding.key.problem != Problem.NewAppOutsidePlay || app == null -> Outcome.Fixed
-                // Still on the phone: reassuring only when it now comes from a store Aegida trusts. Anything else (the spying-app list
-                // now names it, findings #118) has its own warning, so this question closes without a line.
+                // Still on the phone: reassuring only when it now comes from a store Aegida trusts. The spying-app list now naming it
+                // (findings #118) points to that newer warning; anything else (the baseline was retaken) closes without a line.
                 app.fromPlayStore || app.fromStoreIn(phone.makerStores) -> Outcome.NoLongerAConcern
+                current.any { it.severity == Severity.Urgent && it.key.subject == finding.key.subject } -> Outcome.SeeNewerWarning
                 else -> null
             }
         }

@@ -48,6 +48,8 @@ enum class Outcome(val forMom: String) {
     /** The question closed though nothing on the phone changed: Aegida learned the app was fine (Kevin, Oct 14). */
     NoLongerAConcern("No longer a concern."),
     Acknowledged("You saw it."),
+    /** A new-app question closed because a newer, urgent warning about the same app took it over (findings #118, #129). */
+    SeeNewerWarning("See the newer warning."),
 }
 
 /** Guardian alerting as the owner set it up. Implemented by :store. */

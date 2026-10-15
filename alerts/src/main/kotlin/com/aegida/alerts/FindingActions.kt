@@ -1,6 +1,7 @@
 package com.aegida.alerts
 
 import com.aegida.core.alert.FindingStore
+import com.aegida.core.alert.HistoryDetail
 import com.aegida.core.alert.HistoryEntry
 import com.aegida.core.alert.HistoryLog
 import com.aegida.core.alert.OwnerNotifier
@@ -59,9 +60,11 @@ class SeenMarker @Inject constructor(
 ) {
     suspend fun markSeen(key: FindingKey, now: Instant): Boolean {
         val finding = findings.get(key)?.takeIf { it.state.needsHer } ?: return false
+        // Named as the warning was, from the evidence before the message words go, so History turns its row green (findings #129).
+        val detail = HistoryDetail.of(key.problem, finding.evidence)
         findings.put(finding.withoutMessage().copy(state = FindingState.Acknowledged, lastSeen = now))
         owner.clear(key)
-        history.add(HistoryEntry(now, key.problem, Outcome.Acknowledged))
+        history.add(HistoryEntry(now, key.problem, Outcome.Acknowledged, detail))
         return true
     }
 }

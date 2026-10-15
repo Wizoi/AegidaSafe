@@ -109,6 +109,97 @@ class HistoryRowsTest {
     }
 }
 
+/** A later line closes an earlier one (findings #129, Kevin, Oct 14): rows HC1-HC13 of docs/scenarios/phone-changes.md. */
+class HistoryClosingTest {
+    private val now = Instant.now()
+    private val dayOne = now.minus(Duration.ofDays(3))
+    private val dayTwo = now.minus(Duration.ofDays(2))
+    private val dayThree = now.minus(Duration.ofDays(1))
+
+    /** The detail as the pipeline writes it for a new app, from the finding's evidence. */
+    private fun app(label: String) = com.aegida.core.alert.HistoryDetail.of(Problem.NewAppOutsidePlay, mapOf(com.aegida.core.model.Evidence.APP_LABEL to label))
+    private fun asked(at: Instant, detail: String?, problem: Problem = Problem.NewAppOutsidePlay) =
+        listOf(HistoryEntry(at, problem, Outcome.OwnerWarned, detail), HistoryEntry(at, problem, Outcome.GuardianTold, detail))
+    private fun rowAt(rows: List<com.aegida.core.alert.HistoryRow>, at: Instant) = rows.single { it.at == at }
+
+    @Test fun herQuestionTurnsGreenWhenSheRemovedTheApp() { // HC1
+        val rows = HistoryRows.of(asked(dayOne, app("Fun Game")) + HistoryEntry(dayTwo, Problem.NewAppOutsidePlay, Outcome.Fixed, app("Fun Game")))
+        assertTrue(rowAt(rows, dayOne).handled)
+    }
+
+    @Test fun herQuestionTurnsGreenWhenAegidaLearnedTheAppIsFine() { // HC2
+        val rows = HistoryRows.of(asked(dayOne, app("Fun Game")) + HistoryEntry(dayTwo, Problem.NewAppOutsidePlay, Outcome.NoLongerAConcern, app("Fun Game")))
+        assertTrue(rowAt(rows, dayOne).handled)
+    }
+
+    @Test fun sayingYesTurnsTheQuestionAndItsReminderGreen() { // HC3, HC10
+        val rows = HistoryRows.of(
+            asked(dayOne, app("Fun Game")) + HistoryEntry(dayTwo, Problem.NewAppOutsidePlay, Outcome.GuardianReminded, app("Fun Game")) +
+                HistoryEntry(dayThree, Problem.NewAppOutsidePlay, Outcome.Acknowledged, app("Fun Game")),
+        )
+        assertTrue(rowAt(rows, dayOne).handled)
+        assertTrue(rowAt(rows, dayTwo).handled)
+    }
+
+    @Test fun seeTheNewerWarningClosesTheQuestionButNotTheNewerWarning() { // HC4
+        val rows = HistoryRows.of(
+            asked(dayOne, app("Fun Game")) + asked(dayTwo, null, Problem.StalkerwareApp) +
+                HistoryEntry(dayTwo, Problem.NewAppOutsidePlay, Outcome.SeeNewerWarning, app("Fun Game")),
+        )
+        assertTrue(rowAt(rows, dayOne).handled)
+        val closing = rows.single { it.at == dayTwo && it.title == Problem.NewAppOutsidePlay.whatHappened }
+        assertEquals("See the newer warning.", closing.detail)
+        assertTrue(closing.handled)
+        assertFalse(rows.single { it.title == Problem.StalkerwareApp.whatHappened }.handled)
+    }
+
+    @Test fun aQuestionAskedAgainAfterAnEarlierFixStaysAmber() { // HC5: an open question never turns green
+        val rows = HistoryRows.of(
+            asked(dayOne, app("Fun Game")) + HistoryEntry(dayTwo, Problem.NewAppOutsidePlay, Outcome.Fixed, app("Fun Game")) +
+                asked(dayThree, app("Fun Game")),
+        )
+        assertTrue(rowAt(rows, dayOne).handled)
+        assertFalse(rowAt(rows, dayThree).handled)
+    }
+
+    @Test fun aFixedLineForAnotherAppLeavesThisAppsRowAmber() { // HC6
+        val rows = HistoryRows.of(asked(dayOne, app("Fun Game")) + HistoryEntry(dayTwo, Problem.NewAppOutsidePlay, Outcome.Fixed, app("Photo Fixer")))
+        assertFalse(rowAt(rows, dayOne).handled)
+    }
+
+    @Test fun aFixedSpyingAppLineNeverTurnsAnotherSpyingAppRowGreen() { // HC7: the urgent kinds never name the app
+        val rows = HistoryRows.of(asked(dayOne, null, Problem.StalkerwareApp) + asked(dayTwo, null, Problem.StalkerwareApp) +
+            HistoryEntry(dayThree, Problem.StalkerwareApp, Outcome.Fixed))
+        assertFalse(rowAt(rows, dayOne).handled)
+        assertFalse(rowAt(rows, dayTwo).handled)
+    }
+
+    @Test fun websiteProtectionTurnedBackOnTurnsTheEarlierWarningGreen() { // HC8
+        val rows = HistoryRows.of(asked(dayOne, null, Problem.WebsiteFilterOff) + HistoryEntry(dayTwo, Problem.WebsiteFilterOff, Outcome.Fixed))
+        assertTrue(rowAt(rows, dayOne).handled)
+    }
+
+    @Test fun aLookAlikeAppNameDoesNotCloseTheRealAppsRow() { // HC9: Cyrillic "а" in the second name
+        val rows = HistoryRows.of(asked(dayOne, app("Fun Game")) + HistoryEntry(dayTwo, Problem.NewAppOutsidePlay, Outcome.Fixed, app("Fun Gаme")))
+        assertFalse(rowAt(rows, dayOne).handled)
+    }
+
+    @Test fun aClosingLineStampedBeforeTheQuestionLeavesItAmber() { // HC11: the clock was set back
+        val rows = HistoryRows.of(asked(dayTwo, app("Fun Game")) + HistoryEntry(dayOne, Problem.NewAppOutsidePlay, Outcome.Fixed, app("Fun Game")))
+        assertFalse(rowAt(rows, dayTwo).handled)
+    }
+
+    @Test fun aClosingLineWhoseQuestionWasPrunedIsJustItsOwnGreenLine() { // HC12
+        val rows = HistoryRows.of(listOf(HistoryEntry(dayTwo, Problem.NewAppOutsidePlay, Outcome.Fixed, app("Fun Game"))))
+        assertTrue(rows.single().handled)
+    }
+
+    @Test fun aClosingLineFromBeforeTheUpdateWithNoAppNameClosesNoAppRow() { // HC13
+        val rows = HistoryRows.of(asked(dayOne, app("Fun Game")) + HistoryEntry(dayTwo, Problem.NewAppOutsidePlay, Outcome.Fixed))
+        assertFalse(rowAt(rows, dayOne).handled)
+    }
+}
+
 class SafetyPictureAndTopicTest {
     @Test fun thereAreTenPicturesWithDistinctIdsAndLabels() {
         assertEquals(10, SafetyPicture.entries.size)
