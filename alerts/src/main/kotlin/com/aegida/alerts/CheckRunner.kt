@@ -1,11 +1,13 @@
 package com.aegida.alerts
 
+import com.aegida.core.health.ListenerTimesStore
 import com.aegida.core.health.Trigger
 import com.aegida.core.model.Finding
 import com.aegida.core.model.NotificationEvent
 import com.aegida.core.model.Snapshotter
 import com.aegida.core.text.Problem
 import com.aegida.detectors.Evaluator
+import java.time.Instant
 import javax.inject.Inject
 
 /** What one check found and what the pipeline did about it. */
@@ -39,14 +41,31 @@ class CheckRunner @Inject constructor(
     private val pipeline: AlertPipeline,
     private val baseline: BaselineKeeper,
     private val outbox: OutboxFlusher,
-    private val gate: AlertGate,
+    private val gate: CheckGate,
 ) {
-    suspend fun run(trigger: Trigger, event: NotificationEvent? = null): CheckOutcome = gate.run {
+    suspend fun run(trigger: Trigger, event: NotificationEvent? = null): CheckOutcome = gate.run { finished ->
         val snapshot = snapshotter.take()
         baseline.keep(snapshot)
         val findings = evaluator.run(trigger, snapshot, event)
         val result = pipeline.handle(findings, evaluator.detectorIds, phone = snapshot)
         outbox.flush()
+        // Only now: a check killed before this point leaves "last seen bound" where it was, so its notice is checked again (finding #141).
+        finished(snapshot.listenerBound)
         CheckOutcome(findings, result)
+    }
+}
+
+/**
+ * A check's turn at the one alert lock ([AlertGate], findings #49), and what it tells [SeenBound] when it has finished (finding #141):
+ * the time it was asked for, taken before it waits for its turn.
+ */
+class CheckGate @Inject constructor(
+    private val gate: AlertGate,
+    private val seen: SeenBound = SeenBound(ListenerTimesStore.None) { Instant.EPOCH },
+) {
+    /** [block] calls its argument once it has finished, with whether the check saw the listener bound. */
+    suspend fun <T> run(block: suspend (finished: suspend (bound: Boolean) -> Unit) -> T): T {
+        val askedAt = seen.now()
+        return gate.run { block { bound -> seen.checkFinished(askedAt, bound) } }
     }
 }

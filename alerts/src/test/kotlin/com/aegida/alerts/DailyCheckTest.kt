@@ -75,12 +75,14 @@ class DailyCheckTest {
     private val guardianAlerts = GuardianAlerts(guardians, sender, switch, AlertGate())
     private val runner = CheckRunner(
         { snapshot }, evaluator, pipeline, BaselineKeeper(FakeSetupStore(), FakeBaselines()),
-        OutboxFlusher(outbox, NtfySender(http), history, guardians, { now }), AlertGate(),
+        OutboxFlusher(outbox, NtfySender(http), history, guardians, { now }), CheckGate(AlertGate()),
     )
     private val feed = DailyFeed(FeedUpdater(http, FeedVerifier(keys.public.encoded), feedStore) { now }, feedStore) { now }
     private val heartbeat = DailyHeartbeat(switch, guardianAlerts, AlertGate())
     private val binding = FakeListenerBinding(boundNow = true)
-    private val daily = DailyCheck(feed, runner, DailyPruning(history, findings, checkLog) { now }, heartbeat, checkLog, ListenerRepair(binding) { now })
+    private val daily = DailyCheck(
+        feed, runner, DailyPruning(history, findings, checkLog) { now }, heartbeat, checkLog, ListenerRepair(binding, FakeSetupStore()) { now },
+    )
 
     private fun publish(generatedAt: Instant) {
         val feed = ThreatFeed.of(generatedAt, listOf(FeedSource("test", "test", 1)), List(2_000) { "h$it.example" }, emptyList())

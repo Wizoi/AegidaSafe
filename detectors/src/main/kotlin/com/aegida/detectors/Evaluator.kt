@@ -67,7 +67,7 @@ class Evaluator @Inject constructor(
 
 /**
  * What the phone remembers between runs (setup, lists, the check log, the outbox, the baseline), read into one [Inputs] and the run
- * written back. A check that runs while the listener is bound records that it saw it bound (finding #134).
+ * written back. "Last seen bound" is only read here: CheckRunner writes it when a check finishes (findings #134, #141).
  */
 class EvaluatorMemory @Inject constructor(
     private val setupStore: SetupStore,
@@ -78,7 +78,6 @@ class EvaluatorMemory @Inject constructor(
     private val listener: ListenerTimesStore = ListenerTimesStore.None,
 ) {
     suspend fun inputs(snapshot: Snapshot, started: Instant, event: NotificationEvent?, recent: List<NoticeRow>, allowedApps: Set<String>): Inputs {
-        if (snapshot.listenerBound) listener.seenBound(started)
         return Inputs(
             snapshot, started, setupStore.setup(), feedStore.current(), event, checkLog.latest(Trigger.Daily), outbox.all().minOfOrNull { it.queuedAt },
             baselines.baseline(), recent, allowedApps, listener.times(),
