@@ -93,6 +93,8 @@ dependencies {
     implementation(libs.serialization.json)
 
     testImplementation(libs.junit)
+    testImplementation(libs.hilt.android.testing)
+    kspTest(libs.hilt.compiler)
     testImplementation(testFixtures(project(":core")))
     testImplementation(libs.mockk)
     testImplementation(libs.coroutines.test)
