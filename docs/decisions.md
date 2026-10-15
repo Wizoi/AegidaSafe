@@ -120,8 +120,8 @@
 - **Designs and final reviews (Kevin, Oct 11):** designs and final code reviews run on Opus 5.5 with effort high; making the changes may run on Sonnet 5.5 at medium.
 
 ## Open / next session (as of Oct 8; the spike ran, Play Support was not asked by decision on Oct 9, and the name was checked by hand on Oct 9)
-- Create the Gradle project and run the **emulator spike**: confirm each `adb`/`cmd` scenario works on the API 36 Play image.
-- Kevin: look for an old Samsung phone on One UI 6+; look into Samsung Remote Test Lab.
-- Ask Play Developer Support about automatic consented alerts.
-- Clear the name Aegida (trademark, Play Console, domain, GitHub).
+- ~~Create the Gradle project and run the **emulator spike**~~ Done Oct 8 (findings #16-#20).
+- Kevin: look for an old Samsung phone on One UI 6+; look into Samsung Remote Test Lab. Remote Test Lab done (Oct 8, Oct 14; `samsung-validation-options.md`); a real Galaxy is still needed for findings #1, #2, #11.
+- ~~Ask Play Developer Support about automatic consented alerts.~~ Decided not to ask for now (Oct 9; draft in `play-support-question.md`).
+- ~~Clear the name Aegida (trademark, Play Console, domain, GitHub).~~ Checked by hand Oct 9, no trademark filed for now (`name-clearance.md`).
 - Storyboard "Logo ideas" board still shows all six ideas; optionally mark #1 as chosen.
