@@ -11,7 +11,6 @@ import com.aegida.core.alert.Outbox
 import com.aegida.core.feed.FeedKey
 import com.aegida.core.feed.FeedUpdater
 import com.aegida.core.health.CheckLog
-import com.aegida.core.model.Snapshotter
 import com.aegida.core.net.HttpClient
 import com.aegida.core.oem.OemSource
 import com.aegida.core.store.FeedStore
@@ -27,7 +26,6 @@ import com.aegida.platform.net.OkHttpHttpClient
 import com.aegida.platform.notify.NotificationPoster
 import com.aegida.platform.oem.AndroidOemSource
 import com.aegida.platform.snapshot.AndroidSnapshotter
-import com.aegida.platform.time.SystemClock
 import com.aegida.store.AegidaStore
 import dagger.Binds
 import dagger.Module
@@ -42,7 +40,6 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class AppModule {
-    @Binds abstract fun clock(impl: SystemClock): Clock
     @Binds @Singleton abstract fun http(impl: OkHttpHttpClient): HttpClient
 
     companion object {
@@ -69,9 +66,17 @@ abstract class AppModule {
         fun listenerBinding(@ApplicationContext context: Context): com.aegida.core.health.ListenerBinding =
             com.aegida.platform.notify.AndroidListenerBinding(context, ComponentName(context, AegidaListenerService::class.java))
 
-        /** One snapshotter, so there is one 5-minute app-list cache, not one per injection (R5). */
+        /**
+         * One snapshotter, so there is one 5-minute app-list cache, not one per injection (R5). The Clock and the Snapshotter port
+         * are bound per build type (BuildTypeModule in src/release and src/debug; finding #134).
+         */
         @Provides @Singleton
-        fun snapshotter(@ApplicationContext context: Context, clock: Clock, oem: OemSource, binding: com.aegida.core.health.ListenerBinding): Snapshotter =
+        fun androidSnapshotter(
+            @ApplicationContext context: Context,
+            clock: Clock,
+            oem: OemSource,
+            binding: com.aegida.core.health.ListenerBinding,
+        ): AndroidSnapshotter =
             AndroidSnapshotter(context, clock, oem, ComponentName(context, AegidaListenerService::class.java), binding)
 
         @Provides

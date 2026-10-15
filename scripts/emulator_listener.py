@@ -7,11 +7,12 @@ the debug-only DebugListenerReceiver (app/src/debug) to clear the in-process "bo
 from the guardian's side: alerts are off, nothing is sent. Screenshots go to build/emulator-checks/listener/. Refuses any serial
 that is not emulator-*.
 
-Step 2 needs the emulator up for over an hour and Aegida installed or updated over an hour ago: the step is never raised in the
-first hour after either (health H4e, H4g). On a fresh emulator the script checks that it is not raised, then says to rerun it
-later with --no-install (pm clear keeps the install time).
+The step is never raised in the first hour after the phone started or Aegida was installed (health H4e, H4g), nor in the first two
+minutes of a new process (H4k). Step 2 first checks that it is not raised on a fresh emulator, then seeds the boot, install and
+process start times two hours back through the same debug receiver (DebugSeeds; debug builds only, finding #134), so it runs on
+any emulator.
 
-    python scripts/emulator_listener.py [serial] [--no-install]
+    python scripts/emulator_listener.py [serial] [--no-install] [--apk=path/to/app-debug.apk] [--shots=dir]
 """
 import os, re, sqlite3, subprocess, sys, tempfile, time
 import xml.etree.ElementTree as ET
@@ -19,6 +20,7 @@ import xml.etree.ElementTree as ET
 ARGS = [a for a in sys.argv[1:] if not a.startswith("--")]
 SERIAL = ARGS[0] if ARGS else "emulator-5554"
 INSTALL = "--no-install" not in sys.argv
+OPTS = dict(a[2:].split("=", 1) for a in sys.argv[1:] if a.startswith("--") and "=" in a)
 if not SERIAL.startswith("emulator-"):
     sys.exit("refusing: %s is not an emulator" % SERIAL)
 SDK = os.environ.get("ANDROID_SDK_ROOT") or os.path.join(os.environ["LOCALAPPDATA"], "Android", "Sdk")
@@ -26,7 +28,7 @@ ADB = os.path.join(SDK, "platform-tools", "adb.exe")
 PKG = "com.aegida.app"
 LISTENER = "%s/%s.AegidaListenerService" % (PKG, PKG)
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SHOTS = os.path.join(ROOT, "build", "emulator-checks", "listener")
+SHOTS = OPTS.get("shots") or os.path.join(ROOT, "build", "emulator-checks", "listener")
 TMP = tempfile.mkdtemp(prefix="aegida-listener-")
 LOST_TEXT = "Aegida can't see your notices right now. Tap, then turn Aegida off and on again."
 FAILS = 0
@@ -145,7 +147,10 @@ def seed_setup_done():
 
 # ======================================================================================
 env = dict(os.environ, ANDROID_SERIAL=SERIAL)
-if INSTALL:
+if INSTALL and "apk" in OPTS:
+    print("-- install " + OPTS["apk"], flush=True)
+    check("Success" in adb("install", "-r", OPTS["apk"]), "installed the -local debug build")
+elif INSTALL:
     print("-- build and install", flush=True)
     r = subprocess.run([os.path.join(ROOT, "gradlew.bat"), "installDebug", "-PlocalBuild", "--console=plain"], cwd=ROOT, env=env, capture_output=True, text=True)
     check("BUILD SUCCESSFUL" in r.stdout, "installed the -local debug build")
@@ -163,26 +168,21 @@ print("-- 2. access on, not bound, last seen bound two hours ago: Home says it c
 uptime = float(sh("cat /proc/uptime").split()[0])
 m = re.search(r"lastUpdateTime=(\S+ \S+)", sh("dumpsys package " + PKG))
 installed_ago = time.time() - time.mktime(time.strptime(m.group(1), "%Y-%m-%d %H:%M:%S")) if m else 0
-STEP2_DONE = uptime > 3700 and installed_ago > 3700
-if not STEP2_DONE:
+STEP2_DONE = True
+if uptime < 3600 or installed_ago < 3600:
     broadcast("--ez bound false --el lastSeenBound %d" % int((time.time() - 2 * 3600) * 1000))
     time.sleep(2)
     reopen()
     time.sleep(3)
     check("ListenerNotConnected:aegida" not in open_findings(),
           "not raised within the first hour after the emulator started (%d s) or Aegida was installed (%d s ago)" % (uptime, installed_ago))
-    print("  STEP 2 NOT RUN: rerun with --no-install once the emulator has been up and Aegida installed for over an hour", flush=True)
-    # Back to "seen bound just now", so notices left in the shade by earlier runs are not checked late by the next bind.
-    broadcast("--el lastSeenBound %d" % int(time.time() * 1000))
-    sh("cmd notification disallow_listener " + LISTENER)
-    time.sleep(2)
-    sh("cmd notification allow_listener " + LISTENER)
-    time.sleep(6)
-else:
+if True:
     two_hours_ago = int((time.time() - 2 * 3600) * 1000)
-    broadcast("--ez bound false --el lastSeenBound %d" % two_hours_ago)
+    broadcast("--ez bound false --el lastSeenBound %d --el bootedAt %d --el updatedAt %d --el processStartedAt %d"
+              % (two_hours_ago, two_hours_ago, two_hours_ago, two_hours_ago))
     time.sleep(2)
     reopen()
+    check(node_with("No known problems found") is None, "Home never says No known problems found while not listening")
     wait_for("ListenerNotConnected is open", lambda: "ListenerNotConnected:aegida" in open_findings(), 20)
     check(any("ListenerNotConnected" in b for b in banners()), "a banner was posted (%s)" % banners())
     check(node_with(LOST_TEXT) is not None or node_with("can't see your notices") is not None, "Home shows the step")
@@ -201,7 +201,7 @@ else:
     sh("settings put system font_scale 1.0")
     sh("cmd uimode night no")
     time.sleep(3)
-    step = node_with("can't see your notices")
+    step = node_with("Fix my phone")  # the step's words are not a button; "Fix my phone" is Home's tap for it
     if check(step is not None, "the step can be tapped"):
         tap(step)
         time.sleep(3)
@@ -211,7 +211,7 @@ else:
         time.sleep(2)
     print("-- re-allowing clears it", flush=True)
     # Back to "seen bound just now", so notices left in the shade by earlier runs are not checked late by the next bind.
-    broadcast("--el lastSeenBound %d" % int(time.time() * 1000))
+    broadcast("--el lastSeenBound %d --el bootedAt -1 --el updatedAt -1 --el processStartedAt -1" % int(time.time() * 1000))
     sh("cmd notification disallow_listener " + LISTENER)
     time.sleep(2)
     sh("cmd notification allow_listener " + LISTENER)
@@ -243,5 +243,6 @@ check(len([f for f in open_findings() if "paypa1" in f]) == 1, "one finding")
 
 sh("settings put system font_scale 1.0")
 sh("cmd uimode night no")
+sh("settings put global auto_time 1")
 print("\n%s (%d failed)%s" % ("ALL PASS" if FAILS == 0 else "FAILURES", FAILS, "" if STEP2_DONE else "; step 2 not run"))
 sys.exit(1 if FAILS else 0)

@@ -15,7 +15,8 @@ class OffMainThreadTest {
 
     @Test fun thereIsOneSnapshotterSoOneAppListCache() {
         val module = source("di/AppModule.kt")
-        assertTrue(Regex("""@Provides\s+@Singleton\s+fun snapshotter\(""").containsMatchIn(module))
+        // The Snapshotter port is bound per build type to this one singleton (BuildTypeModule, finding #134).
+        assertTrue(Regex("""@Provides\s+@Singleton\s+fun androidSnapshotter\(""").containsMatchIn(module))
     }
 
     @Test fun everyViewModelLaunchAndSuspendActionRunsOnTheWorkDispatcher() {
