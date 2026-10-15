@@ -145,6 +145,19 @@ class AppDetectorsTest {
         assertEquals(listOf(Problem.NewAppOutsidePlay to "org.new.temu"), newAppsOn(phone, emptySet()))
     }
 
+    @Test fun aWebsiteSavedToTheHomeScreenAsAnAppFromChromeIsStillAQuestion() { // GS9 (Kevin, Oct 14: keep asking)
+        // Pixel 11 dump: Chrome web apps are `org.chromium.webapk.*`, installer `com.android.chrome`.
+        val webApp = anApp("org.chromium.webapk.a1b2c3d4e5f6a7b8c", installer = "com.android.chrome")
+        assertEquals(listOf(Problem.NewAppOutsidePlay to webApp.packageName), newAppsOn(atSetup + webApp, emptySet()))
+        assertEquals(listOf(Problem.NewAppOutsidePlay to webApp.packageName), newAppsOn(atSetup + webApp, setOf(store)))
+    }
+
+    @Test fun aRemoteControlAppFromTheMakersStoreUnderANameNotOnTheListIsQuiet() { // GS18, accepted (Kevin, Oct 14)
+        val phone = snapshot().copy(apps = atSetup + aGalaxyStoreApp("com.example.helpdesk.remote"), makerStores = setOf(store))
+        assertEquals(emptyList<Pair<Problem, String>>(), newAppsOn(phone.apps, setOf(store)))
+        assertEquals(emptyList<Pair<Problem, String>>(), remote(phone.apps))
+    }
+
     @Test fun anAppFromTheMakersStoreThatLaterGetsAccessIsStillAskedAbout() { // GS17
         val now = snapshot().copy(apps = atSetup + aGalaxyStoreApp("org.new.temu"), makerStores = setOf(store), notificationListeners = setOf("org.new.temu"))
         val found = DriftDetector().evaluate(inputs(snapshot = now).copy(baseline = baseline)).map { it.key.problem to it.key.subject }

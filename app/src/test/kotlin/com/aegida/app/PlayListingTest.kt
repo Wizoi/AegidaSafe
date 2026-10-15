@@ -104,6 +104,13 @@ class PlayListingTest {
         return int(16) to int(20)
     }
 
+    /** GS13 (findings #106): the store text says the Galaxy Store counts like Play on a Samsung, wherever it says which apps count as new. */
+    @Test fun whereTheStoreTextSaysWhichAppsCountAsNewItNamesTheGalaxyStoreOnASamsung() {
+        val lines = text("full-description.txt").lines().filter { it.contains("outside the Play Store") || it.contains("outside Google Play") }
+        assertTrue("the store text says which apps count as new", lines.isNotEmpty())
+        for (line in lines) assertTrue(line, line.contains("on a Samsung, the Galaxy Store"))
+    }
+
     /** Kevin, Oct 10: how to say the name, in the store text and on the page (AY-gih-dah). */
     @Test fun theNameComesWithItsPronunciationInTheStoreTextAndOnThePage() {
         assertTrue(File(play, "listings/en-US/full-description.txt").readText().contains("Aegida (say it AY-gih-dah)"))
