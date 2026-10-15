@@ -1,13 +1,12 @@
 name: CI
 
-# Runs the whole build (compile, unit tests, guards, Android Lint with its baseline, test-time budget) on every push
-# and pull request. Needs no secrets, publishes nothing (the Play upload and the signed feed are separate, manual or
+# Runs the whole build (compile, unit tests, guards, detekt and Android Lint with no baselines, test-time budget) on
+# every push to any branch and on pull requests (Kevin, Oct 14). Needs no secrets, publishes nothing (the Play upload and the signed feed are separate, manual or
 # in build-feed.yml). The project builds with JDK 17 targets; Gradle itself is run on JDK 17.
 # Emulator checks are not here (scripts/emulator-checks.sh is run by hand, see docs/emulator-vs-device.md).
 
 on:
   push:
-    branches: [main]
   pull_request:
 
 permissions:
@@ -27,7 +26,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      # Installs the Android SDK that the runner image already carries into local.properties.
+      # Points Gradle at the Android SDK the ubuntu runner image already carries ($ANDROID_HOME).
       - name: Point Gradle at the Android SDK
         run: echo "sdk.dir=$ANDROID_HOME" > local.properties
       - uses: gradle/actions/setup-gradle@v4
