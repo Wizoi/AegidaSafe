@@ -64,10 +64,15 @@ abstract class AppModule {
 
         @Provides fun oem(@ApplicationContext context: Context): OemSource = AndroidOemSource(context)
 
+        /** One per process: the listener service sets it, checks read it (finding #134). */
+        @Provides @Singleton
+        fun listenerBinding(@ApplicationContext context: Context): com.aegida.core.health.ListenerBinding =
+            com.aegida.platform.notify.AndroidListenerBinding(context, ComponentName(context, AegidaListenerService::class.java))
+
         /** One snapshotter, so there is one 5-minute app-list cache, not one per injection (R5). */
         @Provides @Singleton
-        fun snapshotter(@ApplicationContext context: Context, clock: Clock, oem: OemSource): Snapshotter =
-            AndroidSnapshotter(context, clock, oem, ComponentName(context, AegidaListenerService::class.java))
+        fun snapshotter(@ApplicationContext context: Context, clock: Clock, oem: OemSource, binding: com.aegida.core.health.ListenerBinding): Snapshotter =
+            AndroidSnapshotter(context, clock, oem, ComponentName(context, AegidaListenerService::class.java), binding)
 
         @Provides
         fun feedUpdater(http: HttpClient, store: FeedStore, clock: Clock): FeedUpdater =

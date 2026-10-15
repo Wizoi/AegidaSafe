@@ -34,6 +34,13 @@ data class Snapshot(
     val apps: List<InstalledApp> = emptyList(),
     /** The phone maker's own app stores that are present on this phone as system apps (never guessed). Empty on a Pixel. */
     val makerStores: Set<String> = emptySet(),
+    /**
+     * The system has Aegida's notification listener bound in this process now (ListenerBinding, finding #134). The default is for
+     * test fixtures only; AndroidSnapshotter always reads it.
+     */
+    val listenerBound: Boolean = true,
+    /** When Aegida was installed or last updated (PackageInfo.lastUpdateTime), or null if not read. */
+    val aegidaUpdatedAt: Instant? = null,
 )
 
 /** The Private DNS ("website filter") setting as read from the phone. */

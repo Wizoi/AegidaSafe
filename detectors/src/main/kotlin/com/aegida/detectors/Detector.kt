@@ -35,7 +35,7 @@ data class Inputs(
     val notices: List<com.aegida.core.notice.NoticeRow> = emptyList(),
     /** Apps the owner said are fine, so no "noisy app" warning for them. */
     val allowedApps: Set<String> = emptySet(),
-    /** When the system last bound and unbound the notification listener (finding #112). */
+    /** The last time a check saw the notification listener bound (findings #112, #134). */
     val listener: com.aegida.core.health.ListenerTimes = com.aegida.core.health.ListenerTimes(),
     /** When the phone last started, or null if not known. */
     val bootedAt: Instant? = null,

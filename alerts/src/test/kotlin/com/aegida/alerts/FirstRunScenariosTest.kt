@@ -77,10 +77,10 @@ internal class WholePhone(network: (Http) -> com.aegida.core.net.HttpClient = { 
     val daily = DailyCheck(
         DailyFeed(FeedUpdater(net, FeedVerifier(keys.public.encoded), feedStore) { now }, feedStore) { now },
         runner,
-        DailyPruning(history, findings, checkLog),
+        DailyPruning(history, findings, checkLog) { now },
         DailyHeartbeat(switch, guardianAlerts, gate),
         checkLog,
-    ) { now }
+    )
 
     /** The scam list as the feed tool signs it, served by the fake network. */
     fun publishFeed() {

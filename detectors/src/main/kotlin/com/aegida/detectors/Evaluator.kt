@@ -59,7 +59,10 @@ class Evaluator @Inject constructor(
     }
 }
 
-/** What the phone remembers between runs (setup, lists, the check log, the outbox, the baseline), read into one [Inputs] and the run written back. */
+/**
+ * What the phone remembers between runs (setup, lists, the check log, the outbox, the baseline), read into one [Inputs] and the run
+ * written back. A check that runs while the listener is bound records that it saw it bound (finding #134).
+ */
 class EvaluatorMemory @Inject constructor(
     private val setupStore: SetupStore,
     private val feedStore: FeedStore,
@@ -68,11 +71,13 @@ class EvaluatorMemory @Inject constructor(
     private val baselines: BaselineStore,
     private val listener: ListenerTimesStore = ListenerTimesStore.None,
 ) {
-    suspend fun inputs(snapshot: Snapshot, started: Instant, event: NotificationEvent?, recent: List<NoticeRow>, allowedApps: Set<String>): Inputs =
-        Inputs(
+    suspend fun inputs(snapshot: Snapshot, started: Instant, event: NotificationEvent?, recent: List<NoticeRow>, allowedApps: Set<String>): Inputs {
+        if (snapshot.listenerBound) listener.seenBound(started)
+        return Inputs(
             snapshot, started, setupStore.setup(), feedStore.current(), event, checkLog.latest(Trigger.Daily), outbox.all().minOfOrNull { it.queuedAt },
             baselines.baseline(), recent, allowedApps, listener.times(),
         )
+    }
 
     suspend fun record(run: CheckRun) = checkLog.record(run)
 }

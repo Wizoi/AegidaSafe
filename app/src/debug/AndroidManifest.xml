@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Debug builds only (finding #134): lets an emulator check put the listener into states the system will not make by itself. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <!-- Only the adb shell holds DUMP, so no app on the phone can send these. -->
+        <receiver
+            android:name=".DebugListenerReceiver"
+            android:exported="true"
+            android:permission="android.permission.DUMP">
+            <intent-filter>
+                <action android:name="com.aegida.app.debug.LISTENER_STATE" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>

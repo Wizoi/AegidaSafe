@@ -14,7 +14,7 @@ import java.time.Duration
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
-/** Finding #112: the two listener times are named settings, kept apart from what setup saves. */
+/** Findings #112, #134: the last time a check saw the listener bound is a named setting, kept apart from what setup saves. */
 @RunWith(RobolectricTestRunner::class)
 class ListenerTimesStoreTest {
     private val db = Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext(), AegidaDatabase::class.java)
@@ -24,13 +24,12 @@ class ListenerTimesStoreTest {
 
     @After fun close() = db.close()
 
-    @Test fun theLastBindAndUnbindAreKeptAndSavingSetupDoesNotWipeThem() = runTest {
+    @Test fun theLastTimeACheckSawTheListenerBoundIsKeptAndSavingSetupDoesNotWipeIt() = runTest {
         val times = RoomListenerTimes(db.settings())
         assertEquals("nothing recorded on a new install", ListenerTimes(), times.times())
-        times.connected(now.minus(Duration.ofHours(2)))
-        times.disconnected(now.minus(Duration.ofHours(1)))
-        times.connected(now)
+        times.seenBound(now.minus(Duration.ofHours(2)))
+        times.seenBound(now)
         RoomSettings(db.settings()).save(Setup("security.cloudflare-dns.com", emptySet()))
-        assertEquals(ListenerTimes(connectedAt = now, disconnectedAt = now.minus(Duration.ofHours(1))), times.times())
+        assertEquals("each check replaces the time before", ListenerTimes(lastSeenBound = now), times.times())
     }
 }

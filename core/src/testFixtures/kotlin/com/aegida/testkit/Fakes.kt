@@ -84,10 +84,16 @@ class FakeAllowList : com.aegida.core.notice.AllowList {
     override suspend fun all() = items.toList()
 }
 
-/** Like the real store: two named values, each write replacing the one before. */
+/** Like the real store: one named value, each write replacing the one before. */
 class FakeListenerTimes(var value: com.aegida.core.health.ListenerTimes = com.aegida.core.health.ListenerTimes()) :
     com.aegida.core.health.ListenerTimesStore {
     override suspend fun times() = value
-    override suspend fun connected(at: Instant) { value = value.copy(connectedAt = at) }
-    override suspend fun disconnected(at: Instant) { value = value.copy(disconnectedAt = at) }
+    override suspend fun seenBound(at: Instant) { value = value.copy(lastSeenBound = at) }
+}
+
+/** Like the in-process flag: false in a new process until the listener service says it is bound. Counts rebind requests. */
+class FakeListenerBinding(override var boundNow: Boolean = false) : com.aegida.core.health.ListenerBinding {
+    var rebindRequests = 0
+    override fun markBound(bound: Boolean) { boundNow = bound }
+    override fun requestRebind() { rebindRequests++ }
 }

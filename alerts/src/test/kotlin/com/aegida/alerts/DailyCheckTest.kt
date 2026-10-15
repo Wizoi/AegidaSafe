@@ -6,6 +6,7 @@ import com.aegida.testkit.FakeCheckLog
 import com.aegida.testkit.FakeOutbox
 import com.aegida.testkit.FakeBaselines
 import com.aegida.testkit.FakeNoticeLog
+import com.aegida.testkit.FakeListenerBinding
 import com.aegida.core.alert.HistoryEntry
 import com.aegida.core.alert.Outcome
 import com.aegida.core.feed.FeedCodec
@@ -78,7 +79,8 @@ class DailyCheckTest {
     )
     private val feed = DailyFeed(FeedUpdater(http, FeedVerifier(keys.public.encoded), feedStore) { now }, feedStore) { now }
     private val heartbeat = DailyHeartbeat(switch, guardianAlerts, AlertGate())
-    private val daily = DailyCheck(feed, runner, DailyPruning(history, findings, checkLog), heartbeat, checkLog) { now }
+    private val binding = FakeListenerBinding(boundNow = true)
+    private val daily = DailyCheck(feed, runner, DailyPruning(history, findings, checkLog) { now }, heartbeat, checkLog, binding)
 
     private fun publish(generatedAt: Instant) {
         val feed = ThreatFeed.of(generatedAt, listOf(FeedSource("test", "test", 1)), List(2_000) { "h$it.example" }, emptyList())
@@ -194,7 +196,7 @@ class DailyCheckTest {
             record("com.example.pdf", "k2", 2, now.minus(Duration.ofDays(1)), 2)
             record("com.example.pdf", "k3", 3, now.plus(Duration.ofDays(3)), 2) // a clock that was ahead
         }
-        val withNotices = DailyCheck(feed, runner, DailyPruning(history, findings, checkLog, notices), heartbeat, checkLog) { now }
+        val withNotices = DailyCheck(feed, runner, DailyPruning(history, findings, checkLog, notices) { now }, heartbeat, checkLog)
         withNotices.run()
         assertEquals(1, notices.rows.size)
     }
@@ -247,6 +249,14 @@ class DailyCheckTest {
         assertEquals(null, daily.runIfNeverRun()) // a Daily check exists now
         assertEquals(downloadsAfterFirst, downloads)
         assertEquals(1, checkLog.runs.size)
+    }
+
+    @Test fun whenTheListenerIsNotBoundTheDailyCheckAsksAndroidToBindItAgain() = runTest {
+        daily.run()
+        assertEquals("bound: nothing asked", 0, binding.rebindRequests)
+        binding.boundNow = false // Android unbound it without onListenerDisconnected (finding #134)
+        daily.run()
+        assertEquals("not bound: Android is asked to bind it again, once per daily check", 1, binding.rebindRequests)
     }
 
     @Test fun aNotificationCheckAloneDoesNotCountAsTheFirstDailyCheck() = runTest {
