@@ -41,8 +41,8 @@ object ScareWords {
     /**
      * News, news to the reader, or a fake warning (findings #109, #126, #133). Read one clause at a time, look-alike letters undone.
      * A fake warning says something about her phone or tells her to act: a count of viruses ("13 viruses found", "has 3 viruses"),
-     * her phone or she in a bad state ("your phone is infected", "Trojan detected on this phone", "you may have a virus"), a damaged
-     * battery, or an order to act ("Tap to fix", "Clean it now"; an order word counts only when a command word follows, so "Tap water"
+     * her phone or she in a bad state ("your phone is infected", "Trojan detected on this phone", "you may have a virus", "your phone
+     * is at risk", findings #139), a damaged battery, or an order to act ("Tap to fix", "Clean it now"; an order word counts only when a command word follows, so "Tap water"
      * and "Tap to read the full story" are not). Speaking to the reader without any of that ("Check your phone for this spyware", a
      * question "Is your phone infected?", "Delete these apps now") is news to the reader. Anything else is news. Right after a
      * question about her phone, a clause starting "it" or "your device" speaks of her phone ("Is your phone slow? It may have a
@@ -81,6 +81,30 @@ object ScareWords {
             w.indices.any { i -> countedFind(w, i) || (!asked(i) && (phoneInTrouble(w, i) || w[i] in YOU && inTrouble(w.drop(i + 1)))) }
     }
 
+    /** A claim about her phone now (findings #139). */
+    private object NowClaim {
+        /**
+         * Her phone, a present-tense link, then a bad state: "your phone is at risk", "this device is in danger", "your Pixel 9 is
+         * under attack", "your phone's locked", "your phone has been locked", "your phone is running slow". "Your phone was at risk"
+         * and "your phone may be at risk" are not claims about it now.
+         */
+        fun herPhoneIsNow(w: List<String>, i: Int): Boolean {
+            val linkAt = (i + 1..minOf(i + MAX_NAME_WORDS, w.lastIndex)).firstOrNull { w[it] in NOW || w[it].endsWith("'s") }
+            if (linkAt == null || (w[i] != "your" && w[i] != "this")) return false
+            val apostrophe = w[linkAt].endsWith("'s")
+            val name = w.subList(i + 1, linkAt) + listOfNotNull(w[linkAt].removeSuffix("'s").takeIf { apostrophe })
+            // "has" counts only as "has been": "your phone has 3 viruses" is the count rule's.
+            val linkWords = when {
+                apostrophe || w[linkAt] != "has" -> 1
+                w.getOrNull(linkAt + 1) == "been" -> 2
+                else -> w.size
+            }
+            val after = w.drop(linkAt + linkWords).dropWhile { it in NOW_FILLERS }
+            val isHerPhone = if (w[i] == "this") name.singleOrNull() in THIS_PHONE else name.any(IS_PHONE_NAME)
+            return isHerPhone && (after.firstOrNull() in NOW_STATES || after.take(2).joinToString(" ") in NOW_PHRASES)
+        }
+    }
+
     private fun speaksToTheReader(w: List<String>): Boolean =
         orderWord(w) != null || w.indices.any { i -> herPhoneAt(w, i) || (w[i] in YOU && inTrouble(w.drop(i + 1))) }
 
@@ -88,8 +112,18 @@ object ScareWords {
     private fun orderWord(w: List<String>): String? {
         val start = w.indexOfFirst { it != "please" }
         val next = w.getOrNull(start + 1)
-        val commanded = if (next == "to") w.getOrNull(start + 2) in ORDERS else next in COMMAND_NEXT || next in FOUND_THINGS
-        return w.getOrNull(start)?.takeIf { it in ORDERS && commanded }
+        val verb = w.getOrNull(start)
+        // "Tap below to remove it" and "Tap below" are orders; "Tap below to read the full story" is not (findings #139).
+        val skip = if (next == "below") start + 1 else start
+        val then = w.getOrNull(skip + 1)
+        val toWhat = w.getOrNull(skip + 2)
+        val commanded = when {
+            then == "to" -> toWhat in ORDERS || toWhat == "protect"
+            next == "below" -> then == null || then in COMMAND_NEXT
+            else -> then in COMMAND_NEXT || then in FOUND_THINGS
+        }
+        // "Protect it now" is an order; "Protect your phone from this new malware" is news to the reader (findings #139 A16).
+        return verb?.takeIf { (it in ORDERS && commanded) || (it == "protect" && next in PROTECT_NEXT) }
     }
 
 
@@ -100,15 +134,19 @@ object ScareWords {
         else -> false
     }
 
-    /** Her phone, then a bad state after it ("your phone is infected"), or something found "on this phone". */
+    /**
+     * Her phone, then a bad state after it ("your phone is infected"), or something found "on this phone", or a claim about it now
+     * ("your phone is at risk"; with a condition word anywhere it is not a claim: "... if you skip this update", findings #139).
+     */
     private fun phoneInTrouble(w: List<String>, i: Int): Boolean =
-        herPhoneAt(w, i) && (w.drop(i + 2).any { it in STATES } || (w.getOrNull(i - 1) in ON && w.any { it in FOUND }))
+        herPhoneAt(w, i) && (w.drop(i + 2).any { it in STATES } || (w.getOrNull(i - 1) in ON && w.any { it in FOUND })) ||
+            (w.none { it in CONDITIONS } && NowClaim.herPhoneIsNow(w, i))
 
     private fun namedPhoneIs(w: List<String>, start: Int): Boolean {
         val linkAt = (start + 1..minOf(start + MAX_NAME_WORDS, w.lastIndex)).firstOrNull { w[it] in LINKS }
         val name = if (linkAt == null) emptyList() else w.subList(start, linkAt)
         val state = if (linkAt == null) null else w.drop(linkAt).firstOrNull { it !in LINKS }
-        return state in STATES && name.any { it in PHONE_WORDS || it.any(Char::isDigit) }
+        return state in STATES && name.any(IS_PHONE_NAME)
     }
 
     /**
@@ -131,8 +169,16 @@ object ScareWords {
     private const val MAX_NAME_WORDS = 4
     private val ORDERS = setOf("tap", "click", "press", "clean", "remove", "delete", "download", "install", "scan", "fix", "repair")
     private val COMMAND_NEXT = setOf(
-        "to", "here", "ok", "now", "it", "them", "the", "this", "these", "your", "up", "all", "immediately", "cleaner",
+        "to", "here", "ok", "now", "it", "them", "the", "this", "these", "your", "up", "all", "immediately", "cleaner", "antivirus",
+        "protection",
     )
+    /** A word of a name after "your" that makes it a phone: a phone word or a model number ("new Pixel 9", "Moto G 5G"). */
+    private val IS_PHONE_NAME: (String) -> Boolean = { it in PHONE_WORDS || it.any(Char::isDigit) }
+    private val PROTECT_NEXT = setOf("it", "now", "here", "immediately", "them")
+    private val NOW = setOf("is", "are", "has")
+    private val NOW_FILLERS = setOf("now", "currently", "still", "running", "being")
+    private val NOW_STATES = setOf("infected", "hacked", "compromised", "damaged", "corrupted", "locked", "slow", "unprotected", "attacked")
+    private val NOW_PHRASES = setOf("at risk", "under attack", "not protected", "in danger")
     private val THIS_PHONE = setOf("phone", "device", "mobile", "smartphone") // "this Android malware" is news
     private val LINKS = setOf("is", "are", "was", "were", "has", "have", "been", "may", "might", "could", "be", "now", "being", "got", "will")
     val STATES = setOf("infected", "hacked", "compromised", "damaged", "cleaning")

@@ -219,6 +219,14 @@ class PopupSpamDetectorTest {
             Triple("S43", "Experts tell users to remove the apps now", "The malware hides in fake games"),
             // Findings #138: "it" after a question about someone else's phone is not her phone.
             Triple("S44", "Is the new Pixel any good? It was hacked in a contest", "Researchers say the flaw is fixed"),
+            // Findings #139: the words of a present-tense claim, said about other people's phones, banks or hospitals.
+            Triple("S45", "Millions of phones at risk from new bug", "Researchers say the malware spreads by text"),
+            Triple("S46", "Banks under attack from hackers", "Customer accounts hacked in three states"),
+            Triple("S47", "Is your phone at risk? What to know", ""),
+            Triple("S48", "Android phones are at risk from new malware", "Google says an update is coming"),
+            Triple("S49", "Your bank is under attack: accounts hacked", "What customers should do"),
+            Triple("S50", "Hospital computers locked by ransomware", "Officials say the malware came by email"),
+            Triple("S51", "Retailer hacked", "Tap below to read the full story"),
         )
         assertEquals("hidden as fake, but news", emptyList<String>(), onAKnownSite(news, expected = null))
     }
@@ -238,6 +246,14 @@ class PopupSpamDetectorTest {
             Triple("A9", "Is your phone listening to you? It probably isn't, but spyware can", ""),
             Triple("A10", "Is your phone slow? Experts say it may have a virus", ""),
             Triple("A11", "Is your phone slow? It may have a virus if it does these 5 things", ""),
+            // Findings #139: a question, a hedge ("may be"), a condition, the past, or "protect your phone" is no claim about her phone.
+            Triple("A12", "Is your phone at risk? What to know about the new spyware", ""),
+            Triple("A13", "Your phone may be at risk from this new malware", ""),
+            Triple("A14", "Your phone is at risk if you skip this update", "The malware spreads by text"),
+            Triple("A15", "Why your phone is slow: 5 fixes", ""),
+            Triple("A16", "Protect your phone from this new malware", ""),
+            Triple("A17", "Your phone was at risk from this bug until the June update", "The spyware has been removed from the store"),
+            Triple("A18", "Do experts say your phone is at risk from the new spyware?", ""),
         )
         assertEquals("not hidden as news to the reader", emptyList<String>(), onAKnownSite(advice, expected = Problem.SiteScaryNews))
         assertEquals(null, Problem.SiteScaryNews.forGuardian("Mom", host = site))
@@ -314,6 +330,31 @@ class PopupSpamDetectorTest {
             Triple("H60", "Is your phone running slow?", "It has been hacked"),
             Triple("H61", "Is your Android slow!?", "It might have a virus"),
             Triple("H62", "Is your phone slow? It has a virus", ""),
+        )
+        assertEquals("left alone, but a fake warning", emptyList<String>(), onAKnownSite(fake, expected = Problem.SiteNotifications))
+    }
+
+    /** WP17 H63-H80 (findings #139): a present-tense claim about her phone ("is at risk", "is under attack"), or an order to protect it. */
+    @Test fun aFakeThatSaysHerPhoneIsAtRiskOrTellsHerToProtectItIsHidden() {
+        val fake = listOf(
+            Triple("H63", "Virus detected! Your phone is at risk", ""),
+            Triple("H64", "Your phone is under attack! Tap below to protect it", ""),
+            Triple("H65", "Your device is not protected", "Download antivirus now"),
+            Triple("H66", "Your phone is locked", ""),
+            Triple("H67", "Your phone is running slow", ""),
+            Triple("H68", "Your system is corrupted", ""),
+            Triple("H69", "Virus found! Your phone's at risk", ""),
+            Triple("H70", "Virus alert: this device is in danger", ""),
+            Triple("H71", "Your Galaxy S25 is under attack by a virus", ""),
+            Triple("H72", "Your phone is now unprotected", ""),
+            Triple("H73", "Virus detected!", "Tap below to remove it"),
+            Triple("H74", "Malware found", "Download antivirus now"),
+            Triple("H75", "Spyware detected", "Install protection now"),
+            Triple("H76", "Virus found", "Tap to protect your phone"),
+            Triple("H77", "Virus found. Protect it now", ""),
+            Triple("H78", "Your device is being attacked", ""),
+            Triple("H79", "Your phone has been locked", ""),
+            Triple("H80", "Your Android phone is at risk from new malware", ""),
         )
         assertEquals("left alone, but a fake warning", emptyList<String>(), onAKnownSite(fake, expected = Problem.SiteNotifications))
     }
