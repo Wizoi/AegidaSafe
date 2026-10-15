@@ -3,6 +3,7 @@ package com.aegida.alerts
 import com.aegida.core.health.ListenerTimes
 import com.aegida.core.health.ListenerTimesStore
 import com.aegida.core.health.Trigger
+import com.aegida.core.model.FindingState
 import com.aegida.core.model.HomeState
 import com.aegida.core.text.Problem
 import kotlinx.coroutines.delay
@@ -10,15 +11,18 @@ import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.yield
+import com.aegida.testkit.aChromePopup
 import com.aegida.testkit.aScamText
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Duration
 
 /**
- * docs/scenarios/health.md H3h-H3i and H4k-H4u (findings #135, #136, #141, #142): two binds at once, a process killed half way through
- * a check, checks in a process that has just started before Android has had time to bind the listener, and the daily job's wait.
+ * docs/scenarios/health.md H3h-H3l and H4k-H4v (findings #135, #136, #141, #142, #145, #146): two binds at once, a process killed half
+ * way through a check, checks in a process that has just started before Android has had time to bind the listener, and the daily job's
+ * wait.
  */
 class ListenerGraceScenariosTest : HealthScenarioFixture() {
     // H4p (finding #135): two binds at the same moment. A real store read suspends, so the second bind can start meanwhile.
@@ -34,7 +38,7 @@ class ListenerGraceScenariosTest : HealthScenarioFixture() {
         }
         val racing = ListenerLink(runner, slowStore, binding, seen)
         val inShade = shade.active()
-        List(2) { launch { racing.connected(inShade, OWN_PACKAGE) } }.joinAll()
+        List(2) { launch { racing.connected(inShade, OWN_PACKAGE) {} } }.joinAll()
         assertEquals("checked once", 1, latePosts())
         assertEquals(listOf(Problem.ScamLink), owner.shown.map { it.problem })
     }
@@ -214,5 +218,86 @@ class ListenerGraceScenariosTest : HealthScenarioFixture() {
         assertEquals("no daily check recorded", emptyList<Trigger>(), checkLog.runs.map { it.trigger }.filter { it == Trigger.Daily })
         daily.run(downloadFeed = false)
         assertEquals("the next run asks again", 2, binding.rebindRequests)
+    }
+
+    // H4v (finding #146 a): the clock is set back while the daily job downloads the feed.
+
+    @Test fun aClockSetBackDuringTheFeedDownloadDoesNotStretchTheDailyWait() = runTest {
+        shade.connect(listener)
+        kill()
+        val repair = ListenerRepair(binding, setupStore, clock)
+        val askedAt = checkNotNull(repair.askIfUnbound())
+        now = now.minus(Duration.ofDays(1)) // set back while the feed downloads
+        repair.waitForTheBind(askedAt)
+        assertTrue("at most two minutes", testScheduler.currentTime <= ListenerTimes.NEW_PROCESS_GRACE.toMillis())
+    }
+
+    // H3j (finding #145): killed during the second of three missed pop-ups; the first was checked and must already be gone.
+
+    @Test fun killedDuringTheSecondOfThreeMissedFakeWarningsTheFirstIsAlreadyHidden() = runTest {
+        shade.connect(listener)
+        shade.disconnect()
+        val popups = listOf("https://one.example/", "https://two.example/", "https://three.example/").map { site ->
+            advance(Duration.ofMinutes(1))
+            aChromePopup(now, site = site).also { shade.post(it) }
+        }
+        advance(Duration.ofMinutes(1))
+        killInCheck = 3 // the bind's own check, the first pop-up, then killed in the second
+        assertTrue(runCatching { shade.connect(listener) }.exceptionOrNull() is Killed)
+        assertFalse("the first pop-up was hidden before the time moved past it", shade.isShown(popups[0].key))
+        kill()
+        advance(Duration.ofMinutes(1))
+        shade.connect(listener)
+        assertTrue("all three are gone after the next bind", popups.none { shade.isShown(it.key) })
+    }
+
+    // H3k (finding #146 b): killed after the warning was shown but before the check finished; she answers before the next bind.
+
+    @Test fun aNoticeCheckedAgainAfterAKillDoesNotWarnAgainAboutWhatSheAlreadyAnswered() = runTest {
+        shade.connect(listener)
+        shade.disconnect()
+        advance(Duration.ofMinutes(1))
+        shade.post(scamText.copy(postedAt = now))
+        advance(Duration.ofMinutes(1))
+        killInFlush = 2 // the bind's own check finished; the late notice's warning is shown, then killed before it finished
+        assertTrue(runCatching { shade.connect(listener) }.exceptionOrNull() is Killed)
+        assertEquals(1, owner.shown.size)
+        kill()
+        advance(Duration.ofMinutes(1))
+        findings.open().forEach { findings.put(it.copy(state = FindingState.Acknowledged)) } // she tapped "I've seen this"
+        shade.connect(listener)
+        assertEquals("checked again", 2, latePosts())
+        assertEquals("not warned twice", 1, owner.shown.size)
+    }
+
+    @Test fun aMissedNoticeThatRepeatsAWarningSheAnsweredEarlierStillWarns() = runTest {
+        shade.connect(listener)
+        shade.post(scamText.copy(postedAt = now))
+        findings.open().forEach { findings.put(it.copy(state = FindingState.Acknowledged)) } // she tapped "I've seen this"
+        shade.disconnect()
+        advance(Duration.ofDays(2))
+        shade.post(aScamText(now, id = 9).copy(postedAt = now)) // the same scam again, while Aegida was not listening
+        advance(Duration.ofMinutes(1))
+        shade.connect(listener)
+        assertEquals("warned again", listOf(Problem.ScamLink, Problem.ScamLink), owner.shown.map { it.problem })
+    }
+
+    // H3l (finding #146 c): a group summary and its child posted at the same moment; killed during the child's check.
+
+    @Test fun aSummaryAndItsChildPostedAtTheSameMomentAreEachCheckedOnceAfterAKill() = runTest {
+        shade.connect(listener)
+        shade.disconnect()
+        advance(Duration.ofMinutes(1))
+        shade.post(aScamText(now, id = 0, text = "2 new messages")) // the summary
+        shade.post(scamText.copy(postedAt = now)) // its child, the same post time
+        advance(Duration.ofMinutes(1))
+        killInCheck = 3 // the bind's own check, the summary, then killed in the child
+        assertTrue(runCatching { shade.connect(listener) }.exceptionOrNull() is Killed)
+        assertEquals(1, latePosts())
+        kill()
+        advance(Duration.ofMinutes(1))
+        shade.connect(listener)
+        assertEquals("the child is checked, the summary not again", 2, latePosts())
+        assertEquals(listOf(Problem.ScamLink), owner.shown.map { it.problem })
     }
 }

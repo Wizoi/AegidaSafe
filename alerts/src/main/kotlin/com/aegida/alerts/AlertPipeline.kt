@@ -41,11 +41,14 @@ class AlertPipeline @Inject constructor(
     private val reminder = OldWarningReminder(findings, history, line)
     private val telling = FindingTelling(history, line)
 
-    /** [phone] is the phone as read in this check, for what History says when a new-app question closes by itself. */
-    suspend fun handle(current: List<Finding>, ran: Set<DetectorId>, phone: Snapshot? = null): PipelineResult {
+    /**
+     * [phone] is the phone as read in this check, for what History says when a new-app question closes by itself. [lateNoticeAt]: the
+     * post time of a notice checked late, at a bind (see [process]).
+     */
+    suspend fun handle(current: List<Finding>, ran: Set<DetectorId>, phone: Snapshot? = null, lateNoticeAt: Instant? = null): PipelineResult {
         val now = clock.now()
         val tally = Tally()
-        current.forEach { process(it, now, tally) }
+        current.forEach { process(it, now, tally, lateNoticeAt) }
         val resolved = resolveGone(current, ran, phone, now)
         tally.notReached += reminder.remind(now)
         return PipelineResult(
@@ -65,18 +68,27 @@ class AlertPipeline @Inject constructor(
         val openLong = mutableSetOf<FindingKey>()
     }
 
-    private suspend fun process(finding: Finding, now: Instant, tally: Tally) {
+    /**
+     * A late notice ([lateNoticeAt]) can be checked a second time when the process was killed after its warning and before its check
+     * finished (finding #146 b). A warning she has already answered that was first raised at or after the notice was posted was raised
+     * for it (or a later one), so it is not announced again. A notice that only now repeats an older answered warning still warns.
+     */
+    private suspend fun process(finding: Finding, now: Instant, tally: Tally, lateNoticeAt: Instant?) {
         val stored = findings.get(finding.key)
         if (stored != null && stored.state.needsHer) {
             val held = withFirstSeenPutRight(stored, now)
             findings.put(held.copy(lastSeen = finding.lastSeen))
             if (Duration.between(held.firstSeen, now) > LONG_OPEN) tally.openLong += finding.key
-        } else if (isQuiet(stored, finding, now)) {
+        } else if (isQuiet(stored, finding, now) || raisedForThisNotice(stored, lateNoticeAt)) {
             tally.quieted += finding.key
         } else {
             announce(finding, now, tally)
         }
     }
+
+    /** [stored] (already answered) was first raised at or after the late notice was posted, so it was raised for it (finding #146 b). */
+    private fun raisedForThisNotice(stored: Finding?, lateNoticeAt: Instant?): Boolean =
+        stored != null && lateNoticeAt != null && !stored.firstSeen.isBefore(lateNoticeAt)
 
     /** Once the owner has seen it, a warning that keeps happening is quiet for a while (an app flooding her with ads would warn on every notice). */
     private fun isQuiet(stored: Finding?, finding: Finding, now: Instant): Boolean {

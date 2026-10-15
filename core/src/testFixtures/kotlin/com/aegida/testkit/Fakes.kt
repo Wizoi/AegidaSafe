@@ -88,7 +88,7 @@ class FakeAllowList : com.aegida.core.notice.AllowList {
 class FakeListenerTimes(var value: com.aegida.core.health.ListenerTimes = com.aegida.core.health.ListenerTimes()) :
     com.aegida.core.health.ListenerTimesStore {
     override suspend fun times() = value
-    override suspend fun seenBound(at: Instant) { value = value.copy(lastSeenBound = at) }
+    override suspend fun seenBound(at: Instant, checked: Set<String>) { value = value.copy(lastSeenBound = at, checkedAtLastSeen = checked) }
 }
 
 /** Like the in-process flag: false in a new process until the listener service says it is bound. Counts rebind requests. */
