@@ -49,7 +49,7 @@ Open items inside phase 1:
 ## Phase 4. Pixel pass and Play
 - [x] Gaps in `emulator-vs-device.md` checked on Kevin's Pixel (Kevin's Oct 9 retest of the Play build; he keeps it running; findings #69 to #78, #103, #107); results in that file
 - [x] Internal Play build (0.2.0 on Oct 8, 0.3.0 next); all Console forms and declarations (`QUERY_ALL_PACKAGES`, notification access, foreground service, Data safety, privacy page) done
-- [ ] Closed-test release: 0.2.0 sent for review on Oct 9; 0.3.0 follows it
+- [x] Closed-test release: Internal and alpha (closed) tracks live; 0.3.9 (versionCode 12) released on both (Oct 12)
 - [x] Play Developer Support about automatic consented alerts: decided not to ask for now (decisions, Oct 9; draft in `play-support-question.md`)
 - [x] Name clearance: Kevin's hand check of USPTO looked clean; no trademark filed for now (`name-clearance.md`)
 

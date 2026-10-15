@@ -8,8 +8,8 @@ How it works, in simple words or in detail: https://wizoi.github.io/Aegida-Feed/
 
 Status: a working app in Google Play closed testing. Research is in [research/](research/), storyboard and logo in [design/](design/README.md).
 
-The source is public so that anyone can audit what the app does on an older person's phone. What it reads, what it
-stores and what it sends is described in [docs/privacy-and-data.md](docs/privacy-and-data.md). To report a security
+The repository is private for now; it is written so that anyone can audit what the app does on an older person's phone
+once it is opened. What it reads, what it stores and what it sends is described in [docs/privacy-and-data.md](docs/privacy-and-data.md). To report a security
 problem, see [SECURITY.md](SECURITY.md).
 
 - What it does: [docs/product-brief.md](docs/product-brief.md)
