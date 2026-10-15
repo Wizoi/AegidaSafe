@@ -320,6 +320,16 @@ class PopupSpamDetectorTest {
         assertEquals("left alone, but a fake warning", emptyList<String>(), onAKnownSite(fake, expected = Problem.SiteNotifications))
     }
 
+    /** The fake warnings docs/site/how-it-works.html names, each on its own, as the page quotes them (finding #147). */
+    @Test fun theFakeWarningsTheHowItWorksPageNamesAreHiddenOnASiteSheSaidYesTo() {
+        val named = listOf(
+            Triple("page 1", "your phone is infected", ""),
+            Triple("page 2", "your phone is at risk", ""),
+            Triple("page 3", "clean it now", ""), // "tap to clean" alone never passed the scare-word gate
+        )
+        assertEquals("left alone, but a fake warning", emptyList<String>(), onAKnownSite(named, expected = Problem.SiteNotifications))
+    }
+
     /** WP17 H56-H62 (findings #138): a fake that asks about her phone first, then says something about "it" or "your device". */
     @Test fun aFakeThatAsksAboutHerPhoneFirstIsHidden() {
         val fake = listOf(
