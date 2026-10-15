@@ -13,7 +13,6 @@ import com.aegida.core.feed.FeedSource
 import com.aegida.core.feed.ThreatFeed
 import com.aegida.core.health.CheckRun
 import com.aegida.core.health.Trigger
-import com.aegida.core.model.NotificationEvent
 import com.aegida.core.model.PrivateDns
 import com.aegida.core.model.Setup
 import com.aegida.core.model.Snapshot

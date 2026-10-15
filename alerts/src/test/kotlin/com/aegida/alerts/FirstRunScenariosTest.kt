@@ -1,6 +1,5 @@
 package com.aegida.alerts
 
-import com.aegida.core.alert.Guardians
 import com.aegida.core.feed.FeedCodec
 import com.aegida.core.feed.FeedSource
 import com.aegida.core.feed.FeedUpdater

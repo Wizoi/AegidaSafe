@@ -3,7 +3,6 @@ package com.aegida.app
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
-import com.aegida.core.model.Finding
 import com.aegida.core.text.Problem
 import com.aegida.core.text.Texts
 import org.junit.Assert.assertEquals

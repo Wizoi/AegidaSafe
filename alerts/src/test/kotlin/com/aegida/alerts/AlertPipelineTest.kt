@@ -1,12 +1,7 @@
 package com.aegida.alerts
 
 import com.aegida.testkit.FakeOutbox
-import com.aegida.core.alert.FindingStore
-import com.aegida.core.alert.GuardianSettings
 import com.aegida.core.alert.Guardians
-import com.aegida.core.alert.HistoryEntry
-import com.aegida.core.alert.HistoryLog
-import com.aegida.core.alert.OwnerNotifier
 import com.aegida.core.alert.Outcome
 import com.aegida.core.model.DetectorId
 import com.aegida.core.model.Finding
@@ -16,7 +11,6 @@ import com.aegida.core.model.PrivateDns
 import com.aegida.core.model.Setup
 import com.aegida.core.model.Snapshot
 import com.aegida.core.oem.Reading
-import com.aegida.core.net.BytesResult
 import com.aegida.core.net.Endpoint
 import com.aegida.core.net.FailureReason
 import com.aegida.core.net.HttpClient

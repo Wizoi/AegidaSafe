@@ -2,7 +2,6 @@ package com.aegida.alerts
 
 import com.aegida.core.health.Trigger
 import com.aegida.testkit.aScamText
-import com.aegida.core.model.NotificationEvent
 import com.aegida.core.model.PrivateDns
 import com.aegida.core.net.BytesResult
 import com.aegida.core.net.Endpoint

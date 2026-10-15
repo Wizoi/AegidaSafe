@@ -1,5 +1,8 @@
 # detekt settings that match this repo's house style (Oct 14). Everything else is detekt's default.
 style:
+  UnusedImports:
+    # Off in detekt's defaults; on because 21 unused imports piled up unseen by Oct 15.
+    active: true
   MaxLineLength:
     # The code wraps at about 150 characters (KDoc sentences, scenario-named tests); longer lines still fail.
     maxLineLength: 160

@@ -6,7 +6,6 @@ import com.aegida.core.net.Endpoint
 import com.aegida.core.net.FailureReason
 import com.aegida.core.net.HttpClient
 import com.aegida.core.net.HttpResult
-import com.aegida.core.store.FeedStore
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
