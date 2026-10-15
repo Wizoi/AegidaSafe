@@ -45,9 +45,11 @@ class AegidaListenerService : NotificationListenerService() {
         val ranking = runCatching { currentRanking }.getOrNull()
         val events = inShade.map { eventOf(it, ranking) }
         scope.launch {
-            val actions = link.connected(events, packageName)
-            actions.hide.forEach(::cancelNotification)
-            actions.snooze.forEach { snoozeNotification(it, SNOOZE_MILLIS) }
+            // Each missed notice's hide and snooze, as soon as its check is done (finding #145).
+            link.connected(events, packageName) { actions ->
+                actions.hide.forEach(::cancelNotification)
+                actions.snooze.forEach { snoozeNotification(it, SNOOZE_MILLIS) }
+            }
         }
     }
 

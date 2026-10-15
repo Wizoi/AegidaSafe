@@ -43,11 +43,12 @@ class CheckRunner @Inject constructor(
     private val outbox: OutboxFlusher,
     private val gate: CheckGate,
 ) {
-    suspend fun run(trigger: Trigger, event: NotificationEvent? = null): CheckOutcome = gate.run { finished ->
+    /** [late]: [event] arrived while the listener was not bound and is checked at the next bind, perhaps again after a kill (finding #146 b). */
+    suspend fun run(trigger: Trigger, event: NotificationEvent? = null, late: Boolean = false): CheckOutcome = gate.run { finished ->
         val snapshot = snapshotter.take()
         baseline.keep(snapshot)
         val findings = evaluator.run(trigger, snapshot, event)
-        val result = pipeline.handle(findings, evaluator.detectorIds, phone = snapshot)
+        val result = pipeline.handle(findings, evaluator.detectorIds, phone = snapshot, lateNoticeAt = event?.postedAt?.takeIf { late })
         outbox.flush()
         // Only now: a check killed before this point leaves "last seen bound" where it was, so its notice is checked again (finding #141).
         finished(snapshot.listenerBound)

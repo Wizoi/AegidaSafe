@@ -8,8 +8,18 @@ import java.time.Instant
  * or an update from a version that did not record it). Android does not reliably call onListenerDisconnected (on the emulator it
  * never did, finding #134), so nothing here depends on an unbind being recorded: every check that runs while the listener is bound
  * moves this time on, and every notice the listener hears runs such a check.
+ *
+ * [checkedAtLastSeen]: the keys of late notices posted exactly at [lastSeenBound] whose check has finished (finding #146 c). Two notices
+ * can share a post time (a group summary and its child); after a kill between them, the one not yet checked is checked at the next
+ * bind and the other is not checked again.
  */
-data class ListenerTimes(val lastSeenBound: Instant? = null) {
+data class ListenerTimes(val lastSeenBound: Instant? = null, val checkedAtLastSeen: Set<String> = emptySet()) {
+    /** A notice posted at [postedAt] with [key] has not been checked yet: posted after [lastSeenBound], or at it and not checked. */
+    fun notCheckedYet(key: String, postedAt: Instant): Boolean {
+        val since = lastSeenBound ?: return false
+        return postedAt.isAfter(since) || (postedAt == since && key !in checkedAtLastSeen)
+    }
+
     /**
      * Since when Aegida has not been hearing notices, given that it is not bound now: the latest of the last time it was seen
      * bound, the phone's start [bootedAt] and Aegida's install or update [updatedAt]. So the hour starts again after every restart
@@ -42,13 +52,16 @@ data class ListenerTimes(val lastSeenBound: Instant? = null) {
 interface ListenerTimesStore {
     suspend fun times(): ListenerTimes
 
-    /** A check asked for at [at] finished while the listener was bound, or a late check of a notice posted at [at] finished. */
-    suspend fun seenBound(at: Instant)
+    /**
+     * A check asked for at [at] finished while the listener was bound, or a late check of a notice posted at [at] finished; [checked]:
+     * the keys of the late notices posted at [at] checked so far (replaces what was kept, see [ListenerTimes.checkedAtLastSeen]).
+     */
+    suspend fun seenBound(at: Instant, checked: Set<String> = emptySet())
 
     /** Records nothing; for code and tests that do not look at the listener. */
     object None : ListenerTimesStore {
         override suspend fun times() = ListenerTimes()
-        override suspend fun seenBound(at: Instant) = Unit
+        override suspend fun seenBound(at: Instant, checked: Set<String>) = Unit
     }
 }
 

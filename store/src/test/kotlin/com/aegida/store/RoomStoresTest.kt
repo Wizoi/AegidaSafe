@@ -47,6 +47,19 @@ class RoomStoresTest {
 
     @After fun close() = db.close()
 
+    @Test fun aRowWhoseKindThisVersionDoesNotKnowIsSkippedAndTheOthersAreRead() = runTest { // findings #146 d (a kind dropped or renamed)
+        db.history().add(HistoryEntity(atMillis = now.toEpochMilli(), historyProblem = "KindFromAnotherVersion", outcome = Outcome.OwnerWarned.name))
+        db.history().add(HistoryEntity(atMillis = now.toEpochMilli(), historyProblem = Problem.ScamLink.name, outcome = "OutcomeFromAnotherVersion"))
+        val history = RoomHistoryLog(db.history())
+        history.add(HistoryEntry(now, Problem.ScamLink, Outcome.OwnerWarned))
+        assertEquals(listOf(HistoryEntry(now, Problem.ScamLink, Outcome.OwnerWarned)), history.since(now.minusSeconds(60)))
+        val at = now.toEpochMilli()
+        db.outbox().add(OutboxEntity(0, "aegida_t", "Ruth", "A note", false, "KindFromAnotherVersion", at, attempts = 0, lastTriedMillis = at))
+        val outbox = RoomOutbox(db.outbox())
+        outbox.add(QueuedMessage(0, "aegida_t", "Ruth", "A note", false, Problem.ScamLink, now, 0, now))
+        assertEquals(listOf(Problem.ScamLink), outbox.all().map { it.problem })
+    }
+
     @Test fun aHeldNoteKeepsItsDetailAndTheOtherWarningsAReminderCoversExactly() = runTest { // findings #116, #131
         val outbox = RoomOutbox(db.outbox())
         val base = QueuedMessage(0, "aegida_t", "Ruth", "A note", false, Problem.NewAppOutsidePlay, now, 1, now)

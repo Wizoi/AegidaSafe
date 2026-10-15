@@ -62,8 +62,11 @@ internal class RoomHistoryLog(private val dao: HistoryDao) : HistoryLog {
     override suspend fun add(entry: HistoryEntry) =
         dao.add(HistoryEntity(atMillis = entry.at.toEpochMilli(), historyProblem = entry.problem.name, outcome = entry.outcome.name, detail = entry.detail))
 
-    override suspend fun since(from: Instant): List<HistoryEntry> = dao.since(from.toEpochMilli()).map { row ->
-        HistoryEntry(Instant.ofEpochMilli(row.atMillis), Problem.valueOf(row.historyProblem), Outcome.valueOf(row.outcome), row.detail)
+    /** A row whose kind or outcome this version does not know (a later version's, or one renamed) is skipped (finding #146 d). */
+    override suspend fun since(from: Instant): List<HistoryEntry> = dao.since(from.toEpochMilli()).mapNotNull { row ->
+        val problem = decoded<Problem>(row.historyProblem) ?: return@mapNotNull null
+        val outcome = decoded<Outcome>(row.outcome) ?: return@mapNotNull null
+        HistoryEntry(Instant.ofEpochMilli(row.atMillis), problem, outcome, row.detail)
     }
 
     override suspend fun prune(before: Instant): Int = dao.prune(before.toEpochMilli())
@@ -200,10 +203,12 @@ internal class RoomOutbox(private val dao: OutboxDao) : Outbox {
         ),
     )
 
-    override suspend fun all(): List<QueuedMessage> = dao.all().map {
+    /** A note whose kind this version does not know is skipped, not sent and not thrown on (finding #146 d). */
+    override suspend fun all(): List<QueuedMessage> = dao.all().mapNotNull {
+        val problem = decoded<Problem>(it.outboxProblem) ?: return@mapNotNull null
         val decoded = OutboxCodec.decode(it.outboxDetail)
         QueuedMessage(
-            it.rowId, it.topic, it.title, it.body, it.urgent, Problem.valueOf(it.outboxProblem),
+            it.rowId, it.topic, it.title, it.body, it.urgent, problem,
             Instant.ofEpochMilli(it.queuedAtMillis), it.attempts, Instant.ofEpochMilli(it.lastTriedMillis), decoded.detail, decoded.also, decoded.reminder,
         )
     }
@@ -246,8 +251,11 @@ internal class RoomAllowList(private val dao: AllowedDao) : AllowList {
     override suspend fun remove(problem: Problem, subject: String) = dao.remove(problem.name, subject)
 
     override suspend fun all(): List<AllowedItem> =
-        dao.all().map { AllowedItem(Problem.valueOf(it.problem), it.subject, it.label, Instant.ofEpochMilli(it.atMillis)) }
+        dao.all().mapNotNull { row -> decoded<Problem>(row.problem)?.let { AllowedItem(it, row.subject, row.label, Instant.ofEpochMilli(row.atMillis)) } }
 }
+
+/** The enum value stored as [name], or null when this version has no such value (finding #146 d): callers skip that row. */
+private inline fun <reified E : Enum<E>> decoded(name: String): E? = enumValues<E>().firstOrNull { it.name == name }
 
 /**
  * The outbox's one detail column holds the History detail of the held note and, for a reminder that covers several warnings, the
@@ -277,7 +285,7 @@ internal object OutboxCodec {
         val parts = text.split(RECORD)
         val also = parts.drop(1).mapNotNull { part ->
             val pieces = part.split(FIELD, limit = 2)
-            val problem = pieces.firstOrNull()?.let { name -> Problem.entries.firstOrNull { it.name == name } }
+            val problem = pieces.firstOrNull()?.let { decoded<Problem>(it) }
             if (pieces.size != 2 || problem == null) null else Covered(problem, pieces[1].ifEmpty { null })
         }
         return Decoded(parts.first().ifEmpty { null }, also, reminder)

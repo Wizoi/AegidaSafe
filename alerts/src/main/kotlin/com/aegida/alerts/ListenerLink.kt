@@ -1,6 +1,7 @@
 package com.aegida.alerts
 
 import com.aegida.core.health.ListenerBinding
+import com.aegida.core.health.ListenerTimes
 import com.aegida.core.health.ListenerTimesStore
 import com.aegida.core.health.Trigger
 import com.aegida.core.model.NotificationEvent
@@ -44,24 +45,22 @@ class ListenerLink @Inject constructor(
      *
      * While these checks run, no check moves "last seen bound" past a notice not yet checked (finding #141): it moves to each late
      * notice's own time once its check has finished, and to the time of this bind only after the last one. A process killed half
-     * way leaves it at the last notice finished, so the next bind checks the rest.
+     * way leaves it at the last notice finished, so the next bind checks the rest. Notices that share a post time are told apart by
+     * their key (finding #146 c). Each notice's hide and snooze go to [apply] before the time moves past it (finding #145), so a kill
+     * after it never leaves a pop-up on her screen that Home and the guardian say was hidden.
      */
-    suspend fun connected(inShade: List<NotificationEvent>, ownPackage: String): ShadeActions = oneAtATime.withLock {
-        val since = times.times().lastSeenBound
+    suspend fun connected(inShade: List<NotificationEvent>, ownPackage: String, apply: suspend (ShadeActions) -> Unit) = oneAtATime.withLock {
+        val start = times.times()
         binding.markBound(true)
-        seen.duringLateChecks { checked ->
+        seen.duringLateChecks(start) { checked ->
             checks.run(Trigger.AppStart)
-            if (since == null) return@duringLateChecks ShadeActions()
-            val missed = inShade.filter { it.packageName != ownPackage && it.postedAt.isAfter(since) }.sortedBy { it.postedAt }.takeLast(MAX_CHECKED)
-            val hide = mutableListOf<String>()
-            val snooze = mutableListOf<String>()
+            val missed = inShade.filter { it.packageName != ownPackage && start.notCheckedYet(it.key, it.postedAt) }
+                .sortedBy { it.postedAt }.takeLast(MAX_CHECKED)
             for (event in missed) {
-                val outcome = checks.run(Trigger.NotificationPosted, event)
-                checked(event.postedAt)
-                hide += outcome.notificationsToHide
-                snooze += outcome.notificationsToSnooze
+                val outcome = checks.run(Trigger.NotificationPosted, event, late = true)
+                apply(ShadeActions(outcome.notificationsToHide, outcome.notificationsToSnooze))
+                checked(event.postedAt, event.key)
             }
-            ShadeActions(hide, snooze)
         }
     }
 
@@ -97,14 +96,21 @@ class SeenBound @Inject constructor(private val times: ListenerTimesStore, priva
     }
 
     /**
-     * Runs a bind's late checks; [block] calls its argument with each late notice's post time once that notice's check has finished.
-     * If [block] does not finish (the process is killed, or a check fails), the time stays at the last notice finished.
+     * Runs a bind's late checks; [block] calls its argument with each late notice's post time and key once that notice's check has
+     * finished, in post-time order. If [block] does not finish (the process is killed, or a check fails), the time stays at the last
+     * notice finished, with the keys of those finished at that same time ([start] is what was kept when the bind began).
      */
-    suspend fun <T> duringLateChecks(block: suspend (checked: suspend (Instant) -> Unit) -> T): T {
+    suspend fun <T> duringLateChecks(start: ListenerTimes, block: suspend (checked: suspend (Instant, String) -> Unit) -> T): T {
         lock.withLock { lateChecks = true; heldLatest = null }
         var done = false
+        var at = start.lastSeenBound
+        var keys = start.checkedAtLastSeen
         try {
-            return block { postedAt -> times.seenBound(postedAt) }.also { done = true }
+            return block { postedAt, key ->
+                keys = if (postedAt == at) keys + key else setOf(key)
+                at = postedAt
+                times.seenBound(postedAt, keys)
+            }.also { done = true }
         } finally {
             withContext(NonCancellable) {
                 lock.withLock {

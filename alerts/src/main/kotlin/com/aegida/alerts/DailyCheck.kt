@@ -83,7 +83,8 @@ class ListenerRepair @Inject constructor(private val binding: ListenerBinding, p
      */
     suspend fun waitForTheBind(askedAt: Instant) {
         if (!setup.setup().done) return
-        var left = Duration.between(clock.now(), askedAt.plus(ListenerTimes.NEW_PROCESS_GRACE)).toMillis()
+        // At most the grace, also when the clock was set back since asking (finding #146 a): WorkManager stops a job after 10 minutes.
+        var left = minOf(Duration.between(clock.now(), askedAt.plus(ListenerTimes.NEW_PROCESS_GRACE)).toMillis(), ListenerTimes.NEW_PROCESS_GRACE.toMillis())
         while (!binding.boundNow && left > 0) {
             val step = minOf(left, BIND_POLL_MS)
             delay(step)

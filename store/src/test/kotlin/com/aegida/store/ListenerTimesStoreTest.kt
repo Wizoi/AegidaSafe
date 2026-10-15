@@ -32,4 +32,13 @@ class ListenerTimesStoreTest {
         RoomSettings(db.settings()).save(Setup("security.cloudflare-dns.com", emptySet()))
         assertEquals("each check replaces the time before", ListenerTimes(lastSeenBound = now), times.times())
     }
+
+    @Test fun theNoticesCheckedAtTheLastTimeAreKeptWithItAndAnOrdinaryCheckClearsThem() = runTest { // finding #146 c
+        val times = RoomListenerTimes(db.settings())
+        val keys = setOf("0|com.google.android.apps.messaging|0|g:a\nb|10123", "0|com.google.android.apps.messaging|7|null|10123")
+        times.seenBound(now, keys)
+        assertEquals(ListenerTimes(now, keys), times.times())
+        times.seenBound(now.plusSeconds(1))
+        assertEquals(ListenerTimes(now.plusSeconds(1)), times.times())
+    }
 }

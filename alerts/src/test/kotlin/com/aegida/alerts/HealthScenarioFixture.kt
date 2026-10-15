@@ -2,6 +2,8 @@ package com.aegida.alerts
 
 import com.aegida.core.alert.FindingStore
 import com.aegida.core.alert.Guardians
+import com.aegida.core.alert.Outbox
+import com.aegida.core.alert.QueuedMessage
 import com.aegida.core.model.Finding
 import com.aegida.testkit.aScamText
 import com.aegida.testkit.aChromePopup
@@ -95,7 +97,7 @@ abstract class HealthScenarioFixture {
                 Reading.NotPresent, Reading.NotPresent, listenerBound = binding.boundNow, aegidaUpdatedAt = updatedAt,
             )
         },
-        evaluator, pipeline, BaselineKeeper(setupStore, baselines), OutboxFlusher(outbox, NtfySender(http), history, guardians, { now }),
+        evaluator, pipeline, BaselineKeeper(setupStore, baselines), OutboxFlusher(killableOutbox, NtfySender(http), history, guardians, { now }),
         CheckGate(AlertGate(), seen),
     )
     protected val shade = FakeNotificationShade(now)
@@ -114,9 +116,10 @@ abstract class HealthScenarioFixture {
     /** What AegidaListenerService does with each callback. */
     protected val listener = object : FakeNotificationShade.Listener {
         override suspend fun onConnected() {
-            val actions = link.connected(shade.active(), OWN_PACKAGE)
-            actions.hide.forEach(shade::cancel)
-            actions.snooze.forEach { shade.snooze(it, Duration.ofHours(1)) }
+            link.connected(shade.active(), OWN_PACKAGE) { actions ->
+                actions.hide.forEach(shade::cancel)
+                actions.snooze.forEach { shade.snooze(it, Duration.ofHours(1)) }
+            }
         }
         override suspend fun onDisconnected() = link.disconnected()
         override suspend fun onPosted(event: NotificationEvent) {
@@ -133,6 +136,17 @@ abstract class HealthScenarioFixture {
     protected var killInCheck: Int? = null
 
     protected class Killed : RuntimeException("the process was killed")
+
+    /** Set to n: the process dies in the nth check's outbox flush from now, after the pipeline warned and before the check finished (finding #146). */
+    protected var killInFlush: Int? = null
+
+    private val killableOutbox get() = object : Outbox by outbox {
+        override suspend fun all(): List<QueuedMessage> {
+            killInFlush = killInFlush?.minus(1)
+            if (killInFlush == 0) { killInFlush = null; throw Killed() }
+            return outbox.all()
+        }
+    }
 
     private val killable get() = object : FindingStore by findings {
         override suspend fun open(): List<Finding> {
