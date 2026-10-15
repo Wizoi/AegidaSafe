@@ -12,6 +12,10 @@ import com.aegida.core.model.DetectorId
 import com.aegida.core.model.Finding
 import com.aegida.core.model.FindingKey
 import com.aegida.core.model.FindingState
+import com.aegida.core.model.PrivateDns
+import com.aegida.core.model.Setup
+import com.aegida.core.model.Snapshot
+import com.aegida.core.oem.Reading
 import com.aegida.core.net.BytesResult
 import com.aegida.core.net.Endpoint
 import com.aegida.core.net.FailureReason
@@ -110,6 +114,36 @@ class AlertPipelineTest {
         assertEquals("one owner puts the time right", now, findings.get(site.key)!!.firstSeen)
         val dayLater = AlertPipeline(findings, owner, history, GuardianLine(settings, NtfySender(http), outbox)) { now.plus(Duration.ofHours(25)) }
         assertEquals(setOf(site.key), dayLater.handle(listOf(site), setOf(DetectorId.PopupSpam)).openLong)
+    }
+
+    /**
+     * Scenario WP17 A15 (findings #149 (6)): a site she allowed keeps sending alarming words while she does not look; she taps the
+     * warning a long time after the last one; the quiet week runs from her tap.
+     */
+    @Test fun theQuietWeekRunsFromHerTapNotFromTheLastNotice() = runTest {
+        val site = "https://news.example"
+        fun scary(n: Int, at: Instant) = com.aegida.detectors.PopupSpamDetector().evaluate(
+            com.aegida.detectors.Inputs(
+                Snapshot(at, PrivateDns.Automatic, "com.android.chrome", true, true, Reading.NotPresent, Reading.NotPresent), at,
+                Setup(null, setOf(site)), null, com.aegida.testkit.aChromePopup(at, site = "$site/", n = n), null,
+            ),
+        ).single()
+        pipeline.handle(listOf(scary(1, now)), setOf(DetectorId.PopupSpam))
+        for (day in 1L..3L) {
+            clockAt = now.plus(Duration.ofDays(day))
+            pipeline.handle(listOf(scary(day.toInt() + 1, clockAt)), setOf(DetectorId.PopupSpam))
+        }
+        val key = scary(1, now).key
+        assertEquals(Problem.SiteScaryNews, key.problem)
+        val tap = now.plus(Duration.ofDays(20))
+        clockAt = tap
+        assertTrue(SeenMarker(findings, history, owner).markSeen(key, tap))
+        clockAt = tap.plus(Duration.ofDays(2))
+        pipeline.handle(listOf(scary(9, clockAt)), setOf(DetectorId.PopupSpam))
+        assertEquals("told once; two days after her tap is still quiet", listOf(key), owner.shown)
+        clockAt = tap.plus(Duration.ofDays(8))
+        pipeline.handle(listOf(scary(10, clockAt)), setOf(DetectorId.PopupSpam))
+        assertEquals("a week after her tap she is told again", listOf(key, key), owner.shown)
     }
 
     @Test fun aSeenTimeFromAClockThatWasAheadDoesNotKeepItQuiet() = runTest { // finding #93

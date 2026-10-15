@@ -50,6 +50,9 @@ class FindingActions @Inject constructor(
      * finding is marked seen, and the guardian who was told about it hears she said so. False if it is not open or is not a "was that you?" finding.
      */
     suspend fun acceptChange(key: FindingKey): Boolean = gate.run { accepting.accept(key) }
+
+    /** True when [key] asks about a website that sent fake warnings, so her Yes does not allow it (findings #149, WP17 A13). */
+    suspend fun keptHidden(key: FindingKey): Boolean = accepting.fakeOnRecord(key)
 }
 
 /** Marking a finding as seen: the one place that does it, for Acknowledge, "This one is fine" and "Yes, that was me". */
@@ -124,12 +127,21 @@ class ChangeAcceptor @Inject constructor(
         val question = openQuestion(key)
         val baseline = (if (question != null) baselines.baseline() else null)
         if (question == null || baseline == null) return false
-        baselines.save(baseline.accepting(key.problem, key.subject, snapshotter.take()))
+        // A website that sent fake warnings is never allowed by a Yes: the question closes, the guardian hears nothing new (findings #149).
+        val refused = fakeOnRecord(key)
+        if (!refused) baselines.save(baseline.accepting(key.problem, key.subject, snapshotter.take()))
         val marked = seen.markSeen(key, clock.now())
         // The finding as the guardian was told about it: seen takes out the words a website said (findings #117).
-        if (marked) pipeline.tellConfirmed(question)
+        if (marked && !refused) pipeline.tellConfirmed(question)
         return marked
     }
+
+    /**
+     * A "Was that you?" about a website that has a fake warning on record (open or seen, until History lets it go): the one rule for
+     * "this site was called fake", read from the finding the detector made ([Problem.SiteNotifications] for that site).
+     */
+    suspend fun fakeOnRecord(key: FindingKey): Boolean =
+        key.problem == Problem.NewWebsiteNotifications && findings.get(FindingKey(DetectorId.PopupSpam, Problem.SiteNotifications, key.subject)) != null
 
     private suspend fun openQuestion(key: FindingKey): Finding? =
         if (key.problem.fix == Fix.ConfirmChange || key.problem.fix == Fix.ConfirmEvent) findings.get(key)?.takeIf { it.state.needsHer } else null

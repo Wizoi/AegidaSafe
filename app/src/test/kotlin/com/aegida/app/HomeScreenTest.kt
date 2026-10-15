@@ -82,4 +82,13 @@ class HomeScreenTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark, fon
         compose.onNodeWithContentDescription(Texts.Common.YOUR_PICTURE.format("Sunflower")).assertExists()
         compose.onNodeWithText(Texts.APP_NAME).assertExists()
     }
+
+    /** Scenario WP17 A13 (findings #149): after her Yes to a website that sent fake warnings, she is told it stays hidden, and can close it. */
+    @Test fun aYesToAWebsiteThatSentFakeWarningsTellsHerItStaysHidden() {
+        var done = 0
+        show { com.aegida.app.ui.KeptHiddenPage(picture) { done++ } }
+        reachable("This website sent fake warnings before, so Aegida keeps hiding it.")
+        compose.onNodeWithText(Texts.Common.DONE).performScrollTo().performClick()
+        assertEquals(1, done)
+    }
 }

@@ -58,7 +58,7 @@ object HistoryDetail {
             )
             Problem.SiteNotifications, Problem.SiteScaryNews, Problem.NewWebsiteNotifications -> listOf(
                 evidence[Evidence.SITE]?.let(HostMask::hostOf)?.takeIf { it.isNotEmpty() }?.let { Texts.History.WEBSITE_WAS.format(it) },
-                Texts.Home.saidLine(evidence[Evidence.MESSAGE_TITLE]),
+                Texts.Home.saidLine(evidence[Evidence.MESSAGE_TITLE], evidence[Evidence.MESSAGE_TEXT]),
             )
             Problem.NoisyApp -> listOf(
                 Texts.Home.cleanLabel(evidence[Evidence.APP_LABEL].orEmpty()).takeIf { it.isNotEmpty() }?.let { label ->

@@ -67,6 +67,8 @@ class PopupSpamDetector @Inject constructor() : Detector {
                 Evidence.SITE to notice.site,
                 // What the website said, for History (Kevin, Oct 10); kept only until the owner has seen the warning.
                 Evidence.MESSAGE_TITLE to event.title.take(EXAMPLE_CHARS),
+                // The words that set it off may be only in the text (findings #149, WP17 A12).
+                Evidence.MESSAGE_TEXT to event.text.take(EXAMPLE_CHARS),
                 Evidence.MESSAGE_AT to event.postedAt.toEpochMilli().toString(),
             ),
             now,

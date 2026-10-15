@@ -132,6 +132,16 @@ class PopupSpamDetectorTest {
         )
     }
 
+    /** WP17 A12 (findings #149): the alarming words were only in the text; History shows them, after the title, links taken out. */
+    @Test fun aWebsiteWarningKeepsTheWordsOfItsTextForHistory() {
+        val event = headline.copy(title = "New recipe posted", text = "Your phone is infected. Clean it at https://cleaner.example/x")
+        val found = detector.evaluate(inputs(event = event).copy(baseline = baselineWith(setOf(site)))).single()
+        assertEquals(Problem.SiteScaryNews, found.key.problem)
+        val detail = com.aegida.core.alert.HistoryDetail.of(found).orEmpty()
+        assertEquals(true, detail.contains("“Your phone is infected. Clean it at (link)”"))
+        assertEquals("never the address in the words", false, detail.contains("cleaner.example"))
+    }
+
     /** WP17 A1, A5, WP11, WP15: news or fake, alarming words from a site she allowed are hidden, and she is told in plain words. */
     @Test fun anAlarmingNoticeFromASiteSheAllowedIsHiddenAndOnlySheIsTold() {
         for ((title, text) in listOf(
