@@ -8,9 +8,6 @@ enum class DetectorId { Link, PopupSpam, NoisyApp, Dns, Health, Delivery, Drift,
 /** Mapped once to channel, banner behaviour and guardian message. */
 enum class Severity { Info, NeedsTap, Urgent }
 
-/** What a check concluded. There is deliberately no "safe". */
-enum class Verdict { NoKnownProblems, Warning, Unknown }
-
 enum class FindingState {
     Open, Acknowledged, Resolved,
 
