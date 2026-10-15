@@ -63,6 +63,33 @@ class RoomStoresTest {
         )
     }
 
+    @Test fun aStoredRowThatDoesNotDecodeNeverBreaksTheOutbox() = runTest { // findings #144 (a)
+        val outbox = RoomOutbox(db.outbox())
+        val row = OutboxEntity(
+            topic = "aegida_t", title = "Ruth", body = "A note", urgent = false, outboxProblem = Problem.NewAppOutsidePlay.name,
+            queuedAtMillis = now.toEpochMilli(), attempts = 1, lastTriedMillis = now.toEpochMilli(),
+        )
+        db.outbox().add(row.copy(outboxDetail = "The “Alpha” app.\u001ENoSuchKind\u001Fx\u001E\u001EnoFieldSeparator"))
+        db.outbox().add(row.copy(outboxDetail = "\u001E\u001E"))
+        outbox.add(QueuedMessage(0, "aegida_t", "Ruth", "A note", false, Problem.NewAppOutsidePlay, now, 1, now, "The “Good” app."))
+        val all = outbox.all()
+        assertEquals(3, all.size)
+        assertEquals("The “Alpha” app.", all[0].detail)
+        assertEquals(emptyList<Covered>(), all[0].alsoCovers)
+        assertEquals("The “Good” app.", all[2].detail)
+    }
+
+    @Test fun aReminderIsStillAReminderAfterBeingStored() = runTest {
+        val outbox = RoomOutbox(db.outbox())
+        val base = QueuedMessage(0, "aegida_t", "Ruth", "A note", false, Problem.NewAppOutsidePlay, now, 1, now)
+        outbox.add(base.copy(detail = "The “Alpha” app.", reminder = true))
+        outbox.add(base.copy(detail = null, alsoCovers = listOf(Covered(Problem.NoisyApp, "The “Bravo” app.")), reminder = true))
+        outbox.add(base)
+        assertEquals(listOf(true, true, false), outbox.all().map { it.reminder })
+        assertEquals("The “Alpha” app.", outbox.all()[0].detail)
+        assertEquals(listOf(Covered(Problem.NoisyApp, "The “Bravo” app.")), outbox.all()[1].alsoCovers)
+    }
+
     private val finding = Finding(
         FindingKey(DetectorId.PopupSpam, Problem.SiteNotifications, "http://localhost:8765"),
         mapOf(Evidence.CHANNEL_ID to "web:http://localhost:8765;13435952006713133", Evidence.PACKAGE to "com.android.chrome"),

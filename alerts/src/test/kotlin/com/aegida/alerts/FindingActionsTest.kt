@@ -177,7 +177,7 @@ class FindingActionsTest {
 
         val asked = HistoryRows.of(history.entries).filter { it.at == now }
         assertEquals(2, asked.size)
-        val first = com.aegida.core.alert.HistoryDetail.of(Problem.NewAppOutsidePlay, questions[0].evidence)
+        val first = com.aegida.core.alert.HistoryDetail.display(com.aegida.core.alert.HistoryDetail.of(questions[0]))
         assertTrue(asked.single { it.facts == first }.handled)
         assertFalse(asked.single { it.facts != first }.handled)
     }
@@ -345,6 +345,22 @@ class FindingActionsTest {
         http.posts.clear(); http.bodies.clear()
         assertTrue(actions.acceptChange(f.key))
         assertEquals(listOf("Ruth confirmed the change Aegida asked about. Nothing more to do."), http.bodies)
+    }
+
+    @Test fun aReminderAboutOneAppNeverCountsForAnotherAppWithTheSameNameAndKind() = runTest { // findings #140, #144: both are called "update"
+        baselines.value = Baseline.of(phone)
+        guardians.value = guardians.value.copy(alertsOn = false)
+        val first = newAppQuestion("org.first.update")
+        pipeline.handle(listOf(first), setOf(DetectorId.NewApp))
+        guardians.value = guardians.value.copy(alertsOn = true)
+        findings.rows[first.key] = findings.rows.getValue(first.key).copy(firstSeen = now.minus(Duration.ofHours(25)))
+        pipeline.handle(listOf(first), setOf(DetectorId.NewApp)) // reminded about the first only
+        guardians.value = guardians.value.copy(alertsOn = false)
+        val second = newAppQuestion("org.second.update"); pipeline.handle(listOf(second), setOf(DetectorId.NewApp))
+        guardians.value = guardians.value.copy(alertsOn = true)
+        http.posts.clear(); http.bodies.clear()
+        assertTrue(actions.acceptChange(second.key))
+        assertEquals(0, http.bodies.size)
     }
 
     @Test fun aReminderAboutOneAppNeverCountsForAnotherAppOfTheSameKind() = runTest { // findings #115, #117, GN18

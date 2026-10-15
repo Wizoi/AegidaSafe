@@ -27,6 +27,8 @@ data class QueuedMessage(
     val detail: String? = null,
     /** A reminder covers every warning that was due; each of them is one more kind-and-detail pair here, so each gets its own History line on delivery (findings #131). */
     val alsoCovers: List<Covered> = emptyList(),
+    /** The "still open" reminder rather than the alarm itself: delivered later, its History lines say reminded, as one delivered at once does (findings #144). */
+    val reminder: Boolean = false,
 )
 
 /** One more warning that a held message was about: its kind and its [QueuedMessage.detail]. */

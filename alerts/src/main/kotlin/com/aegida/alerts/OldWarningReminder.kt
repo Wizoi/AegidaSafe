@@ -46,7 +46,7 @@ internal class OldWarningReminder(
             is SendResult.NotDelivered -> {
                 notReached++
                 // One message, held once; every warning it covers is listed so each gets its own History line on delivery (findings #131).
-                line.hold(topic, message, due.map { Covered(it.key.problem, detailOf(it)) }, now)
+                line.hold(topic, message, due.map { Covered(it.key.problem, detailOf(it)) }, now, reminder = true)
                 due.forEach { history.add(HistoryEntry(now, it.key.problem, Outcome.GuardianNotReached, detailOf(it))) }
             }
         }
@@ -54,7 +54,7 @@ internal class OldWarningReminder(
         return notReached
     }
 
-    private fun detailOf(finding: Finding): String? = HistoryDetail.of(finding.key.problem, finding.evidence)
+    private fun detailOf(finding: Finding): String? = HistoryDetail.of(finding)
 
     private suspend fun dueWarnings(owner: String, now: Instant): List<Finding> {
         val candidates = findings.open().filter { it.state == FindingState.Open && it.severity >= Severity.NeedsTap }
