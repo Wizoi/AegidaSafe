@@ -200,7 +200,10 @@ class FindingActionsTest {
     @Test fun eachProblemHasTheFixThatMatchesHowItClears() {
         // Event findings never clear by themselves, so they must be acknowledgeable; setting findings clear when fixed.
         val eventProblems = Problem.entries.filter { it.fix == Fix.Acknowledge || it.fix == Fix.SettingsThenAcknowledge || it.fix == Fix.ConfirmEvent }
-        assertEquals(setOf(Problem.ScamLink, Problem.LookalikeLink, Problem.SiteNotifications, Problem.NewWebsiteNotifications), eventProblems.toSet())
+        assertEquals(
+            setOf(Problem.ScamLink, Problem.LookalikeLink, Problem.SiteNotifications, Problem.SiteScaryNews, Problem.NewWebsiteNotifications),
+            eventProblems.toSet(),
+        )
         assertTrue(Problem.entries.filter { it.severity >= com.aegida.core.model.Severity.NeedsTap }.none { it.fix == Fix.None })
         assertTrue(Problem.entries.filter { it.severity == com.aegida.core.model.Severity.Info }.all { it.fix == Fix.None })
     }

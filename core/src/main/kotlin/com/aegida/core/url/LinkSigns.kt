@@ -1,5 +1,6 @@
 package com.aegida.core.url
 
+import com.aegida.core.text.LookAlikes
 import java.lang.Character.UnicodeScript
 import java.net.IDN
 
@@ -44,7 +45,7 @@ object LinkSigns {
         "bankofamerica" to setOf("bankofamerica.com"),
         "usps" to setOf("usps.com"),
         "fedex" to setOf("fedex.com"),
-        "ups" to setOf("ups.com"),
+        "ups" to setOf("ups.com", "ups-scs.com", "theupsstore.com"), // UPS's own supply-chain and store sites (Kevin, Oct 14)
         "irs" to setOf("irs.gov"),
         "medicare" to setOf("medicare.gov"),
         "ssa" to setOf("ssa.gov"),
@@ -55,23 +56,30 @@ object LinkSigns {
         "costco" to setOf("costco.com"),
     )
 
-    // Common swaps scam domains use to look like a brand: Cyrillic/Greek letters that look Latin, then digits.
-    private val HOMOGLYPHS = mapOf(
-        'а' to 'a', 'е' to 'e', 'о' to 'o', 'р' to 'p', 'с' to 'c', 'у' to 'y', 'х' to 'x', 'і' to 'i',
-        'ј' to 'j', 'ѕ' to 's', 'ԁ' to 'd', 'ɡ' to 'g', 'ο' to 'o', 'α' to 'a', 'ν' to 'v', 'ρ' to 'p', 'κ' to 'k',
-        'ӏ' to 'l', // the palochka: "аррӏе" is all Cyrillic, so not mixed, yet reads as "apple" (findings #108)
-    )
-
-    /** English words ending in "-ups" ("pop-ups"): the "ups" in them is not the parcel company (findings #108). */
+    /** English words ending in "-ups" ("pop-ups", "touch-ups"): the "ups" in them is not the parcel company (findings #108, #133). */
     private val UPS_WORDS = setOf(
         "pop", "sign", "check", "start", "back", "set", "follow", "mix", "pick", "line", "mock", "warm", "round", "close", "make",
-        "grown", "push", "pull", "sit", "top", "write", "clean", "tune", "roll", "hook", "lock", "pin",
+        "grown", "push", "pull", "sit", "top", "write", "clean", "tune", "roll", "hook", "lock", "pin", "touch", "mash",
     )
-    /** Words of a parcel scam's name ("track-pick-ups", "ups-redelivery"). */
+
+    /** Whole English words ending in "ups" that are not "<word> ups": never the parcel company, even next to "delivery" (findings #133). */
+    private val ENDS_IN_UPS = setOf(
+        "cups", "groups", "soups", "coups", "hiccups", "stirrups", "teacups", "buttercups", "subgroups", "regroups", "recoups",
+    )
+
+    /** English words starting with "ups" ("upstate", "upset"): never the parcel company (findings #133). */
+    private val STARTS_WITH_UPS = listOf(
+        "upset", "upstair", "upstate", "upstream", "upside", "upshot", "upscale", "upsell", "upsilon", "upstage", "upstart", "upsurge",
+        "upswing", "upsize", "upskill",
+    )
+
+    /** Words of a parcel scam's name ("track-pick-ups", "ups-redelivery", "upsmychoice"). */
     private val PARCEL_WORDS = setOf(
-        "track", "tracking", "delivery", "redelivery", "deliver", "redeliver", "parcel", "parcels", "package", "packages", "shipping",
-        "shipment", "courier",
+        "track", "tracking", "delivery", "deliveries", "redelivery", "deliver", "redeliver", "parcel", "parcels", "package", "packages",
+        "shipping", "shipment", "courier", "express", "mychoice",
     )
+    private const val UPS = "ups"
+    private val UPS_NUMBER = Regex("""ups\d+""")
     private val DELEET = listOf("rn" to "m", "vv" to "w", "0" to "o", "1" to "l", "3" to "e", "5" to "s", "4" to "a", "@" to "a")
 
     fun of(link: Link): Set<LinkSign> = buildSet {
@@ -93,9 +101,9 @@ object LinkSigns {
 
     private fun imitatesBrand(host: String): Boolean {
         val unicode = IDN.toUnicode(host, IDN.ALLOW_UNASSIGNED).lowercase()
-        val labels = unicode.split('.').map { label -> label.split('-').map(::deleet).flatMap(::splitUps) }
-        val aboutParcels = labels.any { words -> words.any { it in PARCEL_WORDS } }
-        val tokens = labels.flatMap { brandWords(it, aboutParcels) }
+        val labels = unicode.split('.').map { label -> label.split('-').flatMap(::wordsOf) }
+        // Only a parcel word in the same name between dots counts: track.check-ups-clinic.com is a clinic (Kevin, Oct 14).
+        val tokens = labels.flatMap { words -> brandWords(words, aboutParcels = words.any { it in PARCEL_WORDS }) }
         return BRANDS.any { (brand, domains) ->
             val owned = domains.any { host == it || host.endsWith(".$it") }
             !owned && tokens.any { it == brand }
@@ -103,25 +111,38 @@ object LinkSigns {
     }
 
     /**
-     * The words of one name between dots, without the "ups" of an English "-ups" word such as "pop-ups" or "check-ups", unless the
-     * host talks about parcels: "pick-ups-redelivery" and "track-pick-ups" are the parcel company, "pop-ups-blocker" is not
-     * (findings #108, #120, #127; table ST19 in docs/scenarios/scam-texts.md).
+     * One hyphen-separated word, look-alike letters undone: "ups24" is the brand with a number, and "upsdelivery" reads as "ups
+     * delivery" so its parcel word counts. "pickups" stays one word: in a name about parcels [joinedToUps] makes it the brand.
      */
-    private fun brandWords(words: List<String>, aboutParcels: Boolean): List<String> =
-        if (aboutParcels) words else words.filterIndexed { i, w -> !(w == "ups" && i > 0 && words[i - 1] in UPS_WORDS) }
-
-    /** "pickups" and "setups" read as "pick ups" and "set ups"; "upsdelivery" as "ups delivery". "upstairs" and "cups" stay one word. */
-    private fun splitUps(word: String): List<String> {
-        val root = word.removeSuffix("ups")
-        val rest = word.removePrefix("ups")
+    private fun wordsOf(token: String): List<String> {
+        val word = deleet(token)
+        val rest = word.removePrefix(UPS)
         return when {
-            word == "ups" -> listOf(word)
-            root != word && root in UPS_WORDS -> listOf(root, "ups")
-            rest != word && rest in PARCEL_WORDS -> listOf("ups", rest)
+            UPS_NUMBER.matches(token) -> listOf(UPS)
+            rest != word && rest in PARCEL_WORDS -> listOf(UPS, rest)
             else -> listOf(word)
         }
     }
 
+    /**
+     * The words of one name between dots, with "ups" left in only where it is the parcel company (table ST19 in
+     * docs/scenarios/scam-texts.md; findings #108, #120, #127, #133). The "ups" ending an English "-ups" word ("pop-ups") is excused
+     * unless the name is about parcels ("track-pick-ups"). In a name about parcels, "ups" joined to either end of a word is the brand
+     * too ("myups-redelivery", "upsglobal-track"), unless the word is English ("cups-delivery", "upstate-shipping"). "ups-and-downs"
+     * is never the brand.
+     */
+    private fun brandWords(words: List<String>, aboutParcels: Boolean): List<String> = words.mapIndexedNotNull { i, w ->
+        when {
+            w == UPS && words.getOrNull(i + 1) == "and" && words.getOrNull(i + 2) == "downs" -> null
+            w == UPS && !aboutParcels && i > 0 && words[i - 1] in UPS_WORDS -> null
+            aboutParcels && joinedToUps(w) -> UPS
+            else -> w
+        }
+    }
+
+    private fun joinedToUps(word: String): Boolean = word.length > UPS.length && word !in ENDS_IN_UPS &&
+        (word.endsWith(UPS) || (word.startsWith(UPS) && STARTS_WITH_UPS.none { word.startsWith(it) }))
+
     private fun deleet(token: String): String =
-        DELEET.fold(token.map { HOMOGLYPHS[it] ?: it }.joinToString("")) { acc, (from, to) -> acc.replace(from, to) }
+        DELEET.fold(LookAlikes.latin(token)) { acc, (from, to) -> acc.replace(from, to) }
 }

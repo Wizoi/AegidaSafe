@@ -19,34 +19,58 @@ A website sends notifications through the browser. A fake virus warning is hidde
 | WP12 | "Samsung Internet or another browser" | Same as Chrome | Same | Website channels are known only in Chrome's format | Samsung dump needed | GAP | GAP | GAP |
 | WP13 | "The word pop-ups splits to ups" | Nothing: a website notice is not link-checked, and in a text "pop-ups" is not the parcel company | Nothing | "blocked pop-ups.Tap", pop-ups.com; was warned in a text before findings #108 | Invented words | LinkSignsTest#theWordPopUpsIsNotTheParcelCompany; DetectorsTest#ownAndSiteNotificationsAreNotLinkChecked | none | ups-in-an-english-word-is-not-the-brand |
 | WP14 | "The phone put the notice to sleep and it came back" | Left in place if the site was answered Yes | Nothing | Snooze returning, no model of it | Needs a fake notification shade | GAP | emulator_websites.py (partly) | GAP |
-| WP15 | "A site I said Yes to starts saying my phone has a virus" | Still hidden and called fake (must never stay as news) | A note naming the site, masked | "Your device has been hacked", "Battery damaged by virus. Clean now", "Trojan detected on this phone", "You are infected"; site allowed before the list was recorded; "3 viruses found! Remove now", "Virus found", "Malware detected. Remove immediately", "Your Samsung/Galaxy S25/iPhone is infected" (findings #119; the rule is now WP17, findings #126); must-never news stays: "Retailer hacked", "New Android malware found in 40 apps", "Hackers stole card data", "New virus found in bats", "Your favourite retailer was hacked" | Invented words | DetectorsTest#aSiteSheSaidYesToThatWarnsAboutHerPhoneIsStillHidden; DetectorsTest#aSiteSheSaidYesToSayingVirusFoundOrYourPhoneIsInfectedIsStillHidden; DetectorsTest#aNewsHeadlineFromASiteSheSaidYesToIsLeftInPlace | emulator_websites.py | known-site-about-her-phone-still-hidden; scare-words-order; scare-words-count; scare-words-your-one-word |
+| WP15 | "A site I said Yes to starts saying my phone has a virus" | Still hidden and called fake (must never stay as news) | A note naming the site, masked | "Your device has been hacked", "Battery damaged by virus. Clean now", "Trojan detected on this phone", "You are infected"; site allowed before the list was recorded; "3 viruses found! Remove now", "Virus found", "Malware detected. Remove immediately", "Your Samsung/Galaxy S25/iPhone is infected" (findings #119; the rule is now WP17, findings #126); must-never news stays: "Retailer hacked", "New Android malware found in 40 apps", "Hackers stole card data", "New virus found in bats", "Your favourite retailer was hacked" | Invented words | DetectorsTest#aSiteSheSaidYesToThatWarnsAboutHerPhoneIsStillHidden; DetectorsTest#aSiteSheSaidYesToSayingVirusFoundOrYourPhoneIsInfectedIsStillHidden; DetectorsTest#aNewsHeadlineFromASiteSheSaidYesToIsLeftInPlace | emulator_websites.py | known-site-about-her-phone-still-hidden; scare-words-order; scare-words-count; scare-words-phone-makers |
 | WP16 | "A website I never saw before posts 'Retailer hacked'" | Called fake, not asked about (unchanged: "Was that you?" would offer to allow a scare) | Note | n/a | Invented headline | DetectorsTest#aNewSitePostingAScareHeadlineIsStillCalledFake | none | GAP |
-| WP17 | "A site I said Yes to sends news with a scare word, or a fake virus warning" | News stays; a fake warning is hidden (the S and H rows below) | Fake: a note naming the site, masked; news: nothing | 33 news rows, 38 fake rows | Real-style headlines and pop-up wordings (below) | DetectorsTest#aNewsStoryFromASiteSheSaidYesToStaysWhereItIs; DetectorsTest#aFakeVirusWarningFromASiteSheSaidYesToIsHidden | none | known-site-news-is-not-a-fake-warning; scare-words-order; scare-words-order-starts-a-clause; scare-words-count; scare-words-your-one-word; scare-words-your-named-phone; scare-words-your-retailer-is-news; scare-words-you-are-infected; scare-words-battery |
+| WP17 | "A site I said Yes to sends news with a scare word, news that speaks to me, or a fake virus warning" | News stays; news that speaks to her is hidden and she is told "a scary news story" (A rows); a fake warning is hidden (S, A and H rows below) | Fake: a note naming the site, masked; news and news to the reader: nothing (Kevin, Oct 14) | 43 news rows, 7 news-to-the-reader rows, 52 fake rows (H20, H21, H38 moved to A1-A3) | Real-style headlines and pop-up wordings (below) | DetectorsTest#aNewsStoryFromASiteSheSaidYesToStaysWhereItIs; DetectorsTest#newsThatSpeaksToTheReaderFromASiteSheSaidYesToIsHiddenWithoutTellingTheGuardian; DetectorsTest#aFakeVirusWarningFromASiteSheSaidYesToIsHidden | none | known-site-news-is-not-a-fake-warning; scary-news-is-hidden; scary-news-not-told-to-the-guardian; scary-news-has-no-guardian-sentence; scare-words-order; scare-words-order-starts-a-clause; scare-words-command-follows; scare-words-count; scare-words-count-at-clause-end; scare-words-bracketed-number; scare-words-brackets-split; scare-words-your-named-phone; scare-words-your-retailer-is-news; scare-words-phone-makers; scare-words-your-system; scare-words-you-are-infected; scare-words-you-may-have; scare-words-you-got; scare-words-found-on-this-phone; scare-words-question-is-news-to-the-reader; scare-words-delete-these-apps; scare-words-battery; scare-words-gate-battery; scare-words-gate-will-be-damaged; scare-words-gate-needs-cleaning; scare-words-look-alike-letters; scare-words-digits-for-letters |
 
 ## WP17: news or a fake warning? (findings #126)
 
 Only for a website she already had or said Yes to: a scare word (virus, malware, hacked, infected, ...) from such a site is a fake
-warning about HER phone (hidden, the guardian gets a note naming the site, masked) or news (left where it is, nothing sent). A site
-she never had is called fake on any scare word (WP6, WP16); this table does not change that path. Repeats, snooze, No and the
-failure states are those of WP1-WP8 and are unchanged; this table is only about the words.
+warning about HER phone (hidden, the guardian gets a note naming the site, masked), news that speaks to the reader (hidden, she is
+told, nothing sent), or news (left where it is, nothing sent). A site she never had is called fake on any scare word (WP6, WP16);
+this table does not change that path. Repeats, snooze, No and the failure states are those of WP1-WP8 and are unchanged; this
+table is only about the words.
 
-**The rule (one rule):** it is about her phone when it **speaks to her or her phone, or tells her to act**; a report about someone
-else is news. Title and text are read one clause at a time (split at `. ! ? : ; , ( ) [ ] |` and a spaced dash):
+**Kevin, Oct 14 (findings #133):** real tech news that speaks to the reader ("Delete these apps now", "Check your phone for this
+spyware", "Malware can take over your Android", "How to tell if your phone is hacked") is hidden from the shade as before, but the
+guardian is NOT sent a note. It is its own problem, `Problem.SiteScaryNews`: she sees "A website you allowed sent a scary news story
+about phones. Aegida hid it. Tap to stop that website." (Needs a tap; the tap opens that site's switch, as for a fake warning; told
+at most once a week, each story still hidden); History says "A website sent a scary news story" with the site and its words; it has
+no guardian sentence, so neither the first note nor the one-day reminder is sent. A fake pop-up from such a site (a count of viruses,
+"your phone is infected", orders to clean, remove or download, a damaged battery) is still `Problem.SiteNotifications` ("A website
+was sending you warnings. They are not real.") and the guardian gets the note. "Your system" counts as her phone.
 
-- **her phone:** "your" or "this" right before a phone word (phone, device, mobile, android, iphone, galaxy, pixel, tablet, browser,
-  chrome, smartphone, cellphone); or "your <name> is / has been / may be / is now ... infected / hacked / compromised / damaged"
-  where the name is one word ("your Samsung") or has a phone word or a model number in it ("your Samsung Galaxy A15"). "Your
-  favourite retailer" is two words with neither, so it is news.
-- **her:** "you are / you're / you have been / you've been infected or hacked", "you have a virus", "you have 3 viruses".
-- **an order:** the clause starts (after "please") with tap, click, press, clean, remove, delete, download, install, scan, fix or
-  repair. "Google to remove 40 apps" does not start with it; "clean-up" is one word, not "clean".
-- **a count of what it found:** a number right before virus/viruses/malware/trojan(s)/spyware, then found or detected
-  ("13 viruses found", "(3) viruses were found"); "two new viruses found" and "200 infected" are news.
+**The rule (one rule):** before reading, look-alike letters are undone (NFKC, so maths-bold letters read plain; Cyrillic and Greek
+look-alikes from the one shared map in `LookAlikes`, also used by LinkSigns; and a word with digits for letters, "V1rus", reads as
+the scare word it spells). The same plain words go to the scare-word gate. Title and text are then read one clause at a time
+(split at `. ! ? : ; , ( ) [ ] |` and a spaced dash; "(3)" stays a number).
+
+It is a **fake warning** when one clause:
+- **counts what it found:** a number right before virus/viruses/malware/trojan(s)/spyware, then found or detected, or at the end of
+  the clause ("13 viruses found", "(3) viruses were found", "infected with 13 viruses", "Your Motorola has 3 viruses"); "two new
+  viruses found" and "200 infected" are news;
+- **says her phone is in a bad state:** "your" or "this" before a phone word (phone, device, mobile, tablet, browser, chrome,
+  smartphone, cellphone, or a name in the phone list in Texts: system, the makers' names, galaxy, pixel, iphone, android ...), with
+  infected / hacked / compromised / damaged / cleaning after it ("Your phone will be damaged", "Your Samsung needs cleaning"), or
+  "on/in this phone" with found or detected in the clause; or "your <name> is ... infected" where the name has a phone word or a model
+  number ("your new Pixel 9"). "Your pharmacy", "your bank" and "your favourite retailer" are not phones, so they are news;
+- **says she is:** "you are / you're / you've been / you got infected or hacked", "you (may/might/could) have a virus", "you've got
+  a virus", "you have 3 viruses";
+- **orders her:** the clause starts (after "please") with tap, click, press, clean, remove, delete, download, install, scan, fix or
+  repair, **and a command word follows** (to + another order word, here, ok, now, it, them, the, this, these, your, up, all,
+  immediately, cleaner, or a virus word). "Click fraud", "Tap water", "Press freedom", "Clean energy", "Fix for", "Scan of" and "Tap to
+  read the full story" are not orders. "Delete" with no virus word, "it" or "them" ("Delete these apps now") is news to the reader;
 - **a damaged battery:** "battery" and "damaged" in one clause.
 
-Tests: DetectorsTest#aNewsStoryFromASiteSheSaidYesToStaysWhereItIs (every S row) and
-DetectorsTest#aFakeVirusWarningFromASiteSheSaidYesToIsHidden (every H row); each case carries its ID. "Today" is the result on the
-code before findings #126 (ABOUT_HER_PHONE as one regex), from running those tests on it.
+A claim inside a question or condition ("Is your phone infected?", "Have you been hacked?", "How to tell if your phone is hacked")
+is not a claim. It is **news to the reader** when, with no fake sign, a clause still speaks to her phone or to her (any "your phone",
+"this phone", "your Android", a question about her, or a "Delete these apps" order). Anything else is **news**.
+
+Tests: DetectorsTest#aNewsStoryFromASiteSheSaidYesToStaysWhereItIs (every S row),
+DetectorsTest#newsThatSpeaksToTheReaderFromASiteSheSaidYesToIsHiddenWithoutTellingTheGuardian (every A row) and
+DetectorsTest#aFakeVirusWarningFromASiteSheSaidYesToIsHidden (every H row); each case carries its ID and a failure lists the IDs.
+"Today" is the result on the code before findings #126 (ABOUT_HER_PHONE as one regex) for S1-S33 and H1-H38, and on the code
+before findings #133 (the #126 rule) for the rows added by #133.
 
 ### Must stay (news)
 
@@ -85,6 +109,31 @@ code before findings #126 (ABOUT_HER_PHONE as one regex), from running those tes
 | S31 | Zika virus found in local mosquitoes; spraying set for Tuesday | Stay indoors at dusk, officials say | news style (health) | about mosquitoes | stays |
 | S32 | Bank's app hit by trojan; customers told to change passwords | The bank says no money was taken | news style (crime) | third party | stays |
 | S33 | Clean-up continues after malware attack on port | Ships are moving again | news style (crime) | "clean-up" is one word, not the order "clean" (hostile) | stays |
+| S34 | Click fraud malware found in 60 apps | Researchers say the apps made fake ad taps | news style (tech) | "Click" is a noun here: no command word follows (hostile) | hidden (wrong) |
+| S35 | Tap water tested for virus | The city says the water is fine to drink | news style (health) | "Tap water" (hostile) | hidden (wrong) |
+| S36 | Clean energy firm hacked | Customer records may have been taken | news style (crime) | "Clean energy" (hostile) | hidden (wrong) |
+| S37 | Press freedom group says reporters' phones hacked | The group asks for an inquiry | news style (crime) | "Press freedom"; other people's phones (hostile) | hidden (wrong) |
+| S38 | Retailer hacked | Tap to read the full story | news style (crime) | "Tap to read" is not an order to fix anything | hidden (wrong) |
+| S39 | Your pharmacy was hacked | What customers should know | news style (crime) | "your" + a name that is not a phone (the one-word rule is gone) | hidden (wrong) |
+| S40 | Fix for Android malware released by Google | The update reaches phones this month | news style (tech) | "Fix for" (hostile) | hidden (wrong) |
+| S41 | Scan of sewage finds polio virus | Health officials ask parents to check vaccinations | news style (health) | "Scan of" (hostile) | hidden (wrong) |
+| S42 | Your bank was hacked: what to do next | Experts explain | news style (crime) | "your bank" is not a phone | hidden (wrong) |
+| S43 | Experts tell users to remove the apps now | The malware hides in fake games | news style (tech) | "remove the" does not start the clause (guards the clause-start rule) | stays |
+
+### Hide, but tell only her (news that speaks to the reader; Kevin, Oct 14)
+
+Hidden; she sees "A website you allowed sent a scary news story about phones. Aegida hid it. Tap to stop that website."; the
+guardian gets nothing (`Problem.SiteScaryNews`, no guardian sentence, so no reminder either).
+
+| ID | Title | Text | Source kind | Why it is news to the reader | Today |
+|---|---|---|---|---|---|
+| A1 | Is your phone infected? Here's how to check | | news style (was H20) | a question about her phone, no claim | hidden, guardian told (wrong now) |
+| A2 | Have you been hacked? Here's how to check | | news style (was H21) | a question about her | hidden, guardian told (wrong now) |
+| A3 | Delete these apps now: malware found on Google Play | | news style (was H38) | "Delete these apps", no virus word in that clause | hidden, guardian told (wrong now) |
+| A4 | Check your phone for this spyware | Researchers found it in 12 apps | news style (tech) | "your phone" with no bad state; "check" is not an order word | hidden, guardian told (wrong) |
+| A5 | Malware can take over your Android | Here is how it spreads | news style (tech) | "your Android" with no bad state | hidden, guardian told (wrong) |
+| A6 | How to tell if your phone is hacked | Five signs to look for | news style (tech) | "your phone is hacked" inside "how ... if" (hostile: a claim's words in a condition) | hidden, guardian told (wrong) |
+| A7 | New spyware found that can infect your phone | Researchers say it hides in fake games | news style (tech) | "found" is not "on your phone"; no bad state after "your phone" (hostile) | hidden, guardian told (wrong) |
 
 ### Must hide (a fake warning about her phone)
 
@@ -109,8 +158,8 @@ code before findings #126 (ABOUT_HER_PHONE as one regex), from running those tes
 | H17 | Security warning | Battery damaged by virus. Clean now | scam style | battery damaged; order | hidden |
 | H18 | Alert | Trojan detected on this phone | scam style | this phone | hidden |
 | H19 | Warning | You are infected | scam style | you are infected | hidden |
-| H20 | Is your phone infected? Here's how to check | | agreed exception: news style, but it speaks to her phone (reviewer and lead agree it stays hidden) | your phone | hidden |
-| H21 | Have you been hacked? Here's how to check | | same class as H20 (news style that speaks to her) | you been hacked | missed |
+| H20 | (moved to A1, Kevin, Oct 14) | | | | |
+| H21 | (moved to A2, Kevin, Oct 14) | | | | |
 | H22 | Your Android is infected with 4 viruses | Clean now | scam style | your android; order | hidden |
 | H23 | (2) viruses detected | Your phone may be damaged | scam style | count; your phone | hidden |
 | H24 | Your phone is infected with (5) viruses | Scan now to remove them | scam style | your phone; order | hidden |
@@ -127,8 +176,25 @@ code before findings #126 (ABOUT_HER_PHONE as one regex), from running those tes
 | H35 | WARNING: VIRUS FOUND! | Clean up your phone now | scam style (capitals, hostile) | order; your phone | hidden |
 | H36 | Your phone has been hacked! | Press OK to clean it | scam style | your phone; order "press" | hidden |
 | H37 | 2 viruses detected | Please remove them now | scam style | count; order after "please" | hidden |
-| H38 | Delete these apps now: malware found on Google Play | | news style headline that orders her (unsure; kept hidden, since hiding a news story costs less than showing a fake warning) | order "delete" | hidden |
+| H38 | (moved to A3, Kevin, Oct 14) | | | | |
+| H39 | Your system is heavily damaged by four viruses | | scam style | "your system" is her phone (Kevin, Oct 14) + damaged | missed |
+| H40 | Your Samsung needs cleaning | | scam style | your + phone maker + "needs cleaning" (the gate now has it) | missed |
+| H41 | Your Motorola has 3 viruses | | scam style | a count at the clause end | missed |
+| H42 | Android infected with 13 viruses! | | scam style | a count at the clause end | missed |
+| H43 | You may have a virus | | scam style | you may have a virus | missed |
+| H44 | You've got a virus | | scam style | you've got a virus | missed |
+| H45 | Your battery is 87% damaged | | scam style | battery damaged (the gate now allows words between) | missed |
+| H46 | Your phone will be damaged | | scam style | your phone + damaged (the gate now has "will be damaged") | missed |
+| H47 | Vіrus found | Tap to remove | hostile (Cyrillic і) | look-alike letters undone; order | missed |
+| H48 | 𝐕𝐢𝐫𝐮𝐬 found | Tap to remove | hostile (maths-bold letters) | NFKC; order | missed |
+| H49 | V1rus found | Tap to remove | hostile (1 for i) | digits for letters undone; order | missed |
+| H50 | Your phone has 3 v1ruses | | hostile (1 for i) | digits for letters undone before the rule; count at the end | missed |
+| H51 | Virus found (tap to remove) | | scam style | brackets split clauses; order | missed |
+| H52 | Your Xiaomi got hacked | | scam style | your + phone maker + got hacked | hidden |
+| H53 | Your system is infected | Clean it now | scam style | your system; order | hidden |
+| H54 | Your new Pixel 9 is infected | | scam style | "your <name> is infected" with a phone word in the name | hidden |
+| H55 | Your Motorola is infected | | scam style | your + a maker in the phone list (the one-word rule is gone) | hidden |
 
-Not covered (GAP): a scare word in look-alike letters ("vіrus" with a Cyrillic і) is not a scare word to `ScareWords.REGEX`, so a
-known site's one is left alone (unchanged by #126). "300 viruses found in sewage" would be hidden by the count rule; no such
-headline was found, so it is not a row.
+Not covered (GAP): "300 viruses found in sewage" would be hidden by the count rule; no such headline was found, so it is not a
+row. A fake that asks first ("Is your phone slow? It may have a virus") is news to the reader: hidden, but the guardian is not
+told ("it" is not read as her phone). A fake in a script with no Latin look-alike (all-Cyrillic words) is not read.

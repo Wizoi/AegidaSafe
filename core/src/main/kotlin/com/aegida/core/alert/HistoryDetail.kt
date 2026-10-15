@@ -22,7 +22,7 @@ object HistoryDetail {
                 // On the phone, whole; masked only when sent (Kevin, Oct 11).
                 evidence[Evidence.HOST]?.takeIf { it.isNotBlank() }?.let { Texts.History.LINK_WENT.format(it) },
             )
-            Problem.SiteNotifications, Problem.NewWebsiteNotifications -> listOf(
+            Problem.SiteNotifications, Problem.SiteScaryNews, Problem.NewWebsiteNotifications -> listOf(
                 evidence[Evidence.SITE]?.let(HostMask::hostOf)?.takeIf { it.isNotEmpty() }?.let { Texts.History.WEBSITE_WAS.format(it) },
                 Texts.Home.saidLine(evidence[Evidence.MESSAGE_TITLE]),
             )

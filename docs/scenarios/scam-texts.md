@@ -24,7 +24,7 @@ if a named test does not exist. Source of the gaps: [test-review.md](../test-rev
 | ST16 | "A link starts with a real brand site but goes somewhere else (amazon.de-login..., paypal.me.verify-account...)" | Warning (must never pass as the brand) | Note | Brand word on an ending not listed (amazon.xyz, paypal.ru, apple.com.co) | Invented names | LinkSignsTest#aBrandWordOnAnUnlistedEndingOrBeforeAnotherDomainIsStillALookalike | none | GAP |
 | ST17 | "The words pop-ups or sign-ups in a link or a sentence" | Nothing (not the parcel company) | Nothing | pop-ups.com, "blocked pop-ups.Tap", check-ups; was warned before findings #108 | Invented names | LinkSignsTest#theWordPopUpsIsNotTheParcelCompany | none | ups-in-an-english-word-is-not-the-brand |
 | ST18 | "A parcel scam with ups next to a hyphen (ups-redelivery, track-ups)" | Warning | Note | ups after another ups (pop-ups-ups); an English "-ups" word with more after it (pick-ups-redelivery, set-ups-redelivery: the "-ups" word is excused only when nothing in the name is about parcels, ST19 and findings #127); pop-ups, sign-ups, check-ups, pick-ups alone stay quiet | Invented names | LinkSignsTest#upsBeforeOrAfterAHyphenIsStillTheParcelCompany; LinkSignsTest#aParcelScamWithPickUpsOrSetUpsBeforeMoreWordsStillImitatesUps | none | ups-parcel-words-keep-the-brand |
-| ST19 | "A parcel scam name with ups inside it, or an ordinary name with ups in it" | Scam (U rows): a look-alike link warning (any brand sign alone is enough: LinkDetector turns BrandLookalike into Problem.LookalikeLink); ordinary (O rows): nothing | Scam: a note, as ST18; ordinary: nothing | the U and O rows below | Invented names in the shapes of reported parcel-scam domains | LinkSignsTest#aParcelScamNameWithUpsInItImitatesUps; LinkSignsTest#anOrdinaryNameWithUpsInItIsNotTheParcelCompany | none | ups-in-an-english-word-is-not-the-brand; ups-parcel-words-keep-the-brand; ups-joined-to-an-english-word; ups-joined-to-a-parcel-word |
+| ST19 | "A parcel scam name with ups inside it, or an ordinary name with ups in it" | Scam (U rows): a look-alike link warning (any brand sign alone is enough: LinkDetector turns BrandLookalike into Problem.LookalikeLink); ordinary (O rows): nothing | Scam: a note, as ST18; ordinary: nothing | the U and O rows below | Invented names in the shapes of reported parcel-scam domains | LinkSignsTest#aParcelScamNameWithUpsInItImitatesUps; LinkSignsTest#anOrdinaryNameWithUpsInItIsNotTheParcelCompany | none | ups-in-an-english-word-is-not-the-brand; ups-parcel-words-keep-the-brand; ups-joined-to-a-parcel-word; ups-and-downs-is-not-the-brand; ups-parcel-word-in-the-same-label; ups-joined-at-either-end; ups-with-a-number; ups-own-supply-chain-site; ups-english-words-starting-ups; ups-english-words-ending-ups; ups-touch-ups |
 
 ## ST19: is "ups" the parcel company? (findings #127)
 
@@ -32,11 +32,19 @@ Only text messages and chats are link-checked (a website's own notification is n
 warning: `LinkDetector` turns `BrandLookalike` into `Problem.LookalikeLink`, so "warned" below is what Mom sees (a look-alike link
 warning, the guardian gets a note) and "nothing" means no warning at all. ups.com and its subdomains are UPS's own and never warned.
 
-**The rule (one rule):** each name between dots is split into words at hyphens; a word made of an English "-ups" root and "ups"
-("pickups", "setups") is read as those two words, and "ups" joined to a parcel word ("upsdelivery") as "ups" and that word.
-"ups" is then the parcel company, unless it ends an English "-ups" word (pop-ups, check-ups, sign-ups, pick-ups, set-ups, ...)
-**and** nothing in the host is about parcels (track, tracking, delivery, redelivery, deliver, redeliver, parcel(s), package(s),
-shipping, shipment, courier). Look-alike letters are undone first (up5 -> ups, parce1 -> parcel). "Today" is the result before #127.
+**The rule (one rule):** each name between dots is split into words at hyphens; look-alike letters are undone first (up5 -> ups,
+parce1 -> parcel; the Cyrillic/Greek map is the shared one in `LookAlikes`). "ups" joined to a parcel word ("upsdelivery") reads as
+"ups" and that word, and "ups" with a number ("ups24") is the brand. Then, **within that one name between dots** (Kevin, Oct 14: a
+parcel word in another label does not count, so track.check-ups-clinic.com is a clinic):
+- "ups" ending an English "-ups" word (pop-ups, check-ups, sign-ups, pick-ups, set-ups, touch-ups, mash-ups, ...) is excused unless
+  the name has a parcel word (track, tracking, delivery, deliveries, redelivery, deliver, redeliver, parcel(s), package(s), shipping,
+  shipment, courier, express, mychoice);
+- in a name with a parcel word, "ups" joined to either end of a word is the brand too (myups-redelivery, upsglobal-track,
+  pushups-tracking), unless the word is English: ending in "ups" (cups, groups, soups, ...) or starting with "ups" (upstate, upset,
+  upstairs, upstream, upside, ...);
+- "ups-and-downs" is never the brand.
+UPS's own sites are never warned: ups.com, ups-scs.com and theupsstore.com and their subdomains (Kevin, Oct 14). "Today" is the
+result before #127 for U1-U19 and O1-O19, and before #133 for the rows #133 added.
 
 | ID | Host | Kind | Mom sees | Why | Today |
 |---|---|---|---|---|---|
@@ -59,6 +67,13 @@ shipping, shipment, courier). Look-alike letters are undone first (up5 -> ups, p
 | U17 | up5-redelivery.top | hostile (5 for s) | warned | up5 reads as ups | warned |
 | U18 | pick-ups-parce1.top | hostile (1 for l) | warned | parce1 reads as parcel | warned |
 | U19 | ups-tracking.help-center.top | parcel-scam style | warned | ups first | warned |
+| U20 | myups-redelivery.com | parcel-scam style | warned | "ups" joined at the end, "redelivery" in the same name | nothing (wrong) |
+| U21 | upsmychoice-update.com | parcel-scam style (UPS My Choice) | warned | "ups" joined to "mychoice" | nothing (wrong) |
+| U22 | upsglobal-track.com | parcel-scam style | warned | "ups" joined at the start, "track" in the same name | nothing (wrong) |
+| U23 | upsexpress-help.com | parcel-scam style | warned | "ups" joined to "express" | nothing (wrong) |
+| U24 | upsdeliveries.com | parcel-scam style | warned | "ups" joined to "deliveries" | nothing (wrong) |
+| U25 | ups24.top | parcel-scam style | warned | "ups" with a number | nothing (wrong) |
+| U26 | pushups-tracking.com | unsure, decided toward warning (a fitness tracker or a parcel scam: the words cannot tell) | warned | "tracking" in the same name as "pushups"; a wrong warning costs a tap on No | warned |
 | O1 | pop-ups-blocker.com | ordinary (a browser add-on) | nothing | "pop-ups", nothing about parcels | warned (wrong) |
 | O2 | check-ups-clinic.com | ordinary (a doctor's text) | nothing | "check-ups", nothing about parcels | warned (wrong) |
 | O3 | sign-ups-form.com | ordinary | nothing | "sign-ups" | warned (wrong) |
@@ -78,6 +93,16 @@ shipping, shipment, courier). Look-alike letters are undone first (up5 -> ups, p
 | O17 | www.ups.com/track | UPS's own site | nothing | ups.com | nothing |
 | O18 | wwwapps.ups.com | UPS's own site | nothing | a subdomain of ups.com | nothing |
 | O19 | pop-ups.check-ups.example | ordinary | nothing | two English "-ups" words | nothing |
+| O20 | ups-and-downs-therapy.com | ordinary (a counsellor) | nothing | "ups-and-downs" | warned (wrong) |
+| O21 | touch-ups-paint.com | ordinary (a decorator) | nothing | "touch-ups" is an English "-ups" word | warned (wrong) |
+| O22 | track.check-ups-clinic.com | ordinary (a clinic's tracking subdomain) | nothing | "track" is in another name between dots (Kevin, Oct 14) | warned (wrong) |
+| O23 | ups-scs.com | UPS's own (supply chain) | nothing | owned by UPS (Kevin, Oct 14) | warned (wrong) |
+| O24 | www.theupsstore.com | UPS's own (The UPS Store) | nothing | owned by UPS (Kevin, Oct 14) | nothing |
+| O25 | upstate-shipping.com | ordinary (a shipping firm upstate) | nothing | "upstate" is English, though "shipping" is a parcel word | nothing |
+| O26 | groups-tracking.com | ordinary | nothing | "groups" is English | nothing |
+| O27 | cups-delivery.com | ordinary (a coffee shop) | nothing | "cups" is English | nothing |
+| O28 | lineups.com | ordinary (sports) | nothing | "lineups", nothing about parcels | nothing |
+| O29 | mash-ups.com | ordinary (music) | nothing | "mash-ups" is an English "-ups" word | warned (wrong) |
 
 Unsure, and decided toward warning (a wrong warning costs a tap on "No"; a missed parcel scam can cost a card number):
 "pick-ups-delivery" (a takeaway) and "backups-shipping" would be warned, since both carry a parcel word. Not a row: no such names
