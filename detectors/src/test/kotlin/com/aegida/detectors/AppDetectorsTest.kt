@@ -104,6 +104,8 @@ class AppDetectorsTest {
         val phone = snapshot().copy(apps = atSetup + anAppOpenedFromAFile("org.new.temu"), makerStores = setOf(store))
         val answered = baseline.accepting(Problem.NewAppOutsidePlay, "org.new.temu", phone)
         assertEquals(emptyList<Pair<Problem, String>>(), newAppsOn(atSetup + aGalaxyStoreApp("org.new.temu"), setOf(store), answered))
+        // Her Yes holds by itself, also where the store is not trusted (removed for this user, GS20): never asked again.
+        assertEquals(emptyList<Pair<Problem, String>>(), newAppsOn(atSetup + aGalaxyStoreApp("org.new.temu"), emptySet(), answered))
     }
 
     @Test fun aRemoteControlAppFromTheMakersStoreIsStillRaised() = // GS4

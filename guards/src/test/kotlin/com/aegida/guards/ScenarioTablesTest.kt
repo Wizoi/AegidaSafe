@@ -7,7 +7,8 @@ import java.io.File
 /**
  * The scenario tables in the markdown files in docs/scenarios name the test (and the mutation check) that covers each row. A row that names
  * something that does not exist fails here, so a table cannot drift away from the tests. `GAP` rows are allowed: they say
- * plainly that nothing covers the situation yet.
+ * plainly that nothing covers the situation yet. So are the markers in [NOT_A_NAME], each with its reason in brackets: a row
+ * waiting for a Samsung or a real device, a risk Kevin accepted, or (Mutant column) a row where no one-line break makes sense.
  */
 class ScenarioTablesTest {
     private val root = ShippedSources.root
@@ -27,7 +28,7 @@ class ScenarioTablesTest {
     /** One cell of a scenario table: the file it is in, the row's id (first column) and the cell's text. */
     private class Cell(val table: String, val id: String, val text: String)
 
-    /** One name written in a cell (cells list several, separated by ";"); "GAP" says nothing covers the row yet and is not a name. */
+    /** One name written in a cell (cells list several, separated by ";"); "GAP" and the [NOT_A_NAME] markers are not names. */
     private class Name(val table: String, val id: String, val token: String)
 
     /** The cells of one table row under the column called [column], or empty for a line that is not a row of that table. */
@@ -53,7 +54,12 @@ class ScenarioTablesTest {
         tables.flatMap { table -> cells(table.readLines(), column).map { (id, text) -> Cell(table.name, id, text) } }
 
     private fun namesUnder(column: String): List<Name> = cellsUnder(column).flatMap { cell ->
-        cell.text.split(';').map { it.trim() }.filter { it.isNotEmpty() && it != "GAP" }.map { Name(cell.table, cell.id, it) }
+        cell.text.split(';').map { it.trim() }.filter { it.isNotEmpty() && !NOT_A_NAME.matches(it) }.map { Name(cell.table, cell.id, it) }
+    }
+
+    private companion object {
+        /** Not a test or a mutation check, and allowed in their place; every marker but GAP says why in brackets. */
+        val NOT_A_NAME = Regex("""GAP|(needs a Samsung|needs a real device|accepted|none fits) \(.+\)""")
     }
 
     private fun methodExists(cls: String, method: String): Boolean = testFiles.any { file ->
