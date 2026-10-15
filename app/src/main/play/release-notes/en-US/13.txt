@@ -1,0 +1,7 @@
+What's new:
+• Apps from the Galaxy Store no longer count as "outside the Play Store"
+• If Aegida can't see your notifications, Home now says so instead of "No known problems found"
+• Messages that came while Aegida was not listening are checked once it is back
+• A website you allowed that sends an alarming message is hidden, and only you are told
+• History shows what each warning said, and settled questions turn green
+• Fewer false warnings about real brand links
