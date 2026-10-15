@@ -104,6 +104,8 @@ class AppDetectorsTest {
         val phone = snapshot().copy(apps = atSetup + anAppOpenedFromAFile("org.new.temu"), makerStores = setOf(store))
         val answered = baseline.accepting(Problem.NewAppOutsidePlay, "org.new.temu", phone)
         assertEquals(emptyList<Pair<Problem, String>>(), newAppsOn(atSetup + aGalaxyStoreApp("org.new.temu"), setOf(store), answered))
+        // Her Yes holds by itself, also where the store is not trusted (removed for this user, GS20): never asked again.
+        assertEquals(emptyList<Pair<Problem, String>>(), newAppsOn(atSetup + aGalaxyStoreApp("org.new.temu"), emptySet(), answered))
     }
 
     @Test fun aRemoteControlAppFromTheMakersStoreIsStillRaised() = // GS4
@@ -143,6 +145,19 @@ class AppDetectorsTest {
     @Test fun onAPhoneWithNoMakerStoreOnlyPlayIsTrusted() { // GS10, GS11, GS20 (store missing from the list)
         val phone = atSetup + aGalaxyStoreApp("org.new.temu")
         assertEquals(listOf(Problem.NewAppOutsidePlay to "org.new.temu"), newAppsOn(phone, emptySet()))
+    }
+
+    @Test fun aWebsiteSavedToTheHomeScreenAsAnAppFromChromeIsStillAQuestion() { // GS9 (Kevin, Oct 14: keep asking)
+        // Pixel 11 dump: Chrome web apps are `org.chromium.webapk.*`, installer `com.android.chrome`.
+        val webApp = anApp("org.chromium.webapk.a1b2c3d4e5f6a7b8c", installer = "com.android.chrome")
+        assertEquals(listOf(Problem.NewAppOutsidePlay to webApp.packageName), newAppsOn(atSetup + webApp, emptySet()))
+        assertEquals(listOf(Problem.NewAppOutsidePlay to webApp.packageName), newAppsOn(atSetup + webApp, setOf(store)))
+    }
+
+    @Test fun aRemoteControlAppFromTheMakersStoreUnderANameNotOnTheListIsQuiet() { // GS18, accepted (Kevin, Oct 14)
+        val phone = snapshot().copy(apps = atSetup + aGalaxyStoreApp("com.example.helpdesk.remote"), makerStores = setOf(store))
+        assertEquals(emptyList<Pair<Problem, String>>(), newAppsOn(phone.apps, setOf(store)))
+        assertEquals(emptyList<Pair<Problem, String>>(), remote(phone.apps))
     }
 
     @Test fun anAppFromTheMakersStoreThatLaterGetsAccessIsStillAskedAbout() { // GS17

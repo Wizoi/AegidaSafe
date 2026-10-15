@@ -180,6 +180,14 @@ class PublicPagesTest {
         assertTrue("link to the privacy page", html.contains("href=\"privacy.html\""))
     }
 
+    /** GS13 (findings #106): wherever the page says which apps count as new, it says the Galaxy Store counts like Play on a Samsung. */
+    @Test fun whereThePageSaysWhichAppsCountAsNewItNamesTheGalaxyStoreOnASamsung() {
+        val which = Regex("installer is not Google Play|installed from outside Google Play")
+        val sentences = plain.split(Regex("""(?<=[.!?])\s+""")).filter { which.containsMatchIn(it) }
+        assertTrue("the page says which apps count as new", sentences.isNotEmpty())
+        for (sentence in sentences) assertTrue(sentence, sentence.contains("on a Samsung, the Galaxy Store"))
+    }
+
     @Test fun theSimpleViewAnswersTheQuestionsAnEightyYearOldAndHerFamilyWouldAsk() {
         assertTrue(plain.contains("Does it cost anything?"))
         assertTrue(plain.contains("Can I turn it off"))
