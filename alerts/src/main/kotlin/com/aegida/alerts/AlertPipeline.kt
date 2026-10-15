@@ -88,7 +88,7 @@ class AlertPipeline @Inject constructor(
 
     private suspend fun announce(finding: Finding, now: Instant, tally: Tally) {
         tally.alerted++
-        val detail = HistoryDetail.of(finding.key.problem, finding.evidence) // what it was, kept in History
+        val detail = HistoryDetail.of(finding) // what it was, kept in History
         if (finding.severity >= Severity.NeedsTap) {
             owner.show(finding)
             history.add(HistoryEntry(now, finding.key.problem, Outcome.OwnerWarned, detail))
@@ -115,7 +115,7 @@ class AlertPipeline @Inject constructor(
             findings.put(finding.copy(state = FindingState.Resolved, lastSeen = now))
             owner.clear(finding.key)
             // The closing line names what it was, as the warning did, so History can turn the warning's row green (findings #129).
-            val detail = HistoryDetail.of(finding.key.problem, finding.evidence)
+            val detail = HistoryDetail.of(finding)
             closedOutcome(finding, phone, current)?.let { history.add(HistoryEntry(now, finding.key.problem, it, detail)) }
         }
         return resolved.size
@@ -164,10 +164,10 @@ class AlertPipeline @Inject constructor(
      */
     private suspend fun toldAndNotWaiting(finding: Finding): Boolean {
         val problem = finding.key.problem
-        val what = HistoryDetail.of(problem, finding.evidence)
+        val what = HistoryDetail.of(finding)
         val entries = history.since(finding.firstSeen).filter { it.problem == problem }
         val toldOutcomes = setOf(Outcome.GuardianTold, Outcome.GuardianReminded)
-        val told = entries.any { it.detail == what && it.outcome in toldOutcomes }
+        val told = entries.any { HistoryDetail.same(it.detail, what) && it.outcome in toldOutcomes }
         return told && !line.isWaiting(problem)
     }
 
@@ -254,13 +254,18 @@ class GuardianLine @Inject constructor(
      * Keeps a message that did not go, to be retried by [OutboxFlusher]. [covers] is what it was about, the first being the kind it is
      * queued under: one warning (its kind and History detail), or for a reminder every warning it covers (findings #116, #131).
      */
-    suspend fun hold(topic: NtfyTopic, message: GuardianMessage, covers: List<Covered>, now: Instant) {
+    suspend fun hold(topic: NtfyTopic, message: GuardianMessage, covers: List<Covered>, now: Instant, reminder: Boolean = false) {
         val first = covers.first()
         outbox.add(
-            QueuedMessage(0, topic.value, message.title, message.body, message.urgent, first.problem, now, 1, now, first.detail, covers.drop(1)),
+            QueuedMessage(0, topic.value, message.title, message.body, message.urgent, first.problem, now, 1, now, first.detail, covers.drop(1), reminder),
         )
     }
 
-    /** True while an earlier message about [problem] (or a reminder that also covers it) is still waiting to be sent. */
-    suspend fun isWaiting(problem: Problem): Boolean = outbox.all().any { it.problem == problem || it.alsoCovers.any { c -> c.problem == problem } }
+    /**
+     * True while an earlier message about [problem] (or a reminder that also covers it) is still waiting to be sent. A message given up on
+     * (kept only as a marker, never sent again) does not wait: nothing can arrive out of order from it (findings #144).
+     */
+    suspend fun isWaiting(problem: Problem): Boolean = outbox.all().any {
+        it.attempts != OutboxFlusher.GAVE_UP && (it.problem == problem || it.alsoCovers.any { c -> c.problem == problem })
+    }
 }

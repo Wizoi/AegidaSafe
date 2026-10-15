@@ -72,8 +72,10 @@ class OutboxFlusher @Inject constructor(
         val sent = ntfy.send(NtfyTopic(message.topic), GuardianMessage(message.title, message.body, message.urgent))
         if (sent == SendResult.Delivered) {
             outbox.remove(message.id)
-            history.add(HistoryEntry(now, message.problem, Outcome.GuardianTold, message.detail))
-            message.alsoCovers.forEach { history.add(HistoryEntry(now, it.problem, Outcome.GuardianTold, it.detail)) }
+            // A reminder delivered later reads as reminded, exactly as one delivered at once does (findings #144).
+            val outcome = if (message.reminder) Outcome.GuardianReminded else Outcome.GuardianTold
+            history.add(HistoryEntry(now, message.problem, outcome, message.detail))
+            message.alsoCovers.forEach { history.add(HistoryEntry(now, it.problem, outcome, it.detail)) }
             return true
         }
         outbox.failedAgain(message.id, now)

@@ -47,7 +47,7 @@ object HistoryRows {
                         // A hidden fake warning needs nothing, but a hidden "Was that you?" still does (findings #94); an Info line never needs her.
                         (problem.hidesNotification && problem.fix != com.aegida.core.text.Fix.ConfirmEvent) ||
                         problem.severity == Severity.Info,
-                    facts = detail,
+                    facts = HistoryDetail.display(detail),
                 )
             }
             .sortedByDescending { it.at }
@@ -56,5 +56,5 @@ object HistoryRows {
     /** True when a closing line of the same kind, about the same app or site, was written after [at]. */
     private fun closedLater(at: Instant, problem: Problem, detail: String?, closings: List<HistoryEntry>): Boolean =
         (detail != null || problem in ONE_AT_A_TIME) &&
-            closings.any { it.problem == problem && it.detail == detail && it.at.isAfter(at) }
+            closings.any { it.problem == problem && HistoryDetail.same(it.detail, detail) && it.at.isAfter(at) }
 }

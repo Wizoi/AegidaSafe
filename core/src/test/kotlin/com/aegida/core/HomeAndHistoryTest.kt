@@ -167,6 +167,50 @@ class HistoryClosingTest {
         assertFalse(rowAt(rows, dayOne).handled)
     }
 
+    private fun appFrom(label: String, pkg: String) = com.aegida.core.alert.HistoryDetail.of(
+        Problem.NewAppOutsidePlay, mapOf(com.aegida.core.model.Evidence.APP_LABEL to label, com.aegida.core.model.Evidence.PACKAGE to pkg),
+    )
+
+    @Test fun twoAppsBothCalledUpdateCloseOnlyTheirOwnRow() { // HC16 (findings #140): removing one must never turn the other's open question green
+        val a = appFrom("Update", "org.a.update")
+        val b = appFrom("Update", "org.b.update")
+        val rows = HistoryRows.of(asked(dayOne, a) + asked(dayTwo, b) + HistoryEntry(dayThree, Problem.NewAppOutsidePlay, Outcome.Fixed, b))
+        assertFalse(rowAt(rows, dayOne).handled)
+        assertTrue(rowAt(rows, dayTwo).handled)
+        // and the other way round
+        val rows2 = HistoryRows.of(asked(dayOne, a) + asked(dayTwo, b) + HistoryEntry(dayThree, Problem.NewAppOutsidePlay, Outcome.Fixed, a))
+        assertTrue(rowAt(rows2, dayOne).handled)
+        assertFalse(rowAt(rows2, dayTwo).handled)
+    }
+
+    @Test fun twoAppsWhoseNamesAreTheSameFirst40CharactersAreTwoApps() { // HC16
+        val long = "A very long application name that goes on and on"
+        val a = appFrom("$long one", "org.a")
+        val b = appFrom("$long two", "org.b")
+        val rows = HistoryRows.of(asked(dayOne, a) + HistoryEntry(dayTwo, Problem.NewAppOutsidePlay, Outcome.Fixed, b))
+        assertFalse(rowAt(rows, dayOne).handled)
+    }
+
+    @Test fun theHiddenMatchingKeyIsNeverShownToHer() { // HC17: the row shows the words only, the package never appears
+        val rows = HistoryRows.of(asked(dayOne, appFrom("Update", "org.secret.pkg")))
+        val facts = rows.single().facts!!
+        assertEquals("The app is called: “Update”.", facts)
+        assertFalse(facts, facts.contains("org.secret.pkg"))
+        assertFalse(facts, facts.any { it < ' ' })
+    }
+
+    @Test fun anAskedLineFromBeforeTheUpdateWithNoKeyStillClosesByName() { // HC18: old lines have no key; the words decide for them
+        val legacy = app("Update")
+        val rows = HistoryRows.of(asked(dayOne, legacy) + HistoryEntry(dayTwo, Problem.NewAppOutsidePlay, Outcome.Fixed, appFrom("Update", "org.a.update")))
+        assertTrue(rowAt(rows, dayOne).handled)
+    }
+
+    @Test fun aLabelCanNeverCarryTheMatchingKey() { // a label with the separator in it cannot fake another app's key
+        val detail = appFrom("Update\u001Dorg.b.update", "org.a.update")!!
+        assertEquals(1, detail.count { it == '\u001D' })
+        assertEquals("org.a.update", detail.substringAfter('')) // what follows the one separator is the real package
+    }
+
     @Test fun aFixedSpyingAppLineNeverTurnsAnotherSpyingAppRowGreen() { // HC7: the urgent kinds never name the app
         val rows = HistoryRows.of(asked(dayOne, null, Problem.StalkerwareApp) + asked(dayTwo, null, Problem.StalkerwareApp) +
             HistoryEntry(dayThree, Problem.StalkerwareApp, Outcome.Fixed))

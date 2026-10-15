@@ -13,6 +13,7 @@ import com.aegida.core.net.NtfyTopic
 import com.aegida.core.text.Problem
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.Duration
@@ -51,6 +52,31 @@ class OutboxFlusherTest {
         assertTrue(outbox.rows.isEmpty())
         assertEquals(Outcome.GuardianTold, history.entries.last().outcome)
         assertEquals(0, flusher.flush())
+    }
+
+    @Test fun aReminderDeliveredLaterIsWrittenAsRemindedForEveryWarningItCovers() = runTest { // findings #144
+        outbox.add(queued(ageHours = 1).copy(alsoCovers = listOf(com.aegida.core.alert.Covered(Problem.NoisyApp, "The “Bravo” app.")), reminder = true))
+        http.result = HttpResult.Ok(200, "{}")
+        assertEquals(1, flusher.flush())
+        assertEquals(listOf(Outcome.GuardianReminded, Outcome.GuardianReminded), history.entries.map { it.outcome })
+    }
+
+    @Test fun anAlarmDeliveredLaterIsStillWrittenAsTold() = runTest {
+        outbox.add(queued(ageHours = 1))
+        http.result = HttpResult.Ok(200, "{}")
+        flusher.flush()
+        assertEquals(listOf(Outcome.GuardianTold), history.entries.map { it.outcome })
+    }
+
+    @Test fun aMessageGivenUpOnDoesNotHoldTheAllClearUp() = runTest { // findings #144 (c)
+        outbox.add(queued(ageHours = 24 * 8))
+        http.result = HttpResult.Ok(200, "{}")
+        flusher.flush() // given up: kept as a marker only
+        assertEquals(1, outbox.rows.size)
+        assertEquals(OutboxFlusher.GAVE_UP, outbox.rows.single().attempts)
+        assertFalse(GuardianLine(guardians, NtfySender(http), outbox).isWaiting(Problem.ScamLink))
+        outbox.add(queued(ageHours = 1))
+        assertTrue(GuardianLine(guardians, NtfySender(http), outbox).isWaiting(Problem.ScamLink))
     }
 
     @Test fun aFailedRetryBacksOffLongerAndStopsTheRest() = runTest {

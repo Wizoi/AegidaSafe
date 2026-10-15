@@ -196,15 +196,15 @@ internal class RoomOutbox(private val dao: OutboxDao) : Outbox {
             topic = message.topic, title = message.title, body = message.body, urgent = message.urgent,
             outboxProblem = message.problem.name, queuedAtMillis = message.queuedAt.toEpochMilli(),
             attempts = message.attempts, lastTriedMillis = message.lastTriedAt.toEpochMilli(),
-            outboxDetail = OutboxCodec.encode(message.detail, message.alsoCovers),
+            outboxDetail = OutboxCodec.encode(message.detail, message.alsoCovers, message.reminder),
         ),
     )
 
     override suspend fun all(): List<QueuedMessage> = dao.all().map {
-        val (detail, also) = OutboxCodec.decode(it.outboxDetail)
+        val decoded = OutboxCodec.decode(it.outboxDetail)
         QueuedMessage(
             it.rowId, it.topic, it.title, it.body, it.urgent, Problem.valueOf(it.outboxProblem),
-            Instant.ofEpochMilli(it.queuedAtMillis), it.attempts, Instant.ofEpochMilli(it.lastTriedMillis), detail, also,
+            Instant.ofEpochMilli(it.queuedAtMillis), it.attempts, Instant.ofEpochMilli(it.lastTriedMillis), decoded.detail, decoded.also, decoded.reminder,
         )
     }
 
@@ -254,20 +254,32 @@ internal class RoomAllowList(private val dao: AllowedDao) : AllowList {
  * others as "kind, detail" pairs (findings #116, #131). Details are plain sentences; the separators are control characters they never contain.
  */
 internal object OutboxCodec {
-    private const val RECORD = '\u001E'
-    private const val FIELD = '\u001F'
+    private const val RECORD = ''
+    private const val FIELD = ''
+    private const val REMINDER = ''
 
-    fun encode(detail: String?, also: List<Covered>): String? =
-        if (also.isEmpty()) detail
+    class Decoded(val detail: String?, val also: List<Covered>, val reminder: Boolean)
+
+    fun encode(detail: String?, also: List<Covered>, reminder: Boolean = false): String? {
+        val body = if (also.isEmpty()) detail
         else (listOf(detail.orEmpty()) + also.map { it.problem.name + FIELD + it.detail.orEmpty() }).joinToString(RECORD.toString())
+        return if (reminder) REMINDER + body.orEmpty() else body
+    }
 
-    fun decode(stored: String?): Pair<String?, List<Covered>> {
-        if (stored == null || RECORD !in stored) return stored to emptyList()
-        val parts = stored.split(RECORD)
-        val also = parts.drop(1).map { part ->
-            val (problem, detail) = part.split(FIELD, limit = 2)
-            Covered(Problem.valueOf(problem), detail.ifEmpty { null })
+    /**
+     * Never throws: a row that does not decode (a kind this version does not know, a record cut short) keeps what can be read and loses
+     * the rest, so the message is still delivered and one bad row cannot break every check (findings #144).
+     */
+    fun decode(stored: String?): Decoded {
+        val reminder = stored != null && stored.startsWith(REMINDER)
+        val text = if (reminder) stored!!.substring(1) else stored
+        if (text == null || RECORD !in text) return Decoded(text?.ifEmpty { null }, emptyList(), reminder)
+        val parts = text.split(RECORD)
+        val also = parts.drop(1).mapNotNull { part ->
+            val pieces = part.split(FIELD, limit = 2)
+            val problem = pieces.firstOrNull()?.let { name -> Problem.entries.firstOrNull { it.name == name } }
+            if (pieces.size != 2 || problem == null) null else Covered(problem, pieces[1].ifEmpty { null })
         }
-        return parts.first().ifEmpty { null } to also
+        return Decoded(parts.first().ifEmpty { null }, also, reminder)
     }
 }

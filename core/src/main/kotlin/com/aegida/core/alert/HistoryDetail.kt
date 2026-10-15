@@ -1,6 +1,7 @@
 package com.aegida.core.alert
 
 import com.aegida.core.model.Evidence
+import com.aegida.core.model.Finding
 import com.aegida.core.text.Problem
 import com.aegida.core.text.Texts
 import com.aegida.core.url.HostMask
@@ -13,7 +14,40 @@ import com.aegida.core.url.HostMask
  * show for the urgent kinds (R17).
  */
 object HistoryDetail {
-    fun of(problem: Problem, evidence: Map<String, String>): String? {
+    /**
+     * Separates the words from a hidden matching key (the app's package) on the apps' lines (findings #140). Two apps can show the same name
+     * (or the same first 40 characters), so "the same app" cannot be told from the words alone. A control character: [Texts.Home.cleanLabel]
+     * turns every control character into a space, so no label can ever contain it. Stored in the existing detail column (no migration);
+     * [display] takes it off before anything is drawn, and [same] is the one way to compare two details.
+     */
+    private val NOT_ABOUT_AN_APP = setOf(
+        Problem.ScamLink, Problem.LookalikeLink, Problem.SiteNotifications, Problem.SiteScaryNews, Problem.NewWebsiteNotifications,
+    )
+    private const val KEY = ''
+
+    /** The words only, as Mom reads them: the hidden key is taken off. */
+    fun display(detail: String?): String? = detail?.substringBefore(KEY)
+
+    /**
+     * True when two stored details are about the same thing. Both carry a key: the keys must match as well as the words (two apps both
+     * called "Update" are two apps). A detail without a key (written before this version, or a kind with no app) matches on the words alone.
+     */
+    fun same(a: String?, b: String?): Boolean = when {
+        a == null || b == null -> a == b
+        KEY in a && KEY in b -> a == b
+        else -> display(a) == display(b)
+    }
+
+    /** The detail for a finding: its words, and for an app's line the hidden key (the package from the evidence, else the finding's own subject). */
+    fun of(finding: Finding): String? = of(finding.key.problem, finding.evidence, finding.key.subject)
+
+    fun of(problem: Problem, evidence: Map<String, String>, subject: String? = null): String? {
+        val words = wordsOf(problem, evidence) ?: return null
+        val key = if (problem !in NOT_ABOUT_AN_APP) (evidence[Evidence.PACKAGE] ?: subject).orEmpty().filter { it >= ' ' }.trim() else ""
+        return if (key.isEmpty()) words else words + KEY + key
+    }
+
+    private fun wordsOf(problem: Problem, evidence: Map<String, String>): String? {
         val parts: List<String?> = when (problem) {
             Problem.ScamLink, Problem.LookalikeLink -> listOf(
                 Texts.Home.adviceFrom(evidence[Evidence.APP_LABEL]),
