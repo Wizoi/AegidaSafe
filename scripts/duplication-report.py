@@ -6,7 +6,7 @@
 A "window" is WINDOW consecutive normalized lines. A window that appears in two or more places is a repeat. The
 headline number is the count of source lines that sit inside any repeated window ("duplicated lines").
 
-The same rules are implemented in guards/.../DuplicationTest.kt, which fails the build when that number grows past
+The same rules are implemented in guards/.../CodeHealthTest.kt (DuplicationTest), which fails the build when that number grows past
 the recorded one. Keep the two in step: lines are trimmed, runs of spaces become one, and these are skipped: blank
 lines, import/package lines, comment lines (starting with //, /*, * ) and lines of two characters or fewer ("}", ")").
 """

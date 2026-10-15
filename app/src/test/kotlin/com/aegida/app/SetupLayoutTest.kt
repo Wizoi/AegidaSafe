@@ -25,7 +25,7 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 
 /**
- * Layout on an ordinary phone (360 x 800 dp). ScreensTest runs on Robolectric's small default screen, which cannot say
+ * Layout on an ordinary phone (360 x 800 dp). The screen tests run on Robolectric's small default screen, which cannot say
  * whether a button is on the first screen. Kevin, Oct 9: on the safety-picture step the Continue button fell below the screen.
  */
 @RunWith(RobolectricTestRunner::class)
