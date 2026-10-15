@@ -23,7 +23,6 @@ import com.aegida.testkit.FakeBaselines
 import com.aegida.testkit.FakeOutbox
 import com.aegida.testkit.GALAXY_STORE
 import com.aegida.testkit.aGalaxyStoreApp
-import com.aegida.testkit.anAppOpenedFromAFile
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

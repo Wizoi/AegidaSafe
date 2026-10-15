@@ -33,6 +33,26 @@ class HealthScenariosTest : HealthScenarioFixture() {
         assertEquals("nothing more to the guardian", toldAfterFirst, http.posts.size)
     }
 
+    @Test fun aNewWebsitesNoticeSheSaidYesToIsLeftInPlaceWhenItComesBackFromItsSnooze() = runTest { // WP14
+        shade.connect(listener)
+        shade.post(newSite())
+        assertTrue("asked about, so put aside", shade.isSnoozed(newSite().key))
+        val question = findings.open().single { it.key.problem == Problem.NewWebsiteNotifications }
+        val phone = com.aegida.core.model.Snapshot(
+            now, com.aegida.core.model.PrivateDns.Hostname("security.cloudflare-dns.com"), "com.android.chrome", true, true,
+            com.aegida.core.oem.Reading.NotPresent, com.aegida.core.oem.Reading.NotPresent,
+        )
+        val seenMarker = SeenMarker(findings, history, owner)
+        assertTrue("her Yes", ChangeAcceptor(findings, baselines, { phone }, pipeline, seenMarker) { now }.accept(question.key))
+        val toldAfterYes = http.posts.size
+        advance(Duration.ofMinutes(61))
+        assertEquals("the phone brought it back and Aegida saw it again", 2, shade.delivered.count { it.key == newSite().key })
+        assertTrue("she said Yes, so it is left in place", shade.isShown(newSite().key))
+        assertFalse(shade.isSnoozed(newSite().key))
+        assertEquals("nothing new to Mom", 1, owner.shown.size)
+        assertEquals("nothing more to the guardian", toldAfterYes, http.posts.size)
+    }
+
     @Test fun afterAPhoneRestartOrAppUpdateTheListenerBindsAgainAndAegidaChecksThePhone() = runTest {
         shade.connect(listener)
         shade.disconnect()
@@ -125,7 +145,8 @@ class HealthScenariosTest : HealthScenarioFixture() {
 
     @Test fun whenAegidaWasStoppedWithoutBeingToldTheNoticesThatCameSinceItWasLastSeenListeningAreCheckedOnce() = runTest {
         shade.connect(listener)
-        shade.post(aScamText(now, text = "See you at lunch", id = 7))
+        // Heard before the kill and still in the shade; posted a moment before its check began, as on a phone (findings #154).
+        shade.post(aScamText(now.minusMillis(5), text = "See you at lunch", id = 8))
         advance(Duration.ofMinutes(5))
         kill()
         advance(Duration.ofMinutes(1))
