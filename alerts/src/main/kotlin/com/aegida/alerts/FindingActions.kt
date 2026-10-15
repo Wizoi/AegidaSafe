@@ -138,10 +138,13 @@ class ChangeAcceptor @Inject constructor(
 
     /**
      * A "Was that you?" about a website that has a fake warning on record (open or seen, until History lets it go): the one rule for
-     * "this site was called fake", read from the finding the detector made ([Problem.SiteNotifications] for that site).
+     * "this site was called fake", read from the finding the detector made ([Problem.SiteNotifications] for that site) when its words
+     * were alarming. A calm notice hidden before setup was done is not a fake, and neither is a finding stored before the mark existed:
+     * she can still allow that site (findings #150).
      */
     suspend fun fakeOnRecord(key: FindingKey): Boolean =
-        key.problem == Problem.NewWebsiteNotifications && findings.get(FindingKey(DetectorId.PopupSpam, Problem.SiteNotifications, key.subject)) != null
+        key.problem == Problem.NewWebsiteNotifications &&
+            findings.get(FindingKey(DetectorId.PopupSpam, Problem.SiteNotifications, key.subject))?.evidence?.get(Evidence.ALARMING) == Evidence.ALARMING_YES
 
     private suspend fun openQuestion(key: FindingKey): Finding? =
         if (key.problem.fix == Fix.ConfirmChange || key.problem.fix == Fix.ConfirmEvent) findings.get(key)?.takeIf { it.state.needsHer } else null
