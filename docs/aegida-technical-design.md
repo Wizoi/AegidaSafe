@@ -208,7 +208,7 @@ Capture `dumpsys package`, `dumpsys notification`, `settings get`, role holders,
 ## 8. Device validation
 
 ### 8a. Known emulator gaps → Kevin's Pixel
-Because the owner's phone is unavailable, the only real-device checks are things an emulator cannot show. Each gap is recorded with a reason; if a gap closes it moves back to the emulator list.
+Because the owner's phone is unavailable, the only real-device checks are things an emulator cannot show. Each gap is recorded with a reason; if a gap closes it moves back to the emulator list. Results of the Pixel pass (Oct 8-14) are in `emulator-vs-device.md`.
 
 | Gap | Why the emulator can't show it | Check on the Pixel |
 |---|---|---|
@@ -220,7 +220,7 @@ Because the owner's phone is unavailable, the only real-device checks are things
 | Play-installed build (not sideloaded), update flow, closed-test opt-in | Needs Play Console | Install via the internal/closed track |
 
 ### 8b. Samsung-specific validations — LAST
-How to get a Samsung to test on: `samsung-validation-options.md` (Samsung Remote Test Lab, a Galaxy on One UI 6+, or the observe-only release; a Galaxy S8 is too old). Researched from documentation (Oct 8). Nothing here is verified on a device yet.
+How to get a Samsung to test on: `samsung-validation-options.md` (Samsung Remote Test Lab, a Galaxy on One UI 6+, or the observe-only release; a Galaxy S8 is too old). Researched from documentation (Oct 8). Two Remote Test Lab sessions since (S23+ Oct 8, S25 Oct 14) answered some of it: the never-sleeping deep link works, Auto Blocker cannot be read by a Play app, and Galaxy Store installs are now trusted (findings #10, #13, #106). Still open, needing a real Galaxy: sleeping and deep sleeping (#1), Maximum restrictions and links (#2), the Auto Blocker on/off diff (#11), Samsung Internet. Results are in `emulator-vs-device.md`.
 
 | Item | What documentation says | Design response now | Validate later |
 |---|---|---|---|
@@ -229,12 +229,12 @@ How to get a Samsung to test on: `samsung-validation-options.md` (Samsung Remote
 | **Samsung Internet / Samsung Messages** | Samsung's docs describe an enterprise policy for blocking notifications by URL (`NotificationsBlockedForUrls`, Windows only) and nothing about notification-spam handling in the phone browser, so no behavior could be confirmed from documentation. | Whether the owner uses Chrome or Samsung Internet is a setup reading (default browser role). The pop-up guard targets whichever browser holds the role. Samsung Internet is `Unknown` until validated | How Samsung Internet posts website notifications (channels? one group?), whether the listener sees them and can cancel them; Samsung Messages notification shapes |
 | One UI default-apps and Private DNS screens | Menu names and layouts vary by model and software version (per Samsung's own pages) | Guided steps use generic wording first; screenshots added only after seeing the screen | Walk setup on a Samsung and fix the wording |
 
-**Residual risk until validated:** a wrong Samsung assumption can leave a check silently not working. The mitigations that apply regardless: readings can be `Unknown` and are never shown as fine; the guardian is told if the app goes quiet.
+**Residual risk until validated:** a wrong Samsung assumption can leave a check silently not working. The mitigations that apply regardless: readings can be `Unreadable` and are never shown as fine; the guardian is told if the app goes quiet.
 
 ## 9. Build, release, CI
 
 - Gradle with Android Studio JBR; check success by `BUILD SUCCESSFUL`, not exit code through a pipe (SmugView).
-- CI (GitHub Actions) runs only the daily feed build (`build-feed.yml`). Unit tests, guard tests and emulator scenarios run locally before each commit. Release is a manual step.
+- CI (GitHub Actions): `ci.yml` runs `./gradlew build` (unit and guard tests, detekt, Lint, the test-time budget) on every push and pull request; `build-feed.yml` builds the daily feed. Emulator scenarios run locally before each commit. Release is a manual step.
 - Versioning: versionCode monotonic; `-PlocalBuild` marks device test builds. targetSdk kept within Play's one-year rule.
 - Release hygiene: R8 on, mapping files kept per versionCode outside the repo.
 - Secrets: none in the APK. A daily GitHub Action downloads the keyless feeds, builds one signed file and publishes it on GitHub Pages (`feed-publishing.md`); the app downloads the file and verifies the signature with the public key. The signing key is a GitHub Actions secret. There is no server.
@@ -263,19 +263,19 @@ How to get a Samsung to test on: `samsung-validation-options.md` (Samsung Remote
 1. `:core` + `:detectors` (`LinkDetector`, `PopupSpamDetector`, `DnsDetector`, `HealthDetector`) + `:store` + listener + foreground service + `AlertPipeline` + Home/History screens. Gate: guard tests green; emulator scenarios for link check, pop-up page, DNS, starved-worker pass; fixtures captured.
 2. `DriftDetector`, `NewAppDetector`, `RemoteControlDetector` (fixture APKs); the 24-hour reminder and repeat back-off.
 3. `StalkerwareDetector` with the Echap list; credit in My settings.
-4. Pixel gap pass (section 8a); internal then closed-test build via Play.
-5. **Last: Samsung validations (section 8b)**: Samsung Remote Test Lab first session (checklist in `samsung-validation-options.md`), a physical Galaxy for the multi-day sleeping tests if Kevin finds one.
+4. Pixel gap pass (section 8a); internal then closed-test build via Play. Done (Oct 8-14; Play builds from 0.2.0 on).
+5. **Last: Samsung validations (section 8b)**: Samsung Remote Test Lab sessions done (Oct 8, Oct 14; `samsung-validation-options.md`); a physical Galaxy for the multi-day sleeping tests and Auto Blocker (findings #1, #2, #11) if Kevin finds one.
 Ideas that are not built: `ideas.md`.
 
 ## 12. Open technical questions
 
-- **Emulator spike first (day 1):** confirm each `adb`/`cmd` mechanism in section 7 works on the API 36 Play image (roles, `allow_listener`, `post` notifications, Private DNS settings, Chrome notification permission from a host-served page, standby buckets). Anything that doesn't moves to the gap table.
-- ~~Exact way to read a browser's per-site notification grants without Accessibility~~ Answered by the spike (findings #18): Chrome posts each site on its own channel `web:<origin>;<n>`; the listener sees the origin and `ACTION_CHANNEL_NOTIFICATION_SETTINGS` opens that site's switch. Confirm on the Pixel; Samsung Internet still unknown.
+- ~~**Emulator spike first (day 1):**~~ Done (findings #32 and the emulator scripts in `scripts/`): confirm each `adb`/`cmd` mechanism in section 7 works on the API 36 Play image (roles, `allow_listener`, `post` notifications, Private DNS settings, Chrome notification permission from a host-served page, standby buckets). Anything that doesn't moves to the gap table.
+- ~~Exact way to read a browser's per-site notification grants without Accessibility~~ Answered by the spike (findings #18): Chrome posts each site on its own channel `web:<origin>;<n>`; the listener sees the origin and `ACTION_CHANNEL_NOTIFICATION_SETTINGS` opens that site's switch. Seen on the Pixel (#103); Samsung Internet still unknown.
 - Will a foreground service + notification listener keep Aegida alive under Samsung's sleeping rules when the owner never opens it? Documentation says foreground services are supported on One UI 6+ but is silent on WorkManager; unknown until tested on a Samsung.
-- Is Auto Blocker readable at all? Only answerable on a Samsung; until then it stays "you told me".
-- Samsung Remote Test Lab: session length, which Galaxy models and One UI versions, whether our own APK installs, adb access (see `samsung-validation-options.md`). Look into it when step 5 comes up.
+- ~~Is Auto Blocker readable at all?~~ Answered on the lab S23+ (findings #10): no, its state is behind signature-level permissions and no settings key, so it stays "you told me".
+- ~~Samsung Remote Test Lab: session length, models, APK install, adb~~ Answered (`samsung-validation-options.md`): S23+ and S25 on One UI 8.0, our APK installs, adb through Remote Debug Bridge; Auto Blocker and App info are blocked by the lab.
 - ~~Signed combined feed hosting and key custody~~ Answered: GitHub Pages, key as a GitHub Actions secret (`feed-publishing.md`).
-- Hilt vs hand-wired graph: Hilt matches SmugView; a hand-wired `AppGraph` is smaller. Default: Hilt, as Kevin already knows it.
+- ~~Hilt vs hand-wired graph~~ Hilt, as built.
 - Play policy answer on automatic consented alerts (blocks release beyond closed testing, not development).
 - Whether to set up `.claude` agents (worker/reviewer) as in TagPup.
 - Physical Galaxy: Kevin to look; it must be on One UI 6+ (Galaxy S8 is too old).
