@@ -233,6 +233,17 @@ class ListenerGraceScenariosTest : HealthScenarioFixture() {
         assertTrue("at most two minutes", testScheduler.currentTime <= ListenerTimes.NEW_PROCESS_GRACE.toMillis())
     }
 
+    /** H4t: the wait ends two minutes after asking, so time the feed download already took is not waited again. */
+    @Test fun theDailyWaitCountsFromWhenItAskedNotFromAfterTheFeed() = runTest {
+        shade.connect(listener)
+        kill()
+        val repair = ListenerRepair(binding, setupStore, clock)
+        val askedAt = checkNotNull(repair.askIfUnbound())
+        now = now.plusSeconds(FEED_SECONDS) // the feed download took a minute and a half
+        repair.waitForTheBind(askedAt)
+        assertEquals("only what is left of the two minutes", ListenerTimes.NEW_PROCESS_GRACE.minusSeconds(FEED_SECONDS).toMillis(), testScheduler.currentTime)
+    }
+
     // H3j (finding #145): killed during the second of three missed pop-ups; the first was checked and must already be gone.
 
     @Test fun killedDuringTheSecondOfThreeMissedFakeWarningsTheFirstIsAlreadyHidden() = runTest {
@@ -300,5 +311,9 @@ class ListenerGraceScenariosTest : HealthScenarioFixture() {
         shade.connect(listener)
         assertEquals("the child is checked, the summary not again", 2, latePosts())
         assertEquals(listOf(Problem.ScamLink), owner.shown.map { it.problem })
+    }
+
+    private companion object {
+        const val FEED_SECONDS = 90L
     }
 }
