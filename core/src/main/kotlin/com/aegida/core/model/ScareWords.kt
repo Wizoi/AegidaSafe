@@ -31,7 +31,8 @@ object ScareWords {
     /** The gate, read on [ScareText.plain] words: without one of these a website's notice is not scary at all. */
     val REGEX = Regex(
         """\b(virus(es)?|infected|malware|hacked|trojan|spyware)\b|battery\b[^.!?]{0,40}\bdamaged|security (alert|warning)""" +
-            """|clean (your|now|it)|your ($PHONES) (is|has been|needs cleaning)|\b($PHONES) (will|may|might|could) be damaged""",
+            """|clean (your|now|it)|your ($PHONES) (is|has been|needs cleaning)|\b($PHONES) (will|may|might|could) be damaged""" +
+            """|\b($PHONES)\b[^.!?]{0,40}\?+\W*it (will|may|might|could) be damaged""",
     )
 
     /** Whether a website's title and text carry a scare word, look-alike letters undone ("Vіrus", "V1rus", maths-bold letters). */
@@ -43,12 +44,28 @@ object ScareWords {
      * her phone or she in a bad state ("your phone is infected", "Trojan detected on this phone", "you may have a virus"), a damaged
      * battery, or an order to act ("Tap to fix", "Clean it now"; an order word counts only when a command word follows, so "Tap water"
      * and "Tap to read the full story" are not). Speaking to the reader without any of that ("Check your phone for this spyware", a
-     * question "Is your phone infected?", "Delete these apps now") is news to the reader. Anything else is news.
+     * question "Is your phone infected?", "Delete these apps now") is news to the reader. Anything else is news. Right after a
+     * question about her phone, a clause starting "it" or "your device" speaks of her phone ("Is your phone slow? It may have a
+     * virus"; findings #138).
      */
     fun kindOf(title: String, text: String): ScareKind {
-        val clauses = listOf(title, text).flatMap { ScareText.clausesOf(ScareText.plain(it)) }
+        val parts = listOf(title, text).flatMap { ScareText.clausesOf(ScareText.plain(it)) }
+        // After a question about her phone ("Is your phone slow?", or one starting with a phone word, "Phone running hot?"), the next
+        // clause opens with "it" or her phone in a bad state, with no condition anywhere ("It may have a virus").
+        fun answersAsFake(question: ScareText.Clause, w: List<String>): Boolean {
+            val asked = question.words
+            val aboutHerPhone = question.isQuestion && (asked.first() in PHONE_WORDS || asked.indices.any { herPhoneAt(asked, it) })
+            val after = when {
+                w.first() == "it" -> w.drop(1)
+                herPhoneAt(w, 0) -> w.drop(2)
+                else -> return false
+            }
+            return aboutHerPhone && w.none { it in CONDITIONS } && inTrouble(after)
+        }
+
+        val clauses = parts.map { it.words }
         return when {
-            clauses.any(::isFake) -> ScareKind.FakeWarning
+            clauses.any(::isFake) || parts.zipWithNext().any { (asked, w) -> answersAsFake(asked, w.words) } -> ScareKind.FakeWarning
             clauses.any(::speaksToTheReader) -> ScareKind.NewsToTheReader
             else -> ScareKind.News
         }
@@ -61,11 +78,11 @@ object ScareWords {
         val verb = orderWord(w)
         val ordersHer = verb != null && (verb != "delete" || w.any { it in FOUND_THINGS || it == "it" || it == "them" })
         return ordersHer || ("battery" in w && "damaged" in w) ||
-            w.indices.any { i -> countedFind(w, i) || (!asked(i) && (phoneInTrouble(w, i) || herselfInTrouble(w, i))) }
+            w.indices.any { i -> countedFind(w, i) || (!asked(i) && (phoneInTrouble(w, i) || w[i] in YOU && inTrouble(w.drop(i + 1)))) }
     }
 
     private fun speaksToTheReader(w: List<String>): Boolean =
-        orderWord(w) != null || w.indices.any { i -> herPhoneAt(w, i) || herselfInTrouble(w, i) }
+        orderWord(w) != null || w.indices.any { i -> herPhoneAt(w, i) || (w[i] in YOU && inTrouble(w.drop(i + 1))) }
 
     /** The order word starting the clause (after "please") when a command word follows it: "Tap to fix", not "Tap water". */
     private fun orderWord(w: List<String>): String? {
@@ -94,10 +111,11 @@ object ScareWords {
         return state in STATES && name.any { it in PHONE_WORDS || it.any(Char::isDigit) }
     }
 
-    /** "you are infected", "you got hacked", "you have a virus", "you may have 3 viruses", "you've got a virus". */
-    private fun herselfInTrouble(w: List<String>, i: Int): Boolean {
-        if (w[i] !in YOU) return false
-        val after = w.drop(i + 1)
+    /**
+     * The words after "you" or her phone: a bad state ("you are infected", "you got hacked", "it may be damaged") or "(may) have a
+     * virus" ("you have a virus", "you may have 3 viruses", "you've got a virus", "it has a virus").
+     */
+    private fun inTrouble(after: List<String>): Boolean {
         val state = after.firstOrNull { it !in LINKS }
         val have = after.dropWhile { it in MAYBE }
         val owns = have.firstOrNull() in HAVE
@@ -120,7 +138,7 @@ object ScareWords {
     val STATES = setOf("infected", "hacked", "compromised", "damaged", "cleaning")
     private val YOU = setOf("you", "you're", "you've")
     private val MAYBE = setOf("may", "might", "could")
-    private val HAVE = setOf("have", "got")
+    private val HAVE = setOf("have", "has", "got")
     private val SOME = setOf("a", "an", "some")
     private val ON = setOf("on", "in")
     private val QUESTION_STARTS = setOf(
@@ -143,10 +161,25 @@ internal object ScareText {
             .firstOrNull { it in SPELLED } ?: token
     }
 
+    /** One clause's words, and whether a question mark ends it ("Is your phone slow?", "slow?!"). */
+    data class Clause(val words: List<String>, val isQuestion: Boolean)
+
     /** Clauses split at punctuation, brackets and a spaced dash, each as its words; "(3)" is a count, not a clause. */
-    fun clausesOf(text: String): List<List<String>> = text.replace(BRACKETED_NUMBER, " $1 ").split(CLAUSE_BREAK)
-        .map { clause -> WORD.findAll(clause).map { it.value.trim('-', '\'') }.filter { it.isNotEmpty() }.toList() }
-        .filter { it.isNotEmpty() }
+    fun clausesOf(text: String): List<Clause> {
+        val spaced = text.replace(BRACKETED_NUMBER, " $1 ")
+        val clauses = mutableListOf<Clause>()
+        var start = 0
+        for (end in CLAUSE_BREAK.findAll(spaced).map { it.range } + sequenceOf(spaced.length until spaced.length)) {
+            val words = WORD.findAll(spaced.substring(start, end.first)).map { it.value.trim('-', '\'') }.filter { it.isNotEmpty() }
+            val question = spaced.getOrNull(end.first) == '?'
+            when {
+                words.any() -> clauses += Clause(words.toList(), question)
+                question && clauses.isNotEmpty() -> clauses[clauses.lastIndex] = clauses.last().copy(isQuestion = true) // "slow!?"
+            }
+            start = end.last + 1
+        }
+        return clauses
+    }
 
     private val TOKEN = Regex("""[\p{L}\p{N}@]+""")
     private val BRACKETED_NUMBER = Regex("""[(\[](\d+)[)\]]""")

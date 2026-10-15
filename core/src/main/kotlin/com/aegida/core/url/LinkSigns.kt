@@ -76,8 +76,11 @@ object LinkSigns {
     /** Words of a parcel scam's name ("track-pick-ups", "ups-redelivery", "upsmychoice"). */
     private val PARCEL_WORDS = setOf(
         "track", "tracking", "delivery", "deliveries", "redelivery", "deliver", "redeliver", "parcel", "parcels", "package", "packages",
-        "shipping", "shipment", "courier", "express", "mychoice",
+        "shipping", "shipment", "courier", "mychoice",
     )
+
+    /** Also parcel words when joined to "ups" ("upsexpress"), but not alone: "pop-ups-express" is a pop-up shop (findings #138). */
+    private val JOINED_PARCEL_WORDS = PARCEL_WORDS + "express"
     private const val UPS = "ups"
     private val UPS_NUMBER = Regex("""ups\d+""")
     private val DELEET = listOf("rn" to "m", "vv" to "w", "0" to "o", "1" to "l", "3" to "e", "5" to "s", "4" to "a", "@" to "a")
@@ -119,7 +122,7 @@ object LinkSigns {
         val rest = word.removePrefix(UPS)
         return when {
             UPS_NUMBER.matches(token) -> listOf(UPS)
-            rest != word && rest in PARCEL_WORDS -> listOf(UPS, rest)
+            rest != word && rest in JOINED_PARCEL_WORDS -> listOf(UPS, rest)
             else -> listOf(word)
         }
     }
