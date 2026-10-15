@@ -142,7 +142,8 @@ class ListenerGraceScenariosTest : HealthScenarioFixture() {
         shade.connect(listener)
         advance(Duration.ofMinutes(1))
         killInCheck = 1
-        assertTrue(runCatching { shade.post(scamText.copy(postedAt = now)) }.exceptionOrNull() is Killed)
+        // Posted a moment before its check runs, as on a phone: a "last seen bound" written when the check starts would pass it.
+        assertTrue(runCatching { shade.post(scamText.copy(postedAt = now.minusSeconds(5))) }.exceptionOrNull() is Killed)
         assertEquals(emptyList<Any>(), owner.shown)
         kill()
         advance(Duration.ofMinutes(1))
