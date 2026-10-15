@@ -17,7 +17,7 @@ Kevin: "Tests should be designed to cover the problem domain, not just validate 
 | Guardian notes | AlertPipelineTest, AlertBackoffTest, AlertReminderTest, OutboxFlusherTest, GuardianAlertsTest, GuardianChangeTest, GuardianTextTest | in her name, back-off, urgent never held, queued offline, guardian change, alerts off, killed mid-send |
 | History and Home | HomeAndHistoryTest (its HistoryClosingTest class), HistoryDetailTest, HomeScreenTest, HistoryScreenTest | never "all good" when unchecked, oldest first, handled colours, midnight in her time zone |
 | Setup, settings, invitation | SetupScreensTest, SetupLayoutTest, SetupFlowTest, SettingsScreenTest, SetupStepTest, InviteAndFixTest | every step at 200% font, no mail app, invitation text |
-| Storage and migrations | RoomStoresTest, HistoryMigrationTest | migrations 1-2 and 2-3, pruning, hashed keys |
+| Storage and migrations | RoomStoresTest, HistoryMigrationTest, UpgradeWithDataTest | migrations 1-2, 2-3 and 3-4, a version-1 database upgraded with its data, pruning, hashed keys |
 | Scam-list feed | ThreatFeedTest, FeedUpdaterTest, FeedBuilderTest | wrong key, list shrank, downgrade, real feed files |
 | Public pages and policy | PublicPagesTest, PlayListingTest, ManifestPolicyTest | pages quote the app's own words, never "safe", banned permissions |
 | Architecture guards | GuardTests, GuardSelfTest, mutants.json | one owner per concern, layering, copy rules |
