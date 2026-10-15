@@ -1,6 +1,8 @@
 package com.aegida.alerts
 
+import com.aegida.core.alert.FindingStore
 import com.aegida.core.alert.Guardians
+import com.aegida.core.model.Finding
 import com.aegida.testkit.aScamText
 import com.aegida.testkit.aChromePopup
 import com.aegida.core.feed.FeedSource
@@ -62,7 +64,10 @@ abstract class HealthScenarioFixture {
     protected val baselines = FakeBaselines(
         Baseline("com.android.chrome", null, null, emptySet(), emptySet(), emptySet(), websites = setOf("https://news.example")),
     )
-    protected var listenerEnabled = true
+    /** Notification access, as the snapshot and the listener binding both read it. */
+    protected var listenerEnabled: Boolean
+        get() = binding.accessOn
+        set(on) { binding.accessOn = on }
     protected var bootedAt: Instant? = now.minus(Duration.ofDays(2))
     protected var updatedAt: Instant? = now.minus(Duration.ofDays(3))
     protected var processStartedAt: Instant? = null
@@ -75,11 +80,12 @@ abstract class HealthScenarioFixture {
         override fun processStartedAt() = this@HealthScenarioFixture.processStartedAt
     }
     protected val listenerTimes = FakeListenerTimes()
+    protected val seen = SeenBound(listenerTimes, clock)
     protected val binding = FakeListenerBinding()
 
     protected val evaluator = Evaluator(
         setOf(LinkDetector(), PopupSpamDetector(), DnsDetector(), HealthDetector()), clock,
-        EvaluatorMemory(setupStore, feedStore, checkLog, outbox, baselines, listenerTimes), findings = findings,
+        EvaluatorMemory(setupStore, feedStore, checkLog, outbox, baselines, listenerTimes), findings = killable,
     )
     protected val pipeline = AlertPipeline(findings, owner, history, GuardianLine(guardians, NtfySender(http), outbox)) { now }
     protected val runner = CheckRunner(
@@ -89,10 +95,11 @@ abstract class HealthScenarioFixture {
                 Reading.NotPresent, Reading.NotPresent, listenerBound = binding.boundNow, aegidaUpdatedAt = updatedAt,
             )
         },
-        evaluator, pipeline, BaselineKeeper(setupStore, baselines), OutboxFlusher(outbox, NtfySender(http), history, guardians, { now }), AlertGate(),
+        evaluator, pipeline, BaselineKeeper(setupStore, baselines), OutboxFlusher(outbox, NtfySender(http), history, guardians, { now }),
+        CheckGate(AlertGate(), seen),
     )
     protected val shade = FakeNotificationShade(now)
-    protected val link = ListenerLink(runner, listenerTimes, binding)
+    protected val link = ListenerLink(runner, listenerTimes, binding, seen)
     protected val daily = run {
         val keys = KeyPairGenerator.getInstance("EC").apply { initialize(ECGenParameterSpec("secp256r1")) }.generateKeyPair()
         val sender = NtfySender(http)
@@ -100,7 +107,7 @@ abstract class HealthScenarioFixture {
         DailyCheck(
             DailyFeed(FeedUpdater(http, FeedVerifier(keys.public.encoded), feedStore) { now }, feedStore) { now }, runner,
             DailyPruning(history, findings, checkLog) { now }, DailyHeartbeat(switch, GuardianAlerts(guardians, sender, switch, AlertGate()), AlertGate()),
-            checkLog, ListenerRepair(binding, clock),
+            checkLog, ListenerRepair(binding, setupStore, clock),
         )
     }
 
@@ -116,6 +123,22 @@ abstract class HealthScenarioFixture {
             val outcome = runner.run(Trigger.NotificationPosted, event)
             outcome.notificationsToHide.forEach(shade::cancel)
             outcome.notificationsToSnooze.forEach { shade.snooze(it, Duration.ofHours(1)) }
+        }
+    }
+
+    /**
+     * Set to n: the process dies half way through the nth check from now, after the check read the phone and its notice and before
+     * it finished (finding #141). The check throws [Killed]; nothing after that point runs.
+     */
+    protected var killInCheck: Int? = null
+
+    protected class Killed : RuntimeException("the process was killed")
+
+    private val killable get() = object : FindingStore by findings {
+        override suspend fun open(): List<Finding> {
+            killInCheck = killInCheck?.minus(1)
+            if (killInCheck == 0) { killInCheck = null; throw Killed() }
+            return findings.open()
         }
     }
 

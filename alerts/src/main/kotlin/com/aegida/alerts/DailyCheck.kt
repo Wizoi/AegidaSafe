@@ -11,6 +11,8 @@ import com.aegida.core.health.Trigger
 import com.aegida.core.notice.NoticeLog
 import com.aegida.core.notice.NoticeRules
 import com.aegida.core.store.FeedStore
+import com.aegida.core.model.Setup
+import com.aegida.core.store.SetupStore
 import com.aegida.detectors.HealthDetector
 import com.aegida.core.time.Clock
 import kotlinx.coroutines.delay
@@ -33,8 +35,8 @@ data class DailyResult(
  * get older, which HealthDetector reports after 3 days. History and resolved findings older than 90 days are dropped, and so are
  * check-log rows older than 30 days (the newest daily one is always kept). The 9 MB feed is downloaded only when
  * the caller says the network is not metered, or when the stored lists are older than HealthDetector's limit. When the
- * notification listener is not bound, Android is asked to bind it again (finding #134): the app can repair itself. In a process
- * that has just started, the check then waits until Android has had time to bind it (finding #136).
+ * notification listener is not bound and access is on, Android is asked to bind it again (finding #134): the app can repair itself.
+ * After setup, the check then waits until it is bound or Android has had time to bind it (findings #136, #142).
  */
 class DailyCheck @Inject constructor(
     private val feed: DailyFeed,
@@ -42,12 +44,12 @@ class DailyCheck @Inject constructor(
     private val pruning: DailyPruning,
     private val heartbeat: DailyHeartbeat,
     private val checkLog: CheckLog,
-    private val listener: ListenerRepair = ListenerRepair(ListenerBinding.None, Clock { Instant.EPOCH }),
+    private val listener: ListenerRepair = ListenerRepair.None,
 ) {
     suspend fun run(downloadFeed: Boolean = true): DailyResult {
-        val unbound = listener.askIfUnbound()
+        val askedAt = listener.askIfUnbound()
         val feedUpdate = feed.update(downloadFeed)
-        if (unbound) listener.waitForTheBind()
+        if (askedAt != null) listener.waitForTheBind(askedAt)
         val check = runner.run(Trigger.Daily)
         val pruned = pruning.prune()
         return DailyResult(feedUpdate, check, pruned.history, heartbeat.keepInStep(), pruned.checkRuns, pruned.findings)
@@ -60,24 +62,47 @@ class DailyCheck @Inject constructor(
     suspend fun runIfNeverRun(): DailyResult? = if (checkLog.latest(Trigger.Daily) == null) run() else null
 }
 
-/** The daily job's part in keeping the notification listener bound (findings #134, #136). */
-class ListenerRepair @Inject constructor(private val binding: ListenerBinding, private val clock: Clock) {
-    /** Asks Android to bind the listener again when it is not bound now; true if it asked. */
-    fun askIfUnbound(): Boolean {
-        val unbound = !binding.boundNow
-        if (unbound) binding.requestRebind()
-        return unbound
+/** The daily job's part in keeping the notification listener bound (findings #134, #136, #142). */
+class ListenerRepair @Inject constructor(private val binding: ListenerBinding, private val setup: SetupStore, private val clock: Clock) {
+    /**
+     * Asks Android to bind the listener again when it is not bound now and access is on; the time it asked, or null if it did not.
+     * With access off Android cannot bind it, and the check says so (ListenerOff).
+     */
+    fun askIfUnbound(): Instant? {
+        if (binding.boundNow || !binding.accessOn) return null
+        binding.requestRebind()
+        return clock.now()
     }
 
     /**
-     * The daily job often starts the process, and Android binds the listener seconds later. A check in those first minutes cannot
-     * raise "can't see your notices" (finding #136), so the job waits them out, or a phone where only the job starts Aegida would
-     * never show it.
+     * After asking at [askedAt], waits until Android has bound the listener, at most [ListenerTimes.NEW_PROCESS_GRACE] from asking.
+     * A check in a new process's first minutes cannot raise "can't see your notices" (finding #136), so without this a phone where
+     * only the job starts Aegida would never show it; in a process that has run for long, checking before the bind it asked for
+     * would show the step for a moment (finding #142). Before setup is done nothing about the listener is raised, so it does not
+     * wait. The time is read once: the wait is counted in its own steps, so a clock changed meanwhile cannot make it endless.
      */
-    suspend fun waitForTheBind() {
-        val started = clock.processStartedAt() ?: return
-        val now = clock.now()
-        if (ListenerTimes.inNewProcessGrace(now, started)) delay(Duration.between(now, started.plus(ListenerTimes.NEW_PROCESS_GRACE)).toMillis())
+    suspend fun waitForTheBind(askedAt: Instant) {
+        if (!setup.setup().done) return
+        var left = Duration.between(clock.now(), askedAt.plus(ListenerTimes.NEW_PROCESS_GRACE)).toMillis()
+        while (!binding.boundNow && left > 0) {
+            val step = minOf(left, BIND_POLL_MS)
+            delay(step)
+            left -= step
+        }
+    }
+
+    companion object {
+        /** How often the wait looks whether Android has bound the listener. */
+        const val BIND_POLL_MS = 1_000L
+
+        /** The listener is always bound, so it never asks or waits; for code and tests that do not look at the listener. */
+        val None = ListenerRepair(
+            ListenerBinding.None,
+            object : SetupStore {
+                override suspend fun setup() = Setup.NotDone
+                override suspend fun save(setup: Setup) = Unit
+            },
+        ) { Instant.EPOCH }
     }
 }
 

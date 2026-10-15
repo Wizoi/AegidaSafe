@@ -42,7 +42,7 @@ data class ListenerTimes(val lastSeenBound: Instant? = null) {
 interface ListenerTimesStore {
     suspend fun times(): ListenerTimes
 
-    /** A check ran at [at] while the listener was bound. */
+    /** A check asked for at [at] finished while the listener was bound, or a late check of a notice posted at [at] finished. */
     suspend fun seenBound(at: Instant)
 
     /** Records nothing; for code and tests that do not look at the listener. */
@@ -63,12 +63,16 @@ interface ListenerBinding {
     /** Set by the listener service (bound in onListenerConnected; unbound in onListenerDisconnected and onDestroy). */
     fun markBound(bound: Boolean)
 
+    /** Notification access is on for Aegida's listener: Android can bind it (finding #142). */
+    val accessOn: Boolean
+
     /** Asks Android to bind the listener again; does nothing while notification access is off. */
     fun requestRebind()
 
     /** Always bound and never asks; for code and tests that do not look at the listener. */
     object None : ListenerBinding {
         override val boundNow = true
+        override val accessOn = true
         override fun markBound(bound: Boolean) = Unit
         override fun requestRebind() = Unit
     }

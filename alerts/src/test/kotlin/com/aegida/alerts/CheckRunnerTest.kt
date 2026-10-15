@@ -57,7 +57,7 @@ class CheckRunnerTest {
     private val pipeline = AlertPipeline(findings, owner, history, GuardianLine(guardians, NtfySender(http), outbox)) { now }
     private val runner = CheckRunner(
         { snapshot() }, evaluator, pipeline, BaselineKeeper(setupStore, baselines),
-        OutboxFlusher(outbox, NtfySender(http), history, guardians, { now }), AlertGate(),
+        OutboxFlusher(outbox, NtfySender(http), history, guardians, { now }), CheckGate(AlertGate()),
     )
 
     private fun snapshot() = Snapshot(now, dns, "com.android.chrome", true, true, Reading.NotPresent, Reading.NotPresent)

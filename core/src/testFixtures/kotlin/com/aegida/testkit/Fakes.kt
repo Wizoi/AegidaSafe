@@ -93,6 +93,8 @@ class FakeListenerTimes(var value: com.aegida.core.health.ListenerTimes = com.ae
 
 /** Like the in-process flag: false in a new process until the listener service says it is bound. Counts rebind requests. */
 class FakeListenerBinding(override var boundNow: Boolean = false) : com.aegida.core.health.ListenerBinding {
+    /** Notification access; on unless a test turns it off. */
+    override var accessOn = true
     var rebindRequests = 0
     override fun markBound(bound: Boolean) { boundNow = bound }
     override fun requestRebind() { rebindRequests++ }

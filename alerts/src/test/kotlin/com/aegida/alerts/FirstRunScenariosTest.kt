@@ -71,7 +71,7 @@ internal class WholePhone(network: (Http) -> com.aegida.core.net.HttpClient = { 
     private val switch = DeadMansSwitch(guardians, sender) { now }
     val runner = CheckRunner(
         { Snapshot(now, dns, "com.android.chrome", listenerEnabled, canPost, Reading.NotPresent, Reading.NotPresent) },
-        evaluator, pipeline, BaselineKeeper(setupStore, baselines), OutboxFlusher(outbox, sender, history, guardians, { now }), gate,
+        evaluator, pipeline, BaselineKeeper(setupStore, baselines), OutboxFlusher(outbox, sender, history, guardians, { now }), CheckGate(gate),
     )
     val guardianAlerts = GuardianAlerts(guardians, sender, switch, gate)
     val daily = DailyCheck(

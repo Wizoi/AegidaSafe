@@ -17,11 +17,14 @@ class AndroidListenerBinding(private val context: Context, private val component
 
     override fun markBound(bound: Boolean) { this.bound = bound }
 
-    /** NotificationListenerService.requestRebind (API 24+). Only while access is on; Android refuses it otherwise. */
-    override fun requestRebind() {
-        val granted = runCatching {
+    /** False when it cannot be read: then nothing is asked of Android and nothing waits for a bind. */
+    override val accessOn: Boolean
+        get() = runCatching {
             context.getSystemService(NotificationManager::class.java).isNotificationListenerAccessGranted(component)
         }.getOrDefault(false)
-        if (granted) runCatching { NotificationListenerService.requestRebind(component) }
+
+    /** NotificationListenerService.requestRebind (API 24+). Only while access is on; Android refuses it otherwise. */
+    override fun requestRebind() {
+        if (accessOn) runCatching { NotificationListenerService.requestRebind(component) }
     }
 }
