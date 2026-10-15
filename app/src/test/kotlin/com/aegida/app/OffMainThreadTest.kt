@@ -20,20 +20,17 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotSame
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import java.time.Instant
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
-import javax.inject.Singleton
 
 /**
  * R5 as behaviour (findings #144): reading every installed app and the database is slow, so the ViewModel's work must never run on
  * the thread it was called from (the main thread on a phone), and the app list is read through one shared snapshotter and one shared
  * banner. Main is replaced by a dispatcher that is never advanced, so work that was launched on Main would never run and the test
- * would time out instead of passing. A Hilt graph test would need hilt-android-testing (a new dependency, Kevin's OK); the scope
- * of the two providers is read from the compiled module instead.
+ * would time out instead of passing. The shared snapshotter and banner are checked on the real Hilt graph in [HiltGraphTest].
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class OffMainThreadTest {
@@ -73,14 +70,6 @@ class OffMainThreadTest {
         val vm = viewModel()
         val thread = runBlocking { vm.editNow { Thread.currentThread() } }
         assertNotSame(caller, thread)
-    }
-
-    @Test fun thereIsOneSnapshotterAndOneBannerSoOneAppListCacheAndOnePicture() {
-        val provided = com.aegida.app.di.AppModule::class.java.declaredClasses.single { it.simpleName == "Companion" }.declaredMethods
-        for (name in listOf("androidSnapshotter", "pictureBanner")) {
-            val provider = provided.single { it.name == name }
-            assertTrue("$name must be a singleton", provider.isAnnotationPresent(Singleton::class.java))
-        }
     }
 
     @Test fun savingThePictureTellsTheSharedBannerSoPostersNeedNoDatabaseRead() = runBlocking {
