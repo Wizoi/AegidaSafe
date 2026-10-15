@@ -1,6 +1,8 @@
 # Test review by domain area (Oct 11, 2026)
 
-By an Opus 5.5 high agent at 1c43aa8 (73 test files, about 640 tests; ScreensTest runs four times for themes and font sizes).
+By an Opus 5.5 high agent at 1c43aa8 (73 test files, about 640 tests; the screen tests run four times for themes and font sizes). This
+page is a record of that review; each section below says what changed since (the screen tests were split by screen on Oct 13, see
+"Proposed organisation" and "Status on Oct 15").
 Kevin: "Tests should be designed to cover the problem domain, not just validate the code change." See CLAUDE.md "Scenarios before code".
 
 ## Areas and what they cover
@@ -13,8 +15,8 @@ Kevin: "Tests should be designed to cover the problem domain, not just validate 
 | Phone changes | DriftDetectorTest, AppDetectorsTest, StalkerwareDetectorTest, AndroidOemSourceTest | default apps changed, sideloaded app, remote-control and spying apps, Auto Blocker step only where present |
 | Aegida's own health | DetectorsTest (health), DeliveryDetectorTest, DailyCheckTest | access revoked, missed daily check, old lists, offline, asleep for months |
 | Guardian notes | AlertPipelineTest, AlertBackoffTest, AlertReminderTest, OutboxFlusherTest, GuardianAlertsTest, GuardianChangeTest, GuardianTextTest | in her name, back-off, urgent never held, queued offline, guardian change, alerts off, killed mid-send |
-| History and Home | HomeAndHistoryTest, HistoryDetailTest, ScreensTest | never "all good" when unchecked, oldest first, handled colours, midnight in her time zone |
-| Setup, settings, invitation | ScreensTest, SetupStepTest, InviteAndFixTest | every step at 200% font, no mail app, invitation text |
+| History and Home | HomeAndHistoryTest (its HistoryClosingTest class), HistoryDetailTest, HomeScreenTest, HistoryScreenTest | never "all good" when unchecked, oldest first, handled colours, midnight in her time zone |
+| Setup, settings, invitation | SetupScreensTest, SetupLayoutTest, SetupFlowTest, SettingsScreenTest, SetupStepTest, InviteAndFixTest | every step at 200% font, no mail app, invitation text |
 | Storage and migrations | RoomStoresTest, HistoryMigrationTest | migrations 1-2 and 2-3, pruning, hashed keys |
 | Scam-list feed | ThreatFeedTest, FeedUpdaterTest, FeedBuilderTest | wrong key, list shrank, downgrade, real feed files |
 | Public pages and policy | PublicPagesTest, PlayListingTest, ManifestPolicyTest | pages quote the app's own words, never "safe", banned permissions |
@@ -37,10 +39,38 @@ Kevin: "Tests should be designed to cover the problem domain, not just validate 
 7. **Upgrade with real data:** no install over an older version on the emulator, no 1-to-3 migration from a real device's database.
 8. **Listener on but dead:** if the system unbinds it while the daily job runs, link checks stop and Home still says no known problems.
 
+### Status on Oct 15
+
+The list above is the review as written. Where each gap stands now (rows are in `docs/scenarios/`):
+
+1. **Samsung shapes.** The Galaxy Store as installer is handled: an app both installed and asked for by a Galaxy Store that is a system
+   app on a Samsung is not a new-app question (finding #106, `phone-changes.md` GS rows). A Samsung preload that is not a system app,
+   and other stores, still ask. Samsung Messages, Google Messages and Samsung Internet notification shapes are still untested (ST12,
+   WP12, AN12 stay `GAP`; needs real Samsung dumps).
+2. **First run.** `FirstRunScenariosTest` drives setup to the guardian's first message; look-alike letters are covered (FR1-FR7).
+3. **Android's behaviour.** `FakeNotificationShade` models snooze returning, the listener unbinding and binding again, and notices
+   that came while Aegida was not listening (`HealthScenariosTest`, `ListenerGraceScenariosTest`; `scripts/emulator_listener.py` on the
+   emulator). Not yet compared with a trace from a real phone.
+4. **Network vs privacy page.** `NetworkVsPrivacyPageTest` lists the requests with messages off and on (GN13, N1, N2). Hostile labels
+   are checked for the noisy-app, allowed-app and website notes (GN14), not yet by a test that walks every kind of note.
+5. **False look-alikes on real brand links.** Covered by `LinkSignsTest` (ST13, ST14, ST17-ST19).
+6. **A news site she said Yes to.** Decided in finding #148: alarming words from a site she allowed are hidden and she is told "A
+   website you allowed sent an alarming message"; the guardian is not told (WP11, WP15, WP17).
+7. **Upgrade with real data.** `UpgradeWithDataTest` upgrades a real version-1 database written on the emulator (PC12). No install
+   over an older build on the emulator.
+8. **Listener on but dead.** `Problem.ListenerNotConnected` ("Aegida can't see your notices right now"), a late check of notices that
+   came while it was not bound, and a daily request to bind it again (health H3, H4).
+
 ## Tests that check the code's shape, not behaviour
 
-`OffMainThreadTest` (counts call sites), `PictureBannerTest` (source text has no `runBlocking`), `ReviewFixesTest` website quiet week
-(asserts a constant), `PublicPagesTest` counting tags. Invented fixtures where real data matters: `NoticeRulesTest` bank/news notices,
+At the time of the review: `OffMainThreadTest` (counted call sites), `PictureBannerTest` (source text has no `runBlocking`),
+`ReviewFixesTest` website quiet week (asserts a constant), `PublicPagesTest` counting tags. Since then (Phase 2 below and Oct 15):
+`OffMainThreadTest` runs the ViewModel's actions with Main replaced by a dispatcher that never runs and asserts they ran on a worker
+thread, not the caller (the one-snapshotter and one-banner checks still read the scope of the two providers from the compiled
+module); `PictureBannerTest`'s source-text check is deleted; `ReviewFixesTest` was removed on Oct 13 and its eight tests moved into
+`HomeAndHistoryTest`, `HostMaskTest`, `LinkTextScenariosTest` and `WebsiteSitesTest`. The website quiet-week test
+(`WebsiteSitesTest#aWebsiteTheOwnerSaidNoToIsQuietForAWeek`) still asserts a constant, so it remains a shape test; the behaviour of a
+quiet week is covered for the allowed-site message by `AlertPipelineTest#theQuietWeekRunsFromHerTapNotFromTheLastNotice`. Invented fixtures where real data matters: `NoticeRulesTest` bank/news notices,
 `Fixtures.message()`, Robolectric's package manager instead of a real `pm list packages -i` dump, `.example` domains only for look-alikes,
 an `Http` fake that never returns ntfy's 429 or models its 12-hour cache, and fixed dates in a few tests.
 
@@ -51,7 +81,9 @@ an `Http` fake that never returns ntfy's 429 or models its 12-hour cache, and fi
 - Contract tests run against each fake and its Room store.
 - One scenario file per area where it can run whole (in `:alerts`): scam texts, website pop-ups, noisy apps, phone changes, guardian
   notes, health, first run.
-- Split ScreensTest by screen; name tests after the situation in plain words.
+- Split ScreensTest by screen; name tests after the situation in plain words. (Done Oct 13: `ScreensTest` became `SetupScreensTest`,
+  `HomeScreenTest`, `HistoryScreenTest` and `SettingsScreenTest` over a shared `ScreenTestBase`, which runs each four times for
+  light and dark at the normal font and at 200%.)
 - A scenario table per area in `docs/scenarios/<area>.md`; each row names its test, emulator step and mutation check; a guard fails if a row
   names a test that does not exist.
 
