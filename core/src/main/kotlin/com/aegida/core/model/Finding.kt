@@ -39,6 +39,10 @@ object Evidence {
     const val MESSAGE_TEXT = "messageText"
     const val MESSAGE_AT = "messageAt"
     const val NOTICES = "notices" // how many of an app's notices in the last week looked like ads
+
+    /** [ALARMING_YES] when a website's notice passed the scare-word gate; absent for a calm one (findings #150). Kept after she has seen it. */
+    const val ALARMING = "alarming"
+    const val ALARMING_YES = "yes"
     val MESSAGE_KEYS = setOf(MESSAGE_TITLE, MESSAGE_TEXT, MESSAGE_AT)
 }
 

@@ -6,7 +6,16 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import com.aegida.app.ui.HomeScreen
 import com.aegida.app.ui.ShownAt
+import com.aegida.core.model.DetectorId
 import com.aegida.core.model.Finding
+import com.aegida.core.model.FindingKey
+import com.aegida.core.model.Setup
+import com.aegida.core.model.SetupStep
+import com.aegida.alerts.FindingActions
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.mockk
+import kotlinx.coroutines.Dispatchers
 import com.aegida.core.model.HomeState
 import com.aegida.core.text.Problem
 import com.aegida.core.text.Texts
@@ -90,5 +99,37 @@ class HomeScreenTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark, fon
         reachable("This website sent fake warnings before, so Aegida keeps hiding it.")
         compose.onNodeWithText(Texts.Common.DONE).performScrollTo().performClick()
         assertEquals(1, done)
+    }
+
+    /** Home, then her Yes to a website question, through the real screens; [fakeOnRecord] is what FindingActions.keptHidden answers. */
+    private fun tapYesToAWebsite(fakeOnRecord: Boolean): FindingActions {
+        val question = Finding(FindingKey(DetectorId.PopupSpam, Problem.NewWebsiteNotifications, "https://news.example"), emptyMap(), now, now)
+        val actions = mockk<FindingActions>()
+        coEvery { actions.acceptChange(question.key) } returns true
+        coEvery { actions.keptHidden(question.key) } returns fakeOnRecord
+        val loader = mockk<MainStateLoader>()
+        val done = Setup("x", emptySet(), stepsDone = SetupStep.entries.size)
+        coEvery { loader.load() } returns MainState(loaded = true, now = now, setup = done, home = HomeState.NeedsTaps(listOf(question)))
+        val vm = MainViewModel(loader, mockk(relaxed = true), mockk(relaxed = true), actions, mockk(relaxed = true)).also { it.work = Dispatchers.Unconfined }
+        show { com.aegida.app.ui.AppRoot(vm) }
+        compose.onNodeWithText(Texts.Home.FIX_MY_PHONE).performScrollTo().performClick()
+        compose.onNodeWithText(Texts.Home.CONFIRM_YES).performScrollTo().performClick()
+        compose.waitForIdle()
+        return actions
+    }
+
+    /** Scenario WP17 A13 (findings #151 b): a Yes to a site with a fake warning on record opens the page that says it stays hidden. */
+    @Test fun aYesToAWebsiteWithAFakeOnRecordShowsThatItStaysHidden() {
+        val actions = tapYesToAWebsite(fakeOnRecord = true)
+        reachable(Texts.Home.SITE_KEPT_HIDDEN)
+        coVerify { actions.acceptChange(any()) }
+    }
+
+    /** Scenario WP17 A14 (findings #151 b): a Yes to a site with no fake on record goes back to Home, with no "stays hidden" page. */
+    @Test fun aYesToAWebsiteWithNoFakeOnRecordGoesBackWithoutTheKeptHiddenPage() {
+        val actions = tapYesToAWebsite(fakeOnRecord = false)
+        compose.onNodeWithText(Texts.Home.SITE_KEPT_HIDDEN).assertDoesNotExistOrFail()
+        compose.onNodeWithText(Texts.Home.CONFIRM_YES).assertDoesNotExistOrFail()
+        coVerify { actions.acceptChange(any()) }
     }
 }

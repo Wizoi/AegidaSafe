@@ -107,6 +107,55 @@ class WebsiteAnswersTest {
         assertEquals("This website sent fake warnings before, so Aegida keeps hiding it.", Texts.Home.SITE_KEPT_HIDDEN)
     }
 
+    /**
+     * Scenario WP17 A16 (findings #150), must never: before setup is done a calm notice from a site is hidden as SiteNotifications (there is
+     * no list to ask against), but it had no alarming words, so it is not a fake on record: after setup her Yes allows the site.
+     */
+    @Test fun aCalmNoticeDuringSetupDoesNotStopHerAllowingTheSiteLater() = runTest {
+        val calm = aChromePopup(now, site = "$newSite/", n = 1, title = "New recipe posted", text = "Lentil soup in 20 minutes")
+        val duringSetup = PopupSpamDetector().evaluate(Inputs(phone, now, Setup.NotDone, null, calm, null, baseline = null)).single()
+        assertEquals(Problem.SiteNotifications, duringSetup.key.problem)
+        pipeline.handle(listOf(duringSetup), setOf(DetectorId.PopupSpam))
+        assertTrue(actions.acknowledge(duringSetup.key)) // seen: still stored
+        val question = aNewWebsite()
+        http.posts.clear(); http.bodies.clear()
+        assertFalse(actions.keptHidden(question.key))
+        assertTrue(actions.acceptChange(question.key))
+        assertEquals(setOf(newSite), baselines.value!!.websites)
+        assertEquals(listOf("Ruth confirmed the change Aegida asked about. Nothing more to do."), http.bodies)
+    }
+
+    /**
+     * Scenario WP17 A17 (findings #150): a fake warning stored before the alarming mark existed is not counted as a fake on record (decided:
+     * fail open, as for any site without a fake on record), so her Yes allows the site.
+     */
+    @Test fun aFakeWarningStoredBeforeTheMarkDoesNotStopHerYes() = runTest {
+        val question = aNewWebsite()
+        val popup = aChromePopup(now, site = "$newSite/", n = 2, title = "Your phone is infected", text = "Tap to clean")
+        val fake = PopupSpamDetector().evaluate(Inputs(phone, now, Setup.NotDone, null, popup, null, baseline = baselines.value)).single()
+        assertEquals(Evidence.ALARMING_YES, fake.evidence[Evidence.ALARMING])
+        pipeline.handle(listOf(fake.copy(evidence = fake.evidence - Evidence.ALARMING)), setOf(DetectorId.PopupSpam)) // as stored before #150
+        http.posts.clear(); http.bodies.clear()
+        assertFalse(actions.keptHidden(question.key))
+        assertTrue(actions.acceptChange(question.key))
+        assertEquals(setOf(newSite), baselines.value!!.websites)
+    }
+
+    /**
+     * Findings #152: a question raised before #149 (the detector then kept no text of the notice, so it and its History line have only
+     * the title) and answered Yes after the update still tells the guardian she confirmed it: the detail is made from the stored finding
+     * both times, so the two match.
+     */
+    @Test fun aWebsiteQuestionFromBeforeTheUpdateAnsweredYesAfterItStillTellsTheGuardian() = runTest {
+        val fresh = aNewWebsite()
+        findings.rows.clear(); history.entries.clear(); http.posts.clear(); http.bodies.clear()
+        val older = fresh.copy(evidence = fresh.evidence - Evidence.MESSAGE_TEXT) // as the detector before #149 made it
+        pipeline.handle(listOf(older), setOf(DetectorId.PopupSpam))
+        http.posts.clear(); http.bodies.clear()
+        assertTrue(actions.acceptChange(older.key))
+        assertEquals(listOf("Ruth confirmed the change Aegida asked about. Nothing more to do."), http.bodies)
+    }
+
     /** Scenario WP17 A14, must never: a fake from another site does not stop her allowing this one. */
     @Test fun aYesForAWebsiteIsNotRefusedBecauseAnotherSiteSentFakes() = runTest {
         val question = aNewWebsite()

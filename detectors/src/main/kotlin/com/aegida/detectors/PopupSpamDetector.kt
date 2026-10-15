@@ -21,7 +21,8 @@ import javax.inject.Inject
  *    Kevin, Oct 9); yes adds it to the list. Scare wording on a new site is still called fake, since "was that you?" would offer to
  *    allow a fake virus warning.
  *  - Before the list is recorded (setup unfinished, or a baseline from before this existed) a site she allowed in setup is read as
- *    a known site and every other site is treated as fake, as before.
+ *    a known site and every other site is hidden as [Problem.SiteNotifications], as before: during setup there is no list to ask
+ *    "Was that you?" against. Only one with alarming words ([Evidence.ALARMING]) counts as a fake on record (findings #150).
  * The app hides the notification and opens that site's switch for the owner (decisions.md).
  */
 class PopupSpamDetector @Inject constructor() : Detector {
@@ -58,9 +59,11 @@ class PopupSpamDetector @Inject constructor() : Detector {
 
     private fun findingFor(notice: SiteNotice, problem: Problem, now: Instant): Finding {
         val event = notice.event
+        // Whether the words were alarming, kept after the words go: a calm notice hidden before setup is not a fake on record (findings #150).
+        val alarming = if (ScareWords.anyIn(event.title, event.text)) mapOf(Evidence.ALARMING to Evidence.ALARMING_YES) else emptyMap()
         return Finding(
             FindingKey(id, problem, notice.site),
-            mapOf(
+            alarming + mapOf(
                 Evidence.NOTIFICATION_KEY to event.key,
                 Evidence.PACKAGE to event.packageName,
                 Evidence.CHANNEL_ID to notice.channel,

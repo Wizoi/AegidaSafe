@@ -30,7 +30,8 @@ import kotlinx.serialization.json.Json
 import java.time.Instant
 
 internal class RoomFindingStore(private val dao: FindingDao) : FindingStore {
-    override suspend fun open(): List<Finding> = dao.open().map { it.toFinding() }
+    /** A row whose detector, kind or state this version does not know (a later version's, or one renamed) is skipped (findings #151 a). */
+    override suspend fun open(): List<Finding> = dao.open().mapNotNull { it.toFinding() }
 
     override suspend fun get(key: FindingKey): Finding? =
         dao.get(key.detectorId.name, key.problem.name, key.subject)?.toFinding()
@@ -49,13 +50,22 @@ internal class RoomFindingStore(private val dao: FindingDao) : FindingStore {
 
     override suspend fun prune(before: Instant, notAfter: Instant): Int = dao.prune(before.toEpochMilli(), notAfter.toEpochMilli())
 
-    private fun FindingEntity.toFinding() = Finding(
-        key = FindingKey(DetectorId.valueOf(detectorId), Problem.valueOf(problem), subject),
-        evidence = Json.decodeFromString<Map<String, String>>(evidenceJson),
-        firstSeen = Instant.ofEpochMilli(firstSeenMillis),
-        lastSeen = Instant.ofEpochMilli(lastSeenMillis),
-        state = FindingState.valueOf(state),
-    )
+    private fun FindingEntity.toFinding(): Finding? {
+        val detector = decoded<DetectorId>(detectorId)
+        val kind = decoded<Problem>(problem)
+        val known = decoded<FindingState>(state)
+        return if (detector == null || kind == null || known == null) {
+            null
+        } else {
+            Finding(
+                key = FindingKey(detector, kind, subject),
+                evidence = Json.decodeFromString<Map<String, String>>(evidenceJson),
+                firstSeen = Instant.ofEpochMilli(firstSeenMillis),
+                lastSeen = Instant.ofEpochMilli(lastSeenMillis),
+                state = known,
+            )
+        }
+    }
 }
 
 internal class RoomHistoryLog(private val dao: HistoryDao) : HistoryLog {

@@ -41,4 +41,13 @@ class ListenerTimesStoreTest {
         times.seenBound(now.plusSeconds(1))
         assertEquals(ListenerTimes(now.plusSeconds(1)), times.times())
     }
+
+    @Test fun anOldOrMalformedListOfCheckedNoticesReadsAsEmpty() = runTest { // findings #151 c
+        val times = RoomListenerTimes(db.settings())
+        for (stored in listOf("", "not json", "{\"a\":1}", "[1,2]", "null")) {
+            val bound = SettingEntity("listener_last_seen_bound", now.toEpochMilli().toString())
+            db.settings().put(listOf(bound, SettingEntity("listener_checked_at_last_seen", stored)))
+            assertEquals(stored, ListenerTimes(now), times.times())
+        }
+    }
 }

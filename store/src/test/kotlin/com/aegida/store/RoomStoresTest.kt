@@ -60,6 +60,25 @@ class RoomStoresTest {
         assertEquals(listOf(Problem.ScamLink), outbox.all().map { it.problem })
     }
 
+    @Test fun aFindingRowOfAKindThisVersionDoesNotKnowIsSkippedAndTheOthersAreRead() = runTest { // findings #151 a
+        val at = now.toEpochMilli()
+        db.findings().put(FindingEntity("DetectorFromAnotherVersion", Problem.ScamLink.name, "a", "{}", at, at, FindingState.Open.name))
+        db.findings().put(FindingEntity(DetectorId.Link.name, "KindFromAnotherVersion", "b", "{}", at, at, FindingState.Open.name))
+        db.findings().put(FindingEntity(DetectorId.Link.name, Problem.ScamLink.name, "c", "{}", at, at, "StateFromAnotherVersion"))
+        val store = RoomFindingStore(db.findings())
+        val known = Finding(FindingKey(DetectorId.Link, Problem.ScamLink, "d"), emptyMap(), now, now)
+        store.put(known)
+        assertEquals(listOf(known), store.open())
+        assertNull(store.get(FindingKey(DetectorId.Link, Problem.ScamLink, "c")))
+    }
+
+    @Test fun anAllowListRowOfAKindThisVersionDoesNotKnowIsSkipped() = runTest { // findings #151 c
+        db.allowed().put(AllowedEntity("KindFromAnotherVersion", "com.example.old", "Old", now.toEpochMilli()))
+        val list = RoomAllowList(db.allowed())
+        list.add(AllowedItem(Problem.NoisyApp, "com.example.pdf", "Image to PDF", now.minusSeconds(1)))
+        assertEquals(listOf("Image to PDF"), list.all().map { it.label })
+    }
+
     @Test fun aHeldNoteKeepsItsDetailAndTheOtherWarningsAReminderCoversExactly() = runTest { // findings #116, #131
         val outbox = RoomOutbox(db.outbox())
         val base = QueuedMessage(0, "aegida_t", "Ruth", "A note", false, Problem.NewAppOutsidePlay, now, 1, now)
