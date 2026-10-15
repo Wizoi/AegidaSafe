@@ -23,14 +23,15 @@ data class ListenerTimes(val lastSeenBound: Instant? = null, val checkedAtLastSe
     /**
      * Since when Aegida has not been hearing notices, given that it is not bound now: the latest of the last time it was seen
      * bound, the phone's start [bootedAt] and Aegida's install or update [updatedAt]. So the hour starts again after every restart
-     * and every update. Null when none of them is known. A time ahead of [now] (clock set back) never counts.
+     * and every update. Null when none of them is known. A time ahead of [now] (clock set back) gives a negative age, so
+     * [lost] never counts it.
      */
-    fun notHearingSince(now: Instant, bootedAt: Instant?, updatedAt: Instant?): Instant? =
-        listOfNotNull(lastSeenBound, bootedAt, updatedAt).maxOrNull()?.takeIf { !it.isAfter(now) }
+    private fun notHearingSince(bootedAt: Instant?, updatedAt: Instant?): Instant? =
+        listOfNotNull(lastSeenBound, bootedAt, updatedAt).maxOrNull()
 
     /** Not bound now ([boundNow] false) and not seen bound for longer than [LOST_AFTER]. */
     fun lost(boundNow: Boolean, now: Instant, bootedAt: Instant?, updatedAt: Instant?): Boolean =
-        !boundNow && notHearingSince(now, bootedAt, updatedAt)?.let { Duration.between(it, now) > LOST_AFTER } ?: false
+        !boundNow && notHearingSince(bootedAt, updatedAt)?.let { Duration.between(it, now) > LOST_AFTER } ?: false
 
     companion object {
         /** The phone often unbinds and binds again within minutes (an update, low memory); only an hour without it is a problem. */
