@@ -18,7 +18,7 @@ Play needs Kevin's explicit yes first, every time** (CLAUDE.md). A rejected uplo
       forms: Data safety, content rating, ads (none), target audience (adults), app access (no login; a reviewer cannot pair a
       guardian, so give the demo path), `QUERY_ALL_PACKAGES`, notification-listener and foreground-service (`specialUse`)
       declarations.
-- [ ] Ask Play Developer Support about automatic consented alerts before any release beyond the closed test (build-plan phase 4).
+- [x] Ask Play Developer Support about automatic consented alerts before any release beyond the closed test: decided not to ask for now (decisions, Oct 9; draft in `play-support-question.md`). Revisit before an open or production release.
 
 ## Where things live
 | What | Where |

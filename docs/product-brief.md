@@ -1,5 +1,5 @@
 # Aegida — product brief
-*What the app does, as built (version 0.3.9, Oct 2026). Formerly working-titled "Phone Angel." Decision history is in `decisions.md`; how it is built is in `aegida-technical-design.md`. Ideas that are not built are listed, without promise, in `ideas.md`. Storyboard: https://claude.ai/artifact/X8MFEDC2skyGQdt9gePmbS (sources in `../design/`). Research: `../research/extra-scam-protections-report.md` (written before the rename).*
+*What the app does, as built (version 0.3.9 and the changes on main since, Oct 15, 2026). Formerly working-titled "Phone Angel." Decision history is in `decisions.md`; how it is built is in `aegida-technical-design.md`. Ideas that are not built are listed, without promise, in `ideas.md`. Storyboard: https://claude.ai/artifact/X8MFEDC2skyGQdt9gePmbS (sources in `../design/`). Research: `../research/extra-scam-protections-report.md` (written before the rename).*
 
 ## Brand
 - **Name: Aegida** (from "aegis," a shield). The Play Store title is "Aegida" (decisions.md, Play release). Name research is in `name-clearance.md`.
@@ -33,12 +33,12 @@ The baseline (how the phone is set up today) is taken quietly when setup finishe
 
 ## Using the app
 - **Home:** "Your phone looks good." with the last-checked time and "No known problems found.", or "1 thing needs a tap" with one big **Fix my phone** button. If no check could run it says so instead of "looks good".
-- **History:** a plain list of what Aegida did, newest first, kept on the phone for 90 days. Tapping an entry shows what happened, what was done and whether the guardian was told.
+- **History:** a plain list of what Aegida did, newest first, kept on the phone for 90 days. Tapping an entry shows what happened, what was done and whether the guardian was told. A line still waiting for her is amber and turns green once a later line closes it ("Fixed.", "You saw it.", "No longer a concern.") for the same app or site; one reminder about two apps is two lines. Urgent warnings never name the app in History, so their lines stay amber after they close (findings #137, decided).
 - **My settings:** guardian (change it, or send the invitation again), safety picture, first name, the alerts switch, website protection, the list of things the owner said are fine (with "Warn me again"), when the scam lists were last updated, and where the lists come from.
 - **Changing the guardian:** allowed. With alerts on, the old guardian gets one short message first; a popup asks the owner to tell them too.
 
 ## What it checks
-1. **Fake website warnings.** "Your phone is infected" pop-ups are website notifications, not viruses. With notification access, Aegida hides a website notification with scare words at once. A website notifying for the first time is snoozed and the owner is asked "Was that you?"; Yes remembers the site. A site she said Yes to (or had at setup) is left alone unless the wording is about her own phone ("your phone is infected", "clean now"); a news headline with a scare word is not hidden (findings #109). The button opens that site's own notification switch (`ACTION_CHANNEL_NOTIFICATION_SETTINGS`).
+1. **Fake website warnings.** "Your phone is infected" pop-ups are website notifications, not viruses. With notification access, Aegida hides a website notification with scare words at once. A website notifying for the first time is snoozed and the owner is asked "Was that you?"; Yes remembers the site, unless that site already sent a fake warning, in which case she is told "This website sent fake warnings before, so Aegida keeps hiding it." A site she allowed (said Yes to, or had at setup) is left alone unless a notice has alarming words; then it is hidden and she is told "A website you allowed sent an alarming message", with no guardian message, whatever it says (findings #148). A site she did not allow that sends alarming words is called fake and the guardian is told. The button opens that site's own notification switch (`ACTION_CHANNEL_NOTIFICATION_SETTINGS`).
 2. **Scam links in messages.** Links in message notifications are read as text, never opened, and checked against the signed scam list (Phishing.Database) and look-alike signs (look-alike letters, brand names in the wrong place, characters browsers ignore). The warning names the app and the sender and shows a few words with the link taken out.
 3. **"Was that you?" changes.** Compared with the baseline: the default browser, text and phone apps, the assistant, which apps have notification access, screen control (accessibility) or device-admin rights, "Yes, that was me" accepts the change.
 4. **Website protection turned off.** Private DNS no longer set to the filter chosen in setup; one tap opens the guided fix.
@@ -46,7 +46,7 @@ The baseline (how the phone is set up today) is taken quietly when setup finishe
 6. **Remote-control apps.** Known remote-access apps (AnyDesk, TeamViewer QuickSupport, RustDesk, AirDroid and similar), by package name. Urgent: the guardian message is never held back.
 7. **Spying apps.** Echap's stalkerware indicators (CC BY 4.0), matched by package name and signing certificate.
 8. **Apps that send ads as notices.** An app that keeps posting ad-like notices is named, with buttons to its notification settings and App info. Nothing is hidden. The owner can say an app is fine; the guardian is told.
-9. **Aegida itself.** Notification access lost, banners blocked, the daily check not run, the scam list more than 3 days old, or a guardian message that could not be delivered for a day.
+9. **Aegida itself.** Notification access lost, access on but the phone not letting Aegida listen for over an hour ("Aegida can't see your notices right now", a step to tap), banners blocked, the daily check not run, the scam list more than 3 days old, or a guardian message that could not be delivered for a day. When Aegida is listening again, the notices that came while it was not are checked once, late, the usual way; the daily check asks Android to reconnect the listener when it is not connected.
 
 Checks run when a notification arrives, when the app opens, and once a day. The scam list is one signed file downloaded daily from `https://wizoi.github.io/Aegida-Feed/` and verified on the phone.
 
@@ -65,7 +65,7 @@ Built-in protections Aegida guides toward: Samsung Auto Blocker, Android Advance
 
 ## Still to verify (Samsung items come last)
 - Play policy text for notification access and the monitoring policy.
-- **On a Samsung phone:** whether Auto Blocker is readable at all (no public API found); whether Maximum restrictions hides links in notifications; whether Aegida survives Samsung's sleeping and deep-sleeping apps with a foreground service and notification listener; how Samsung Internet posts website notifications. Options are in `samsung-validation-options.md`.
+- **On a Samsung phone:** Auto Blocker is not readable by a Play app (signature-level permissions, no settings key; lab, findings #10), so Aegida keeps what the owner said. Still open: whether Maximum restrictions hides links in notifications; whether Aegida survives Samsung's sleeping and deep-sleeping apps with a foreground service and notification listener; how Samsung Internet posts website notifications. Options are in `samsung-validation-options.md`.
 
 ## Sources
 - Android `RoleManager` — developer.android.com/reference/android/app/role/RoleManager

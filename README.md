@@ -18,7 +18,7 @@ problem, see [SECURITY.md](SECURITY.md).
 - Build plan and status: [docs/build-plan.md](docs/build-plan.md)
 - Ideas that are not built (and not promised): [docs/ideas.md](docs/ideas.md)
 - Working rules: [CLAUDE.md](CLAUDE.md)
-- Findings log: [docs/findings.md](docs/findings.md)
+- Findings log: open ones in [docs/findings.md](docs/findings.md), closed ones in [docs/findings-finished.md](docs/findings-finished.md)
 - Emulator versus device gaps: [docs/emulator-vs-device.md](docs/emulator-vs-device.md)
 - Samsung validation options: [docs/samsung-validation-options.md](docs/samsung-validation-options.md)
 

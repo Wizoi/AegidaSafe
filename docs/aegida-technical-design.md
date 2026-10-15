@@ -41,7 +41,8 @@ Draft 3: Samsung items researched and moved to the end; Auto Blocker recommended
    |      |          SettingsSource, NotificationSource, Clock,
    |      |          HttpClient, NotificationPoster, OemSource (Samsung-only readings;
    |      |          NotPresent on a Pixel)
-   +--> :store       Room database, DAOs, migrations, feed file (the only SQL);
+   +--> :store       Room database (version 4; migrations 1-2, 2-3, 3-4 with exported
+   |                 schemas, UpgradeWithDataTest), DAOs, feed file (the only SQL);
           |          exposes only :core ports (AegidaStore), never Room types
           v
 :core              Pure Kotlin/JVM, no Android imports: models, Baseline, Snapshot,
@@ -69,7 +70,7 @@ Stack (matches SmugView so tooling and habits transfer): Kotlin, Compose + Mater
 - **Baseline**: a `Snapshot` taken when setup finished, plus the approved diffs since (changes the owner confirmed). Stored as one row set with a schema version. Auto Blocker is stored as **what the owner told Aegida** (`UserSaidOn`/`NotNow`/`NotAsked`), never as a verified fact.
 - **Finding** = `(detectorId, kind, subject, severity, evidence, firstSeen, lastSeen, state)`. Identity is `(detectorId, kind, subject)`, so a repeated check updates one finding instead of making many alerts. States: `Open → Acknowledged | Resolved | Escalated`.
 - **Severity**: `Info`, `NeedsTap` (banner on the owner's phone), `Urgent` (remote-control and spying apps, new special access: the guardian message is never backed off), each mapped once to banner behavior and guardian message.
-- **Verdict wording**: `NoKnownProblems`, `Warning`, `Unknown`. The string "safe" does not exist in the codebase (a test greps for it).
+- **Home wording**: each row and the big mark are one of three `Mark`s, `Good` ("no known problems found"), `NeedsTap` or `Unknown` ("I couldn't check"), decided by `HomeState`. The word "safe" is never shown (a guard test greps the user text for it).
 
 ## 4. Guard tests (each fails the build, TagPup style)
 
@@ -109,9 +110,9 @@ Pure, deterministic, given `Inputs(snapshot, baseline, feeds, linkEvent?, now)`.
 | Detector | Owns the question | Build order |
 |---|---|---|
 | `LinkDetector` | "Is this URL known-bad or a look-alike?" (the signed scam list from Phishing.Database, plus look-alike signs). Never fetches the URL | 1 |
-| `PopupSpamDetector` | Browser notification-permission/channel grants for unknown sites; cancels via listener | 1 |
+| `PopupSpamDetector` | Website notices (Chrome posts each site on its own channel). A site she did not allow that sends alarming words (`ScareWords`): a fake warning, hidden, guardian told. A site new since setup: snoozed and asked "Was that you?". A site she allowed (Yes, or there at setup) that sends alarming words: `SiteScaryNews`, hidden, she is told "A website you allowed sent an alarming message", no guardian message (findings #148). A Yes for a site with an alarming fake warning on record keeps it hidden (`ChangeAcceptor`, findings #149, #150) | 1 |
 | `DnsDetector` | Private DNS configured to the chosen provider (the readable "safety switch"; storyboard scenario 4 uses it) | 1 |
-| `HealthDetector` | "Is Aegida itself still able to look out?" (listener enabled, banners allowed, daily check ran, feed fresh) | 1 |
+| `HealthDetector` | "Is Aegida itself still able to look out?" (listener access on, listener actually bound within the last hour (`ListenerNotConnected`, not in a new process's first 2 minutes), banners allowed, daily check ran, feed fresh) | 1 |
 | `DeliveryDetector` | "Can Aegida still reach the guardian?" (a message held for a day) | 1 |
 | `DriftDetector` | Differences between baseline and snapshot (default apps, special access). Auto Blocker only if a real reading exists | 2 |
 | `NewAppDetector` | An app installed after setup from outside Play; no manual approval. Not raised: Play apps, apps from setup, system apps, and on a Samsung apps the Galaxy Store installed and asked for (`Snapshot.makerStores`, system apps only; findings #106) | 2 |
@@ -128,21 +129,24 @@ Pure, deterministic, given `Inputs(snapshot, baseline, feeds, linkEvent?, now)`.
 2. Owner: heads-up banner (`NotificationPoster`), history row.
 3. Guardian: ntfy POST if the opt-in is on. Payload is a fixed sentence with the owner's first name; no message text, no whole web address (an app name and a masked address at most). Repeats of the same kind are backed off 1, 2, 4, then 7 days; urgent problems never are.
 4. Reminder: a finding still Open after 24 h reminds the same guardian once and becomes `Escalated` (still open, still on Home). Checked on each run.
-Every step returns a `Result`; a failed send is retried with backoff and shown in History as "couldn't reach <guardian>" (never silently dropped).
+A failed send goes to the outbox (`QueuedMessage` in Room: topic, words, kind, the app or site it was about, and every other warning a reminder covers), tried again after every check with a wait of 15 minutes doubling to at most 6 hours, given up after 7 days with a History line (`OutboxFlusher`). Delivered later, it writes the same History lines as a message sent at once. A message held for a day raises `GuardianUnreachable` (`DeliveryDetector`).
+
+**Topic**: `aegida_` plus 40 random characters from a 57-character alphabet without I, l, 1, O or 0 (`NtfyTopic.generate`, SecureRandom, findings #110), one per install; the topic name is the only access control.
 
 ## 6. Failure design (decided before building)
 
 | Situation | Behavior |
 |---|---|
-| Phone offline at check time | Detectors use the cached lists. `HealthDetector` raises `Problem.ListsOld` ("Aegida couldn't update its scam lists for a few days") once the lists are older than 3 days (`LISTS_OLD`), so Home does not say "no known problems found" without it. No `Verdict.Unknown` is produced by any detector today |
-| ntfy unreachable | Queue, retry with backoff, History line; the owner is told only if it persists over 24 h |
+| Phone offline at check time | Detectors use the cached lists. `HealthDetector` raises `Problem.ListsOld` ("Aegida couldn't update its scam lists for a few days") once the lists are older than 3 days (`LISTS_OLD`), so Home does not say "no known problems found" without it. |
+| ntfy unreachable | Outbox, retry with backoff (section 5), History line; the owner is told only if it persists over 24 h (`GuardianUnreachable`) |
 | Process killed mid-check | Evaluator is idempotent; WorkManager retries |
 | Feed download fails or is malformed | Keep last good copy; checksum + size sanity check before swapping |
-| Notification listener revoked | Becomes a `NeedsTap` finding ("website protection is off") with one-tap fix |
+| Notification listener revoked | `ListenerOff`, a `NeedsTap` finding ("Aegida can no longer see your notifications. Tap to fix it.") with a one-tap fix |
+| Access on, but the phone unbound the listener (update, low memory) | Android does not reliably call `onListenerDisconnected` (findings #134), so nothing depends on it: every check run while bound records "last seen bound" (`SeenBound`, `ListenerTimes`). Not seen bound for an hour (counted from the latest of that, boot and update): `ListenerNotConnected` ("Aegida can't see your notices right now..."). On the next bind, the notices posted since are checked once, late, through the usual path, each hidden or put aside as soon as its check ends (`ListenerLink`, findings #141, #145). The daily job asks Android to rebind when unbound and access is on, and waits up to 2 minutes for it (`ListenerRepair`, findings #136, #142) |
 | **OEM puts Aegida to sleep (Samsung sleeping/deep sleeping, aggressive Doze)** | See 8b. Design response: the persistent foreground notice; `HealthDetector` notices a missed daily check (`lastCheckedAt`) and the guardian is told if the phone goes quiet for 2+ days ("Aegida hasn't checked in"). Never claims "all good" from a stale check |
 | Two triggers at once | Evaluator serialised by a single-writer mutex |
 | Guardian changed | With alerts on, the old guardian gets one short message (one attempt), then their topic and "hasn't checked in" message are cancelled; the change is not blocked |
-| Unknown package/URL not in any feed | `NoKnownProblems`, never "safe" |
+| Unknown package/URL not in any feed | No finding; Home says "no known problems found", never "safe" |
 | Samsung feature absent (Pixel) or unreadable | `OemSource` returns `NotPresent`/`Unreadable`; shown as "can't check this on your phone", never as a problem or as OK |
 | Owner chose "Not now" for Auto Blocker | Recorded as `NotNow`; never shown as on; never a drift alert (nothing to drift from) |
 
@@ -204,7 +208,7 @@ Capture `dumpsys package`, `dumpsys notification`, `settings get`, role holders,
 ## 8. Device validation
 
 ### 8a. Known emulator gaps → Kevin's Pixel
-Because the owner's phone is unavailable, the only real-device checks are things an emulator cannot show. Each gap is recorded with a reason; if a gap closes it moves back to the emulator list.
+Because the owner's phone is unavailable, the only real-device checks are things an emulator cannot show. Each gap is recorded with a reason; if a gap closes it moves back to the emulator list. Results of the Pixel pass (Oct 8-14) are in `emulator-vs-device.md`.
 
 | Gap | Why the emulator can't show it | Check on the Pixel |
 |---|---|---|
@@ -216,7 +220,7 @@ Because the owner's phone is unavailable, the only real-device checks are things
 | Play-installed build (not sideloaded), update flow, closed-test opt-in | Needs Play Console | Install via the internal/closed track |
 
 ### 8b. Samsung-specific validations — LAST
-How to get a Samsung to test on: `samsung-validation-options.md` (Samsung Remote Test Lab, a Galaxy on One UI 6+, or the observe-only release; a Galaxy S8 is too old). Researched from documentation (Oct 8). Nothing here is verified on a device yet.
+How to get a Samsung to test on: `samsung-validation-options.md` (Samsung Remote Test Lab, a Galaxy on One UI 6+, or the observe-only release; a Galaxy S8 is too old). Researched from documentation (Oct 8). Two Remote Test Lab sessions since (S23+ Oct 8, S25 Oct 14) answered some of it: the never-sleeping deep link works, Auto Blocker cannot be read by a Play app, and Galaxy Store installs are now trusted (findings #10, #13, #106). Still open, needing a real Galaxy: sleeping and deep sleeping (#1), Maximum restrictions and links (#2), the Auto Blocker on/off diff (#11), Samsung Internet. Results are in `emulator-vs-device.md`.
 
 | Item | What documentation says | Design response now | Validate later |
 |---|---|---|---|
@@ -225,12 +229,12 @@ How to get a Samsung to test on: `samsung-validation-options.md` (Samsung Remote
 | **Samsung Internet / Samsung Messages** | Samsung's docs describe an enterprise policy for blocking notifications by URL (`NotificationsBlockedForUrls`, Windows only) and nothing about notification-spam handling in the phone browser, so no behavior could be confirmed from documentation. | Whether the owner uses Chrome or Samsung Internet is a setup reading (default browser role). The pop-up guard targets whichever browser holds the role. Samsung Internet is `Unknown` until validated | How Samsung Internet posts website notifications (channels? one group?), whether the listener sees them and can cancel them; Samsung Messages notification shapes |
 | One UI default-apps and Private DNS screens | Menu names and layouts vary by model and software version (per Samsung's own pages) | Guided steps use generic wording first; screenshots added only after seeing the screen | Walk setup on a Samsung and fix the wording |
 
-**Residual risk until validated:** a wrong Samsung assumption can leave a check silently not working. The mitigations that apply regardless: readings can be `Unknown` and are never shown as fine; the guardian is told if the app goes quiet.
+**Residual risk until validated:** a wrong Samsung assumption can leave a check silently not working. The mitigations that apply regardless: readings can be `Unreadable` and are never shown as fine; the guardian is told if the app goes quiet.
 
 ## 9. Build, release, CI
 
 - Gradle with Android Studio JBR; check success by `BUILD SUCCESSFUL`, not exit code through a pipe (SmugView).
-- CI (GitHub Actions) runs only the daily feed build (`build-feed.yml`). Unit tests, guard tests and emulator scenarios run locally before each commit. Release is a manual step.
+- CI (GitHub Actions): `ci.yml` runs `./gradlew build` (unit and guard tests, detekt, Lint, the test-time budget) on every push and pull request; `build-feed.yml` builds the daily feed. Emulator scenarios run locally before each commit. Release is a manual step.
 - Versioning: versionCode monotonic; `-PlocalBuild` marks device test builds. targetSdk kept within Play's one-year rule.
 - Release hygiene: R8 on, mapping files kept per versionCode outside the repo.
 - Secrets: none in the APK. A daily GitHub Action downloads the keyless feeds, builds one signed file and publishes it on GitHub Pages (`feed-publishing.md`); the app downloads the file and verifies the signature with the public key. The signing key is a GitHub Actions secret. There is no server.
@@ -259,19 +263,19 @@ How to get a Samsung to test on: `samsung-validation-options.md` (Samsung Remote
 1. `:core` + `:detectors` (`LinkDetector`, `PopupSpamDetector`, `DnsDetector`, `HealthDetector`) + `:store` + listener + foreground service + `AlertPipeline` + Home/History screens. Gate: guard tests green; emulator scenarios for link check, pop-up page, DNS, starved-worker pass; fixtures captured.
 2. `DriftDetector`, `NewAppDetector`, `RemoteControlDetector` (fixture APKs); the 24-hour reminder and repeat back-off.
 3. `StalkerwareDetector` with the Echap list; credit in My settings.
-4. Pixel gap pass (section 8a); internal then closed-test build via Play.
-5. **Last: Samsung validations (section 8b)**: Samsung Remote Test Lab first session (checklist in `samsung-validation-options.md`), a physical Galaxy for the multi-day sleeping tests if Kevin finds one.
+4. Pixel gap pass (section 8a); internal then closed-test build via Play. Done (Oct 8-14; Play builds from 0.2.0 on).
+5. **Last: Samsung validations (section 8b)**: Samsung Remote Test Lab sessions done (Oct 8, Oct 14; `samsung-validation-options.md`); a physical Galaxy for the multi-day sleeping tests and Auto Blocker (findings #1, #2, #11) if Kevin finds one.
 Ideas that are not built: `ideas.md`.
 
 ## 12. Open technical questions
 
-- **Emulator spike first (day 1):** confirm each `adb`/`cmd` mechanism in section 7 works on the API 36 Play image (roles, `allow_listener`, `post` notifications, Private DNS settings, Chrome notification permission from a host-served page, standby buckets). Anything that doesn't moves to the gap table.
-- ~~Exact way to read a browser's per-site notification grants without Accessibility~~ Answered by the spike (findings #18): Chrome posts each site on its own channel `web:<origin>;<n>`; the listener sees the origin and `ACTION_CHANNEL_NOTIFICATION_SETTINGS` opens that site's switch. Confirm on the Pixel; Samsung Internet still unknown.
+- ~~**Emulator spike first (day 1):**~~ Done (findings #32 and the emulator scripts in `scripts/`): confirm each `adb`/`cmd` mechanism in section 7 works on the API 36 Play image (roles, `allow_listener`, `post` notifications, Private DNS settings, Chrome notification permission from a host-served page, standby buckets). Anything that doesn't moves to the gap table.
+- ~~Exact way to read a browser's per-site notification grants without Accessibility~~ Answered by the spike (findings #18): Chrome posts each site on its own channel `web:<origin>;<n>`; the listener sees the origin and `ACTION_CHANNEL_NOTIFICATION_SETTINGS` opens that site's switch. Seen on the Pixel (#103); Samsung Internet still unknown.
 - Will a foreground service + notification listener keep Aegida alive under Samsung's sleeping rules when the owner never opens it? Documentation says foreground services are supported on One UI 6+ but is silent on WorkManager; unknown until tested on a Samsung.
-- Is Auto Blocker readable at all? Only answerable on a Samsung; until then it stays "you told me".
-- Samsung Remote Test Lab: session length, which Galaxy models and One UI versions, whether our own APK installs, adb access (see `samsung-validation-options.md`). Look into it when step 5 comes up.
+- ~~Is Auto Blocker readable at all?~~ Answered on the lab S23+ (findings #10): no, its state is behind signature-level permissions and no settings key, so it stays "you told me".
+- ~~Samsung Remote Test Lab: session length, models, APK install, adb~~ Answered (`samsung-validation-options.md`): S23+ and S25 on One UI 8.0, our APK installs, adb through Remote Debug Bridge; Auto Blocker and App info are blocked by the lab.
 - ~~Signed combined feed hosting and key custody~~ Answered: GitHub Pages, key as a GitHub Actions secret (`feed-publishing.md`).
-- Hilt vs hand-wired graph: Hilt matches SmugView; a hand-wired `AppGraph` is smaller. Default: Hilt, as Kevin already knows it.
+- ~~Hilt vs hand-wired graph~~ Hilt, as built.
 - Play policy answer on automatic consented alerts (blocks release beyond closed testing, not development).
 - Whether to set up `.claude` agents (worker/reviewer) as in TagPup.
 - Physical Galaxy: Kevin to look; it must be on One UI 6+ (Galaxy S8 is too old).

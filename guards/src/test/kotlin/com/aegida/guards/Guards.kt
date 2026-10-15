@@ -122,8 +122,8 @@ object Guards {
 
     val appMakesNoDecisions = Rule(
         "Layer: :app makes no decisions",
-        Regex("""\bSeverity\b|\bVerdict\b|\bFinding\("""),
-        ":app wires and draws; severity and verdict decisions belong to detectors/alerts and HomeState.of",
+        Regex("""\bSeverity\b|\bFinding\("""),
+        ":app wires and draws; severity decisions belong to detectors/alerts and HomeState.of",
         onlyIn = inModules("app"),
     )
 

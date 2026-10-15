@@ -4,14 +4,9 @@ import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
@@ -26,22 +21,16 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.aegida.app.ui.AegidaScreen
 import com.aegida.app.ui.AegidaShield
 import com.aegida.app.ui.BigButton
-import com.aegida.app.ui.DoneRow
 import com.aegida.app.ui.Body
-import com.aegida.app.ui.PictureTile
 import com.aegida.app.ui.QuietButton
 import com.aegida.core.alert.Guardians
-import com.aegida.core.model.SafetyPicture
-import com.aegida.core.model.WebsiteFilter
 import com.aegida.core.text.Texts
 
 /** The first thing she sees: what Aegida is, in plain words, before any question. */

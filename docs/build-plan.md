@@ -21,18 +21,18 @@ Gate (design section 11): guard tests green; emulator scenarios for link check, 
 | 1b | Signed feed format, sanity checks, builder (real feeds) | `:core` feed, `:feedtool` | done |
 | 1c | Link, PopupSpam, Dns, Health detectors; Evaluator records runs | `:detectors` | done |
 | 1d | AlertPipeline: alert once, opt-in guardians, resolve fixed settings | `:alerts` | done |
-| 1e | Storage: findings, 90-day history, setup and guardians, feed file | `:store` | done (commit pending) |
+| 1e | Storage: findings, 90-day history, setup and guardians, feed file | `:store` | done |
 | 1f | Android adapters: Snapshotter (Private DNS, default browser, listener, banner permission), notification mapper, banner poster with the brand icon, feed download and verified update | `:platform`, `:core` | done |
 | 1g | Wiring: `CheckRunner` and `DailyCheck` (`:alerts`, JVM-tested), notification listener that hides fake website warnings, the "Aegida is looking out for you" foreground service, daily WorkManager job, boot receiver, Hilt graph | `:alerts`, `:app` | done, proven on the emulator (findings #32) |
 | 1h | Screens: Home, History, My settings and the eight first-run steps, in the storyboard's ten safety pictures; 71 UI tests per variant (light and dark, normal and 200% font); walked on the emulator and looked at in all four display variants (findings #36-#38) | `:app` | done; guardian change built (see below) |
 | 1i | Feed publishing: daily workflow (`build-feed.yml`) builds, signs, verifies and pushes `feed.bin`/`feed.sig` to the public Aegida-Feed Pages site. First run green Oct 8; live feed verified with the committed public key (findings #28, #29) | `.github/`, `:feedtool`, Aegida-Feed | done |
-| 1j | Emulator scenarios: `emulator-checks.sh scenarios` 10/10 and `failures` 7/7 (offline daily job keeps the last feed and raises no alarm; a phone that never runs its check gets MissedCheck and ListsOld). Guardian transport built and JVM-tested (Oct 8): scheduled and cancellable ntfy messages, dead man's switch (due in 2 days, pushed back by each daily check), alerts switch, outbox with back-off and retry, `GuardianUnreachable` after 24 h. Done since: public ntfy.sh honours sequence ids for replace and cancel (live test, findings #44); outbox on the emulator, offline (`guardian-offline` 0 failed, #43); 37 mutation checks; a check killed mid-way no longer loses a warning (#42). Still to do: heartbeat arming and guardian change from the real app against live ntfy, with a phone subscribed | `emulator-checks.sh` | mostly done |
+| 1j | Emulator scenarios: `emulator-checks.sh scenarios` 10/10 and `failures` 7/7 (offline daily job keeps the last feed and raises no alarm; a phone that never runs its check gets MissedCheck and ListsOld). Guardian transport built and JVM-tested (Oct 8): scheduled and cancellable ntfy messages, dead man's switch (due in 2 days, pushed back by each daily check), alerts switch, outbox with back-off and retry, `GuardianUnreachable` after 24 h. Done since: public ntfy.sh honours sequence ids for replace and cancel (live test, findings #44); outbox on the emulator, offline (`guardian-offline` 0 failed, #43); 37 mutation checks; a check killed mid-way no longer loses a warning (#42). Heartbeat arming and replace, and guardian change from the real app against live ntfy.sh, were run with `scripts/emulator_live.py` reading the topics as the guardian (findings #71); guardian messages from Mom's phone were fine (#103) | `emulator-checks.sh`, `emulator_live.py` | done |
 
 Open items inside phase 1:
-- **The owner's picture on banners:** decided (Kevin) and built: the shield over the owner's safety picture as a faint watermark, drawn by `PictureBanner` and set as the banner's large icon (JVM/Robolectric-tested). Not yet looked at on the emulator or a phone.
+- **The owner's picture on banners:** decided (Kevin) and built: the shield over the owner's safety picture as a faint watermark, drawn by `PictureBanner` and set as the banner's large icon (JVM/Robolectric-tested). No longer blocks the posting thread (findings #51, #61). Kevin's real-phone checks were all fine (#103), but no look at the picture on a banner was recorded.
 - **Event warnings that repeat:** back-off built (phase 2, `AlertBackoffTest`, decisions Oct 8).
 - **Home wording:** approved by Kevin. The storyboard says "Everything is as it should be."; Home says "No known problems found." instead, as CLAUDE.md requires.
-- Dead man's switch: built and its replace/cancel behaviour confirmed live (findings #44); the app-side arming still needs a live run with a subscribed phone.
+- Dead man's switch: built; replace/cancel confirmed live (findings #44) and armed from the real app against ntfy.sh (#71).
 - About screen shows each feed source's licence from the feed itself. Phishing.Database is MIT (verified); URLhaus is excluded until abuse.ch answers (findings #27).
 - Look-alike gap: a name written entirely in Cyrillic or Greek letters that imitates a brand is only caught when its letters map to Latin ones (`LinkSigns` homoglyph table). Check against real internationalised domains from the feed before widening it.
 
@@ -47,15 +47,16 @@ Open items inside phase 1:
 - [x] Echap indicators (CC BY 4.0) in the signed feed v2 (610 packages, 470 certificate hashes), refreshed daily by the workflow; `StalkerwareDetector`; credit in the feed NOTICE and in My settings. Walked on the emulator against the live feed (findings #47). Decided (Kevin, Oct 14): keep warning the owner plainly and telling the guardian (findings #47)
 
 ## Phase 4. Pixel pass and Play
-- [x] Gaps in `emulator-vs-device.md` checked on Kevin's Pixel (Kevin's Oct 9 retest of the Play build; he keeps it running; findings #69 to #78)
+- [x] Gaps in `emulator-vs-device.md` checked on Kevin's Pixel (Kevin's Oct 9 retest of the Play build; he keeps it running; findings #69 to #78, #103, #107); results in that file
 - [x] Internal Play build (0.2.0 on Oct 8, 0.3.0 next); all Console forms and declarations (`QUERY_ALL_PACKAGES`, notification access, foreground service, Data safety, privacy page) done
 - [ ] Closed-test release: 0.2.0 sent for review on Oct 9; 0.3.0 follows it
 - [x] Play Developer Support about automatic consented alerts: decided not to ask for now (decisions, Oct 9; draft in `play-support-question.md`)
 - [x] Name clearance: Kevin's hand check of USPTO looked clean; no trademark filed for now (`name-clearance.md`)
 
 ## Phase 5. Samsung (last)
-- [ ] Unmanaged Galaxy on One UI 6+ for Auto Blocker on/off and Maximum restrictions (lab phone has it disabled, findings #11)
-- [ ] Multi-day sleeping checks (3, 7, 16 days unopened) on a phone Kevin owns
+- [x] Second Remote Test Lab session (S25, One UI 8.0, Oct 14): Galaxy Store installs read and now trusted (findings #106)
+- [ ] Unmanaged Galaxy on One UI 6+ for Auto Blocker on/off and Maximum restrictions (both lab phones had it disabled, findings #2, #11)
+- [ ] Multi-day sleeping checks (3, 7, 16 days unopened) on a phone Kevin owns (findings #1)
 - [ ] Samsung Internet notification behavior with a public fixture page
 
 ## Notes

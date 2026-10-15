@@ -1,10 +1,8 @@
 package com.aegida.detectors
 
-import com.aegida.core.feed.FeedCodec
 import com.aegida.testkit.aChromePopup
 import com.aegida.core.feed.FeedSource
 import com.aegida.core.feed.ThreatFeed
-import com.aegida.core.health.CheckLog
 import com.aegida.core.health.CheckRun
 import com.aegida.core.health.Trigger
 import com.aegida.core.model.NotificationEvent
@@ -12,8 +10,6 @@ import com.aegida.core.model.PrivateDns
 import com.aegida.core.model.Setup
 import com.aegida.core.model.Snapshot
 import com.aegida.core.oem.Reading
-import com.aegida.core.store.FeedStore
-import com.aegida.core.store.SetupStore
 import java.time.Duration
 import java.time.Instant
 

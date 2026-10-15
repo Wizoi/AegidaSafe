@@ -8,11 +8,11 @@ generated; rerun it after any wording change. Names in the boards (owner Ruth, g
 | # | Scenario | Board file | Words match Texts.kt / Problem.kt | Emulator check |
 |---|---|---|---|---|
 | 1 | First run (welcome, 6 steps, 7 on Samsung, invite email) | Setup.dc.html | Yes (generated). Old board differed, see list. | no emulator check yet (scenarios seed a finished setup) |
-| 2 | Home: no problems, needs a tap, could not check, never checked | App.dc.html | Yes | `shots` (Home only); none for "I couldn't check today" |
+| 2 | Home: no problems, needs a tap, could not check, never checked | App.dc.html | Yes | `shots` (Home only); `failures` raises the missed daily check and old lists behind "I couldn't check today" (findings #39), no screenshot of it |
 | 3 | Fake virus pop-ups from a website | PopupGuard.dc.html | Yes | `scenarios`, `popup-page` |
 | 4 | Message with a link (listed, look-alike, what it does not flag) | ScamText.dc.html | Yes | `scenarios`, live steps 5-6 |
 | 5 | Website protection off and guided fix | Filter.dc.html | Yes | none for the warning; `spike` sets and reads Private DNS |
-| 6 | Lost notification access / cannot show warnings | Access.dc.html | Yes | no emulator check yet |
+| 6 | Lost notification access / cannot show warnings | Access.dc.html | Yes | live step "losing notification access is noticed" (`emulator_live.py`, findings #71); `emulator_listener.py` for "can't see your notices" and the late check (findings #134) |
 | 7 | Was that you? default apps | Drift.dc.html | Yes | none for default apps (build plan: needs fixtures); `drift` covers notification access and screen control |
 | 7 | Was that you? access given, "Yes" follow-up wording | Grants.dc.html | Yes | `drift`, live steps 2-3; none for device administrators |
 | 8 | New app outside Play, remote-control app, spying app | Remote.dc.html | Yes | `new-apps`, `stalkerware`, live steps 2-4 |
@@ -21,7 +21,7 @@ generated; rerun it after any wording change. Names in the boards (owner Ruth, g
 | 11 | Banners with the owner's picture over the shield | Banners.dc.html | Yes | no emulator check yet (build plan: not yet seen on emulator) |
 | 12 | Ideas board (not built, not promised; see `ideas.md`) | Planned.dc.html | n/a, notes only | n/a |
 
-"live" is `scripts/emulator_live.py` (untracked in the main checkout when this was written). The Overview board is Main.dc.html.
+"live" is `scripts/emulator_live.py`. The Overview board is Main.dc.html.
 
 ## Where the OLD storyboard wording differed from the code (the code wins)
 

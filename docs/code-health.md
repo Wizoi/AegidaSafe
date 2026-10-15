@@ -45,10 +45,12 @@ fresh context, and deleting what a change makes unused.
 6. detekt and Android Lint with a baseline (only new issues fail); a file-size guard (main over 350 lines, tests over 450, with an allow list).
 7. A weekly duplication report (PMD CPD covers Kotlin; jscpd for Python), a test-time budget guard, and CI when Kevin wants it.
 8. A weekly 45-minute cleanup run on Opus with a fixed checklist, producing deletion-only commits; `findings.md` rows kept to two lines,
-   closed rows moved to an archive.
+   closed rows moved to an archive. **Done (Oct 14-15):** closed rows live in `findings-finished.md` and `findings.md` holds open rows only;
+   the checklist is "Weekly cleanup run" below (run by hand, not scheduled).
 
-Track weekly: Kotlin deletion ratio (6.6% now), duplicated fakes (7), unused texts (4), largest main file (345 lines), suite time
-(about 133 s) and slowest class (30 s), detekt baseline count, mutation-check pass rate.
+Track weekly (the Oct 11 numbers are in "This repo on Oct 11"; the current ones are in "Weekly numbers" below):
+Kotlin deletion ratio, duplicated fakes, unused texts, largest main file, suite time and slowest class, detekt and Lint issues,
+duplicated lines, mutation checks.
 
 ## Done (Oct 13)
 
@@ -80,8 +82,8 @@ No dependency or plugin was added (Android Lint is part of AGP; the rest is Grad
   (`actions/checkout`, `actions/setup-java`, `gradle/actions/setup-gradle`, `actions/upload-artifact` for failure reports), no secrets, no
   publishing. It has never run: it starts on Kevin's first push.
 
-Still open (Kevin's decision): detekt (a new Gradle plugin; the lint baseline covers the Android rules only), PMD CPD or jscpd (the stdlib
-report above covers repeated lines, not near-copies), item 8 (the weekly cleanup run and archiving closed `findings.md` rows).
+Then open for Kevin, all since answered: detekt (a new Gradle plugin; the lint baseline covered the Android rules only), PMD CPD or
+jscpd (the stdlib report above covers repeated lines, not near-copies), item 8 (done, see recommendation 8).
 
 ## Kevin's answers (Oct 14)
 
@@ -98,3 +100,33 @@ modules and 8 Lint issues. Lint now fails on warnings too (`warningsAsErrors`). 
 one copied block in `OkHttpHttpClient` became one helper). The rule settings in `config/detekt/detekt.yml` (lines up to 160,
 named thresholds, Compose function names) are the only tuning; a new one needs a strong reason written next to it.
 The sections above describe the baselines as they were on the way here.
+
+## Weekly numbers (Oct 15)
+
+| Measure | Oct 11 | Oct 15 |
+|---|---|---|
+| Kotlin deletion ratio (lines deleted / added) | 6.6% | 20.8% since Oct 8; 35.2% since Oct 14 |
+| Duplicated test fakes | 7 | 0 (one set in `core/src/testFixtures`) |
+| Unused texts | 4 | 0 (`UnusedTextsTest`) |
+| Largest main file | 345 lines | 322 lines (`Texts.kt`); largest test file 419 (`FindingActionsTest.kt`) |
+| Suite time (summed class time) and slowest class | about 133 s; 30 s | about 100 s summed over 109 classes (871 tests); slowest `HistoryScreenTest` 17 s |
+| detekt issues | not run | 0, no baseline |
+| Lint issues | not run | 0, no baseline, warnings fail |
+| Duplicated lines in main Kotlin | not measured | 0 (`DuplicationTest`) |
+| Mutation checks (`scripts/mutants.json`) | not counted | 290 |
+
+## Weekly cleanup run
+
+A 45-minute run by hand, on Opus, from a clean `main`; commits are deletions or corrections only, one topic each, staged by path.
+
+1. `./gradlew build` and `python scripts/mutation-check.py`: both green before anything changes.
+2. Update "Weekly numbers" above: deletion ratio from the commit log (`--numstat`), largest main and test file, suite time and
+   slowest class (the `testTimeBudget` line), mutation checks counted from `scripts/mutants.json`.
+3. Search `*/src/main` for TODO, FIXME, "for now", commented-out code and unused private functions; fix or delete each.
+4. Search the docs (not `findings-finished.md`, which is history) for names of classes, tests, settings and behaviour that no longer
+   exist; correct each to the code.
+5. `findings.md`: a closed row moves to `findings-finished.md` with its number; open rows stay to two lines.
+6. Scenario tables (`docs/scenarios/`, `docs/test-review.md`): a GAP whose test now exists gets its name; `ScenarioTablesTest`
+   checks that each name exists.
+7. `docs/emulator-vs-device.md`, `docs/storyboard-status.md`, `docs/build-plan.md`: mark what is done.
+8. `./gradlew build` green again before the last commit.

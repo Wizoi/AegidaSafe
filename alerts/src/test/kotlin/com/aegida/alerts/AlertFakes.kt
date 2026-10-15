@@ -6,20 +6,13 @@ import com.aegida.core.alert.Guardians
 import com.aegida.core.alert.HistoryEntry
 import com.aegida.core.alert.HistoryLog
 import com.aegida.core.alert.OwnerNotifier
-import com.aegida.core.feed.ThreatFeed
-import com.aegida.core.health.CheckLog
-import com.aegida.core.health.CheckRun
-import com.aegida.core.health.Trigger
 import com.aegida.core.model.Finding
 import com.aegida.core.model.FindingKey
 import com.aegida.core.model.FindingState
-import com.aegida.core.model.Setup
 import com.aegida.core.net.BytesResult
 import com.aegida.core.net.Endpoint
 import com.aegida.core.net.HttpClient
 import com.aegida.core.net.HttpResult
-import com.aegida.core.store.FeedStore
-import com.aegida.core.store.SetupStore
 import java.time.Instant
 
 // Fakes that behave like the real thing (CLAUDE.md): Room REPLACE is one row per key, prune removes by age.

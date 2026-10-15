@@ -12,7 +12,6 @@ import com.aegida.core.alert.Outbox
 import com.aegida.core.alert.QueuedMessage
 import com.aegida.core.alert.Outcome
 import com.aegida.core.model.DetectorId
-import com.aegida.core.model.Evidence
 import com.aegida.core.model.Finding
 import com.aegida.core.model.FindingKey
 import com.aegida.core.model.FindingState
