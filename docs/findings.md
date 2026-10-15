@@ -20,4 +20,3 @@ Same idea as above, with one result column: how it was checked, what changed, an
 
 | # | Date | Context | Finding | Result: how it was checked, what changed, status |
 |---|---|---|---|---|
-| 153 | 2026-10-15 | #150 agent report | Before setup is done (no baseline yet), a CALM notice from any website is treated as a fake warning: the owner is told it is "not real" and, if a guardian is already set and alerts are on, the guardian gets the fake-warning note. A "Was that you?" cannot be asked before setup because answering it needs the baseline. | Kevin to decide: keep (setup is short and nothing is missed), or before setup hide only notices with alarming words and leave calm ones alone until setup ends. Lead recommends leaving calm notices alone before setup (no false "not real", no false guardian note). | **Status:** open; needs Kevin |
