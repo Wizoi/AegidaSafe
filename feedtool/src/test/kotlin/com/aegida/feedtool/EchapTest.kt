@@ -24,7 +24,7 @@ class EchapTest {
     }
 
     @Test fun everyPackageAndCertificateInTheRealListMatchesInTheBuiltFeed() {
-        val (feed, report) = FeedBuilder.build(Instant.now(), "evil.example\n", "https://evil.example/a\n", echap = echap)
+        val (feed, report) = FeedBuilder.build(Instant.now(), "evil.example\n", "https://evil.example/a\n", extras = Extras(echap = echap))
         echap.packages.forEach { assertEquals(it, AppMatch.Package, feed.matchApp(it, emptySet())) }
         echap.certificates.forEach { assertEquals(it, AppMatch.Certificate, feed.matchApp("org.renamed", setOf(it.uppercase()))) }
         assertNull(feed.matchApp("com.android.chrome", setOf("0000000000000000000000000000000000000000")))
@@ -33,7 +33,7 @@ class EchapTest {
     }
 
     @Test fun theBuiltFeedNamesEchapAndItsLicenceAndSurvivesEncoding() {
-        val feed = FeedBuilder.build(Instant.now(), "evil.example\n", "https://evil.example/a\n", echap = echap).first
+        val feed = FeedBuilder.build(Instant.now(), "evil.example\n", "https://evil.example/a\n", extras = Extras(echap = echap)).first
         val source = feed.sources.single { "Echap" in it.name }
         assertTrue("CC BY 4.0" in source.licence)
         assertEquals(echap.packages.size + echap.certificates.size, source.entries)

@@ -14,6 +14,26 @@ data class BuildReport(
     val unparseable: Int,
     val packageEntries: Int = 0,
     val certificateEntries: Int = 0,
+    val popularEntries: Int = 0,
+) {
+    /**
+     * Scam entries only. The popular sites are host entries too, so the phone's "too small" check alone would pass a feed whose
+     * scam lists came down empty; the build refuses one under [MIN_SCAM_ENTRIES] (findings #155).
+     */
+    val scamEntries: Int get() = hostEntries - popularEntries + urlEntries
+
+    companion object {
+        /** The same floor the phone applies to the whole feed (FeedSanity). */
+        const val MIN_SCAM_ENTRIES = 1_000
+    }
+}
+
+/** The lists beyond the scam sites; each null leaves its list out. */
+data class Extras(
+    /** The spying-app lists. */
+    val echap: EchapIndicators? = null,
+    /** From [FeedBuilder.popularDomains] (findings #155). */
+    val popular: List<String>? = null,
 )
 
 object FeedBuilder {
@@ -41,9 +61,9 @@ object FeedBuilder {
         phishingLinks: String,
         /** Null leaves URLhaus out: its terms do not clearly allow republishing (findings #27). */
         urlhaus: String? = null,
-        /** Null leaves the spying-app lists out. */
-        echap: EchapIndicators? = null,
+        extras: Extras = Extras(),
     ): Pair<ThreatFeed, BuildReport> {
+        val (echap, popular) = extras
         var unparseable = 0
         val dropped = sortedSetOf<String>()
         val hosts = HashSet<String>()
@@ -74,13 +94,41 @@ object FeedBuilder {
             FeedSource("Phishing.Database links", PHISHING_DATABASE_LICENCE, linkCount),
             urlhausCount?.let { FeedSource("URLhaus", LICENCE_TO_VERIFY, it) },
             echap?.let { FeedSource("Echap stalkerware indicators", ECHAP_LICENCE, it.packages.size + it.certificates.size) },
+            popular?.let { FeedSource("Majestic Million", MAJESTIC_LICENCE, it.size) },
         )
         val feed = ThreatFeed.of(
-            generatedAt, sources, hosts, urls,
+            generatedAt, sources, hosts + popular.orEmpty().map(ThreatFeed::popularKey), urls,
             apps = AppKeys(packageNames = echap?.packages.orEmpty(), certificateSha1s = echap?.certificates.orEmpty()),
         )
-        return feed to BuildReport(feed.hostCount, feed.urlCount, dropped.toList(), unparseable, feed.packageCount, feed.certificateCount)
+        val report = BuildReport(
+            feed.hostCount, feed.urlCount, dropped.toList(), unparseable, feed.packageCount, feed.certificateCount, popular.orEmpty().size,
+        )
+        return feed to report
     }
+
+    /**
+     * The first [top] domains of the Majestic Million, in its rank order, as the phone writes host names. Refuses a file whose
+     * layout changed or that holds fewer rows, so a broken download fails the run instead of publishing a short list.
+     */
+    fun popularDomains(csv: String, top: Int = POPULAR_TOP): List<String> {
+        val rows = csv.lineSequence().filter { it.isNotBlank() }.toList()
+        val column = rows.firstOrNull()?.split(',')?.indexOf("Domain") ?: -1
+        require(column >= 0) { "the Majestic Million has no Domain column" }
+        val domains = rows.drop(1).take(top).mapNotNull { row -> row.split(',').getOrNull(column)?.let(Links::normalizeHost) }.distinct()
+        require(domains.size == top) { "the Majestic Million gave ${domains.size} domains, not $top" }
+        return domains
+    }
+
+    /**
+     * How many of the most-linked sites go in (findings #155, Oct 18 count over the whole Majestic Million): all 203 sites in the top
+     * 10,000 that the brand rule calls look-alikes are the brands' own (Google's country and .google sites, media-amazon.com,
+     * cloud.microsoft); the first that is not comes at 15,574 (whats-on-netflix.com), and facebook-mypage.ru at 70,427.
+     */
+    const val POPULAR_TOP = 10_000
+
+    /** Read from majestic.com/reports/majestic-million on Oct 18 (findings #155); the notice must travel with the feed. */
+    const val MAJESTIC_LICENCE = "CC BY 3.0, Majestic-12 Ltd (The Majestic Million, https://majestic.com/reports/majestic-million), " +
+        "changed: top 10,000 domains, stored as hashes"
 
     /** Read from the repository's LICENSE on Oct 8 (findings #27); the notice must travel with the feed. */
     const val PHISHING_DATABASE_LICENCE = "MIT, Mitchell Krog, Nissar Chababy and Phishing.Database contributors"

@@ -12,6 +12,8 @@ import java.time.Instant
  * - Host entries (Phishing.Database domains) match a link's host or any parent domain.
  * - URL entries (Phishing.Database links, URLhaus) match only the exact host + path, because many sit
  *   on shared hosts such as raw.githubusercontent.com.
+ * - Popular-site entries (the most-linked sites, findings #155) are host entries keyed [POPULAR_PREFIX] + domain, so the
+ *   released 0.3.10 decoder reads a feed carrying them unchanged, and [match] (which hashes plain host names) never hits one.
  */
 class ThreatFeed(
     val generatedAt: Instant,
@@ -39,6 +41,12 @@ class ThreatFeed(
     }
 
     /**
+     * The most-linked site this link is on: the longest of its host and parent domains on the popular list, or null. Null for
+     * a feed built before the list came in (findings #155), so the look-alike check stays as it was.
+     */
+    fun popularSite(link: Link): String? = link.hostCandidates.firstOrNull { hosts.binarySearch(FeedHash.of(popularKey(it))) >= 0 }
+
+    /**
      * Is this installed app one of the known spying apps? By package name, or by the SHA-1 of a certificate it is
      * signed with (hex, any case), which still matches when the app is renamed. Never matches a website entry.
      */
@@ -55,6 +63,10 @@ class ThreatFeed(
         /** Keeps the three kinds of entry apart: a package name never equals a website's hash. */
         const val PACKAGE_PREFIX = "pkg:"
         const val CERTIFICATE_PREFIX = "cert:"
+        const val POPULAR_PREFIX = "popular:"
+
+        /** The host key a popular site is listed under; pass it in the host keys of [of]. */
+        fun popularKey(domain: String): String = POPULAR_PREFIX + domain
 
         fun of(
             generatedAt: Instant,

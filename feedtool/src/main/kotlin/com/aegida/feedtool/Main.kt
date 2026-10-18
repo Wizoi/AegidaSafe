@@ -15,7 +15,8 @@ import java.util.Base64
 import kotlin.system.exitProcess
 
 /**
- * build  --domains F --links F [--urlhaus F] [--echap F] --out DIR  writes feed.bin + feed.sig; key from env AEGIDA_FEED_SIGNING_KEY
+ * build  --domains F --links F [--urlhaus F] [--echap F] [--popular F] --out DIR  writes feed.bin + feed.sig; key from env
+ *                                                      AEGIDA_FEED_SIGNING_KEY. --popular is the Majestic Million CSV.
  * verify --feed F --sig F --public F [--previous F]    exits 1 unless the signature matches the public key and the
  *                                                      feed passes the same sanity checks the app applies
  * keygen --out DIR                                     writes feed-public.txt and feed-private.txt (base64)
@@ -44,14 +45,18 @@ private fun build(options: Map<String, String>) {
         phishingDomains = File(options.getValue("domains")).readText(),
         phishingLinks = File(options.getValue("links")).readText(),
         urlhaus = options["urlhaus"]?.let { File(it).readText() },
-        echap = options["echap"]?.let { EchapParser.parse(File(it).readText()) },
+        extras = Extras(
+            echap = options["echap"]?.let { EchapParser.parse(File(it).readText()) },
+            popular = options["popular"]?.let { FeedBuilder.popularDomains(File(it).readText()) },
+        ),
     )
+    if (report.scamEntries < BuildReport.MIN_SCAM_ENTRIES) fail("only ${report.scamEntries} scam entries; the lists came down short")
     val bytes = FeedCodec.encode(feed)
     val signature = Signature.getInstance(FeedVerifier.ALGORITHM).run { initSign(privateKey); update(bytes); sign() }
     val out = File(options.getValue("out")).apply { mkdirs() }
     File(out, "feed.bin").writeBytes(bytes)
     File(out, "feed.sig").writeBytes(signature)
-    println("packages=${report.packageEntries} certificates=${report.certificateEntries}")
+    println("packages=${report.packageEntries} certificates=${report.certificateEntries} popular=${report.popularEntries}")
     println("hosts=${report.hostEntries} urls=${report.urlEntries} unparseable=${report.unparseable} bytes=${bytes.size}")
     println("dropped shared hosts (${report.droppedSharedHosts.size}): ${report.droppedSharedHosts}")
     feed.sources.forEach { println("source ${it.name}: ${it.entries}") }
@@ -73,7 +78,7 @@ private fun verify(options: Map<String, String>) {
     )
 }
 
-private const val USAGE = "usage: build --domains F --links F [--urlhaus F] [--echap F] --out DIR | " +
+private const val USAGE = "usage: build --domains F --links F [--urlhaus F] [--echap F] [--popular F] --out DIR | " +
     "verify --feed F --sig F --public F [--previous F] | keygen --out DIR"
 
 private fun fail(message: String): Nothing {
