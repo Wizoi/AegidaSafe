@@ -10,6 +10,7 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Test
 import java.io.ByteArrayInputStream
 import java.io.DataInputStream
@@ -48,11 +49,55 @@ class PopularSitesFeedTest {
         assertEquals("sites.google.com", feed.popular("paypal-login.sites.google.com"))
     }
 
-    @Test fun aShortOrChangedPopularListFailsTheBuild() { // the previous feed stays live
-        assertThrows(IllegalArgumentException::class.java) { build(popularTop = 1_000) }
-        assertThrows(IllegalArgumentException::class.java) { build(popular = majestic.replaceFirst(",Domain,", ",Site,")) }
-        assertThrows(IllegalArgumentException::class.java) { build(popular = "") }
+    /** PS7 (findings #158): a Majestic problem never stops the scam lists; the feed is built without the popular list, and the log says why. */
+    @Test fun aBrokenPopularListIsLeftOutAndTheFeedStillBuilds() {
+        val broken = mapOf(
+            "the download failed" to null,
+            "a short file" to majestic.lines().take(50).joinToString("\n"),
+            "the layout changed" to majestic.replaceFirst(",Domain,", ",Site,"),
+            "an empty file" to "",
+            "junk rows" to majestic.lines().mapIndexed { i, row -> if (i in 1..20) "$i,$i,not a host!,com" else row }.joinToString("\n"),
+        )
+        broken.forEach { (what, csv) ->
+            val warnings = mutableListOf<String>()
+            val popular = FeedBuilder.popularOrNothing(csv, top = 100, warn = { warnings += it })
+            assertNull(what, popular)
+            assertEquals(what, 1, warnings.size)
+            val (feed, report) = FeedBuilder.build(
+                Instant.now(), fixture("phishing-domains.txt"), fixture("phishing-links.txt"), extras = Extras(popular = popular),
+            )
+            assertEquals(what, 0, report.popularEntries)
+            assertEquals(what, build(popular = null).second.scamEntries, report.scamEntries)
+            assertNull(what, feed.popular("share.google"))
+        }
+        // A few bad or repeated rows are not a broken file: what parses is used when nine in ten of the top rows are good.
+        val fewBad = majestic.lines().mapIndexed { i, row -> if (i == 5) "5,5,not a host!,com" else if (i == 6) majestic.lines()[1] else row }
+        val used = FeedBuilder.popularOrNothing(fewBad.joinToString("\n"), top = 100) { fail(it) }!!.domains
+        assertEquals(98, used.size)
+        assertEquals("google.com", used.first())
     }
+
+    /** PS10 (findings #157): a look-alike that climbs into the top list is left out and named; the brands' own reviewed sites stay. */
+    @Test fun aLookalikeInTheTopListIsLeftOutAndNamed() {
+        val (feed, report) = build(popular = withRows("4,4,facebook-mypage.ru,ru,1,1,facebook-mypage.ru,ru,4,4,1,1"))
+        assertNull(feed.popular("facebook-mypage.ru"))
+        assertEquals(listOf("facebook-mypage.ru"), report.popularLookalikesLeftOut)
+        assertEquals(99, report.popularEntries)
+    }
+
+    @Test fun theBrandsOwnReviewedSitesStayOnTheList() {
+        val (feed, report) = build(
+            popular = withRows(
+                "4,4,google.co.za,za,1,1,google.co.za,za,4,4,1,1", "5,5,media-amazon.com,com,1,1,media-amazon.com,com,5,5,1,1",
+                "6,6,apple.com.cn,cn,1,1,apple.com.cn,cn,6,6,1,1",
+            ),
+        )
+        assertEquals(emptyList<String>(), report.popularLookalikesLeftOut)
+        listOf("google.co.za", "media-amazon.com", "apple.com.cn").forEach { assertEquals(it, feed.popular(it)) }
+    }
+
+    /** The real Majestic rows with [rows] put in after the third, as if those sites had climbed into the top list. */
+    private fun withRows(vararg rows: String): String = majestic.lines().let { it.take(4) + rows + it.drop(4) }.joinToString("\n")
 
     @Test fun aPopularSiteIsNeverAScamMatch() {
         val (feed, _) = build()
@@ -73,7 +118,7 @@ class PopularSitesFeedTest {
         val header = majestic.lineSequence().first()
         val junk = "$header\n1,1,share.google,google\n2,2,not a host!,com\n"
         assertThrows(IllegalArgumentException::class.java) { FeedBuilder.popularDomains(junk, top = 2) }
-        assertEquals(listOf("share.google"), FeedBuilder.popularDomains(junk, top = 1))
+        assertEquals(listOf("share.google"), FeedBuilder.popularDomains(junk, top = 1).domains)
     }
 
     /** Phones on the released 0.3.10 must keep taking new feeds: its decoder, copied below, reads a feed with the list. */

@@ -24,7 +24,7 @@ import org.junit.Test
 import java.time.Duration
 import java.time.Instant
 
-/** "This link is fine" on a look-alike link warning: scenario rows ST28-ST34 (docs/scenarios/scam-texts.md, findings #155). */
+/** "This link is fine" on a look-alike link warning: scenario rows ST28-ST39 (docs/scenarios/scam-texts.md, findings #155). */
 class LinkIsFineTest {
     private val now = Instant.now()
     private val findings = Findings()
@@ -48,7 +48,7 @@ class LinkIsFineTest {
         now,
     )
 
-    private val lookalike = link(Problem.LookalikeLink, "paypa1-help.com")
+    private val lookalike = link(Problem.LookalikeLink, "paypal-help.com")
 
     @Test fun sayingALookalikeLinkIsFinePutsTheSiteOnTheListAndTellsTheGuardianOnlyAMaskedAddress() = runTest {
         pipeline.handle(listOf(lookalike), setOf(DetectorId.Link))
@@ -56,13 +56,13 @@ class LinkIsFineTest {
 
         assertTrue(actions.allow(lookalike.key))
 
-        assertEquals(listOf(AllowedItem(Problem.LookalikeLink, "paypa1-help.com", "paypa1-help.com", now)), allowList.items)
+        assertEquals(listOf(AllowedItem(Problem.LookalikeLink, "paypal-help.com", "paypal-help.com", now)), allowList.items)
         assertEquals(FindingState.Acknowledged, findings.get(lookalike.key)!!.state)
         val told = "Ruth told Aegida that a link to a website (pa*****.com) is fine, " +
             "so Aegida will stop warning that it pretends to be a company. If that surprises you, it may be a good time to ask Ruth."
         assertEquals(listOf(told), http.bodies)
         val line = history.entries.single { it.problem == Problem.SiteAllowed && it.outcome == Outcome.Acknowledged }
-        assertEquals("The link went to paypa1-help.com.", line.detail)
+        assertEquals("The link went to paypal-help.com.", line.detail)
         assertFalse("a second tap does nothing more", actions.allow(lookalike.key))
         assertEquals(1, http.bodies.size)
     }
@@ -79,11 +79,39 @@ class LinkIsFineTest {
 
     /** ST34: a Latin name with a Cyrillic letter in it ("pаypal.com") is the one a scammer would coach her to allow. */
     @Test fun aNameThatMixesAlphabetsCanNeverBeSaidToBeFine() = runTest {
-        val homograph = link(Problem.LookalikeLink, java.net.IDN.toASCII("pаypal.com"))
-        pipeline.handle(listOf(homograph), setOf(DetectorId.Link))
-        assertFalse(actions.allow(homograph.key))
+        // The second has the brand in plain letters and a Cyrillic "е" in "sеcure": still never (findings #156).
+        listOf("pаypal.com", "paypal-sеcure.com").map { java.net.IDN.toASCII(it) }.forEach { host ->
+            val homograph = link(Problem.LookalikeLink, host)
+            pipeline.handle(listOf(homograph), setOf(DetectorId.Link))
+            assertFalse(host, actions.allow(homograph.key))
+            assertTrue(host, findings.get(homograph.key)!!.state.needsHer)
+        }
         assertEquals(emptyList<Any>(), allowList.items)
-        assertTrue(findings.get(homograph.key)!!.state.needsHer)
+    }
+
+    /** ST37: all Cyrillic, so not mixed, yet it reads "apple"; the guardian would see only xn*****.com (findings #156). */
+    @Test fun aNameAllInAnotherAlphabetCanNeverBeSaidToBeFine() = runTest {
+        val apple = java.net.IDN.toASCII("аррӏе.com", java.net.IDN.ALLOW_UNASSIGNED)
+        assertEquals("xn--80ak6aa92e.com", apple)
+        // The second has the brand in plain letters in front of it.
+        listOf(apple, "paypal.$apple").forEach { host ->
+            val homograph = link(Problem.LookalikeLink, host)
+            pipeline.handle(listOf(homograph), setOf(DetectorId.Link))
+            assertFalse(host, actions.allow(homograph.key))
+            assertTrue(host, findings.get(homograph.key)!!.state.needsHer)
+        }
+        assertEquals(emptyList<Any>(), allowList.items)
+    }
+
+    /** ST38: no ordinary site spells a brand with a number or "rn" for "m"; those are made to fool her (findings #156). */
+    @Test fun aBrandSpelledWithSwappedLettersCanNeverBeSaidToBeFine() = runTest {
+        listOf("paypa1-help.com", "rnicrosoft-support.com").forEach { host ->
+            val swapped = link(Problem.LookalikeLink, host)
+            pipeline.handle(listOf(swapped), setOf(DetectorId.Link))
+            assertFalse(host, actions.allow(swapped.key))
+            assertTrue(host, findings.get(swapped.key)!!.state.needsHer)
+        }
+        assertEquals(emptyList<Any>(), allowList.items)
     }
 
     @Test fun theLinkIsFineNoteIsQueuedWhenOfflineAsItsOwnKind() = runTest {
@@ -91,7 +119,7 @@ class LinkIsFineTest {
         http.result = com.aegida.core.net.HttpResult.Failed(null, com.aegida.core.net.FailureReason.Offline)
         assertTrue(actions.allow(lookalike.key))
         assertEquals(listOf(Problem.SiteAllowed), outbox.all().filter { it.problem != Problem.LookalikeLink }.map { it.problem })
-        assertEquals(listOf("paypa1-help.com"), allowList.items.map { it.subject })
+        assertEquals(listOf("paypal-help.com"), allowList.items.map { it.subject })
     }
 
     @Test fun withAlertsOffTheLinkIsFineStillWorksAndNothingIsSent() = runTest {
@@ -99,13 +127,13 @@ class LinkIsFineTest {
         pipeline.handle(listOf(lookalike), setOf(DetectorId.Link))
         assertTrue(actions.allow(lookalike.key))
         assertEquals(emptyList<String>(), http.bodies)
-        assertEquals(listOf("paypa1-help.com"), allowList.items.map { it.subject })
+        assertEquals(listOf("paypal-help.com"), allowList.items.map { it.subject })
     }
 
     @Test fun warnMeAgainForAWebsiteTakesItOffTheListAndTheNextLinkWarns() = runTest {
         pipeline.handle(listOf(lookalike), setOf(DetectorId.Link))
         actions.allow(lookalike.key)
-        actions.stopAllowing(Problem.LookalikeLink, "paypa1-help.com")
+        actions.stopAllowing(Problem.LookalikeLink, "paypal-help.com")
         assertEquals(emptyList<Any>(), allowList.items)
         val shownBefore = owner.shown.size
         pipeline.handle(listOf(lookalike), setOf(DetectorId.Link))

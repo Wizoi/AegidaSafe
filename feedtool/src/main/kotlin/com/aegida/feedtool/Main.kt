@@ -16,7 +16,8 @@ import kotlin.system.exitProcess
 
 /**
  * build  --domains F --links F [--urlhaus F] [--echap F] [--popular F] --out DIR  writes feed.bin + feed.sig; key from env
- *                                                      AEGIDA_FEED_SIGNING_KEY. --popular is the Majestic Million CSV.
+ *                                                      AEGIDA_FEED_SIGNING_KEY. --popular is the Majestic Million CSV;
+ *                                                      if it is missing or unusable the feed is built without it.
  * verify --feed F --sig F --public F [--previous F]    exits 1 unless the signature matches the public key and the
  *                                                      feed passes the same sanity checks the app applies
  * keygen --out DIR                                     writes feed-public.txt and feed-private.txt (base64)
@@ -47,7 +48,7 @@ private fun build(options: Map<String, String>) {
         urlhaus = options["urlhaus"]?.let { File(it).readText() },
         extras = Extras(
             echap = options["echap"]?.let { EchapParser.parse(File(it).readText()) },
-            popular = options["popular"]?.let { FeedBuilder.popularDomains(File(it).readText()) },
+            popular = options["popular"]?.let { path -> FeedBuilder.popularOrNothing(File(path).takeIf(File::isFile)?.readText(), warn = ::warn) },
         ),
     )
     if (report.scamEntries < BuildReport.MIN_SCAM_ENTRIES) fail("only ${report.scamEntries} scam entries; the lists came down short")
@@ -59,6 +60,7 @@ private fun build(options: Map<String, String>) {
     println("packages=${report.packageEntries} certificates=${report.certificateEntries} popular=${report.popularEntries}")
     println("hosts=${report.hostEntries} urls=${report.urlEntries} unparseable=${report.unparseable} bytes=${bytes.size}")
     println("dropped shared hosts (${report.droppedSharedHosts.size}): ${report.droppedSharedHosts}")
+    println("popular look-alikes left out (${report.popularLookalikesLeftOut.size}): ${report.popularLookalikesLeftOut}")
     feed.sources.forEach { println("source ${it.name}: ${it.entries}") }
 }
 
@@ -80,6 +82,10 @@ private fun verify(options: Map<String, String>) {
 
 private const val USAGE = "usage: build --domains F --links F [--urlhaus F] [--echap F] [--popular F] --out DIR | " +
     "verify --feed F --sig F --public F [--previous F] | keygen --out DIR"
+
+/** A GitHub Actions warning: shown on the run's page, and the build goes on (findings #158). */
+private fun warn(message: String) =
+    println("::warning::Popular list left out: $message. The feed is built without it; phones use the look-alike rule as before.")
 
 private fun fail(message: String): Nothing {
     System.err.println("FEED REJECTED: $message")

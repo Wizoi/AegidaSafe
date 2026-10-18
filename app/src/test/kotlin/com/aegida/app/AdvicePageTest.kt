@@ -20,8 +20,8 @@ import org.robolectric.ParameterizedRobolectricTestRunner
 @RunWith(ParameterizedRobolectricTestRunner::class)
 class AdvicePageTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark, fontScale) {
     private fun link(problem: Problem) = Finding(
-        FindingKey(DetectorId.Link, problem, "paypa1-help.com"),
-        mapOf(Evidence.HOST to "paypa1-help.com", Evidence.APP_LABEL to "Messages", Evidence.MESSAGE_TEXT to "Refund: paypa1-help.com/claim"),
+        FindingKey(DetectorId.Link, problem, "paypal-help.com"),
+        mapOf(Evidence.HOST to "paypal-help.com", Evidence.APP_LABEL to "Messages", Evidence.MESSAGE_TEXT to "Refund: paypal-help.com/claim"),
         now, now,
     )
 
