@@ -53,8 +53,10 @@ class Evaluator @Inject constructor(
         } else {
             emptyList()
         }
-        val allowedApps = allowList.all().filter { it.problem == Problem.NoisyApp }.map { it.subject }.toSet()
+        val allowed = allowList.all()
+        val allowedApps = allowed.filter { it.problem == Problem.NoisyApp }.map { it.subject }.toSet()
         val input = memory.inputs(snapshot, started, event, recent, allowedApps).copy(
+            allowedSites = allowed.filter { it.problem == Problem.LookalikeLink }.map { it.subject }.toSet(),
             bootedAt = clock.bootedAt(),
             processStartedAt = clock.processStartedAt(),
             openBefore = findings?.open().orEmpty().map { it.key.problem }.toSet(),

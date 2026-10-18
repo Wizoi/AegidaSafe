@@ -159,11 +159,11 @@ private fun PageContent(page: Page, state: MainState, vm: MainViewModel, show: (
         is Page.Confirm -> ConfirmPage(page.finding, pictureId, vm, show)
         Page.KeptHidden -> KeptHiddenPage(pictureId) { show(Page.None) }
         is Page.NoisyApp -> NoisyAppScreen(page.finding, state, vm, show)
-        is Page.Advice -> AegidaScreen(pictureId) {
-            Headline(page.finding.key.problem.forMom)
-            AdviceLines.of(page.finding, state.now, ZoneId.systemDefault(), Locale.getDefault()).forEach { Body(it) }
-            BigButton(Texts.Home.GOT_IT, { vm.acknowledge(page.finding); show(Page.None) })
-        }
+        is Page.Advice -> AdvicePage(
+            pictureId, page.finding, ShownAt(state.now, ZoneId.systemDefault(), Locale.getDefault()),
+            onGotIt = { vm.acknowledge(page.finding); show(Page.None) },
+            onFine = { vm.answer { allow(page.finding.key) }; show(Page.None) },
+        )
     }
 }
 

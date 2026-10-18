@@ -140,18 +140,15 @@ class AlertPipeline @Inject constructor(
     }
 
     /**
-     * Tells the guardian the owner said an app is fine (Kevin, Oct 11), so the list in My settings is never a secret. Sent, or queued
-     * when offline, as its own kind ([Problem.AppAllowed]) with a History line that says the app. Nothing is sent while alerts are off.
+     * Tells the guardian the owner said an app (Kevin, Oct 11) or a website (findings #155) is fine, so the list in My settings is never a
+     * secret. Sent, or queued when offline, as its own kind ([kind]: [Problem.AppAllowed] or [Problem.SiteAllowed]) with [detail], her
+     * History line, so a queued note's line names it too. [note] makes the words from her name. Nothing is sent while alerts are off.
      */
-    suspend fun tellAllowed(rawLabel: String, phoneLabel: String, now: Instant) {
-        val detail = Texts.History.APP_IS.format("“$phoneLabel”")
+    suspend fun tellAllowed(kind: Problem, detail: String, now: Instant, note: (owner: String) -> String) {
         val settings = line.current()
         val topic = settings.firstTopic?.takeIf { settings.alertsOn } ?: return
-        // Sent off the phone: masked, and an app with no name is not named by its package (findings #98).
-        val sent = Texts.Home.guardianLabel(rawLabel)
         val owner = guardianName(settings)
-        val body = if (sent.isEmpty()) Texts.Guardian.ALLOWED_NO_NAME.format(owner) else Texts.Guardian.ALLOWED.format(owner, sent)
-        sendOrHold(topic, GuardianMessage(title = owner, body = body, urgent = false), Problem.AppAllowed, now, detail)
+        sendOrHold(topic, GuardianMessage(title = owner, body = note(owner), urgent = false), kind, now, detail)
     }
 
     /**

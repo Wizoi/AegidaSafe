@@ -62,6 +62,26 @@ class EvaluatorTest {
         assertEquals(emptyList<Any>(), notices.rows)
     }
 
+    /** ST24, ST26 (findings #155): a site on her list is not warned about as a look-alike again; on the scam list it still is. */
+    @Test fun aSiteSheSaidIsFineIsNotALookalikeAgainButTheScamListStillWarns() = runTest {
+        val allow = allowing(Problem.LookalikeLink)
+        assertEquals(emptyList<Problem>(), linkProblems(Evaluator(setOf(LinkDetector()), { now }, memory(), FakeNoticeLog(), allow)))
+        val listed = EvaluatorMemory(FakeSetupStore(), FakeFeedStore(Fixtures.feed(hosts = listOf("paypa1-help.com"))), log, outbox, FakeBaselines())
+        assertEquals(listOf(Problem.ScamLink), linkProblems(Evaluator(setOf(LinkDetector()), { now }, listed, FakeNoticeLog(), allow)))
+    }
+
+    /** ST25: an app on the list with the same name as a website does not quiet the website. */
+    @Test fun anAllowedAppDoesNotQuietALinkWithTheSameName() = runTest {
+        val e = Evaluator(setOf(LinkDetector()), { now }, memory(), FakeNoticeLog(), allowing(Problem.NoisyApp))
+        assertEquals(listOf(Problem.LookalikeLink), linkProblems(e))
+    }
+
+    private fun allowing(problem: Problem) =
+        FakeAllowList().apply { items += com.aegida.core.notice.AllowedItem(problem, "paypa1-help.com", "paypa1-help.com", now) }
+
+    private suspend fun linkProblems(e: Evaluator) =
+        e.run(Trigger.NotificationPosted, snapshot(), Fixtures.message("Refund: paypa1-help.com/claim")).map { it.key.problem }
+
     @Test fun anAppTheOwnerSaidIsFineIsNotFlaggedEvenAfterManyNotices() = runTest {
         val allow = FakeAllowList().apply { items += com.aegida.core.notice.AllowedItem(Problem.NoisyApp, "com.android.shell", "Image to PDF", now) }
         val e = Evaluator(setOf(NoisyAppDetector()), { now }, memory(), FakeNoticeLog(), allow)

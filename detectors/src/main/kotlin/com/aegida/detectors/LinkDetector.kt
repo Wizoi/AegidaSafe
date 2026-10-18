@@ -43,6 +43,8 @@ class LinkDetector @Inject constructor() : Detector {
             val signs = LinkSigns.of(link)
             val problem = when {
                 input.feed?.match(link) != null -> Problem.ScamLink
+                // She said this very site is fine (findings #155): no look-alike warning. The scam list above still warns.
+                link.host in input.allowedSites -> return@mapNotNull null
                 LinkSign.BrandLookalike in signs || LinkSign.MixedScript in signs -> Problem.LookalikeLink
                 else -> return@mapNotNull null
             }

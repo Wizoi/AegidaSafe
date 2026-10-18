@@ -35,6 +35,8 @@ enum class Problem(
      * guardian, so a queued allow note is its own kind and never counts as a NoisyApp note for back-off.
      */
     AppAllowed(Severity.Info, "You told Aegida an app is fine.", null, whatHappened = "You said an app is fine"),
+    /** The same for a website she said is fine on a look-alike link warning ("This link is fine", findings #155). */
+    SiteAllowed(Severity.Info, "You told Aegida a link is fine.", null, whatHappened = "You said a link is fine"),
     ScamLink(
         Severity.NeedsTap,
         "A message has a link that looks like a scam. Please don't tap it.",
@@ -208,6 +210,19 @@ enum class Problem(
      * a day: a listener the phone unbound is often bound again within the day (finding #112).
      */
     val remindsGuardianOnly: Boolean get() = this == ListenerNotConnected
+
+    /**
+     * What an owner may tell Aegida to leave alone ("This app is fine", "This link is fine"), and the detector whose warnings that quiets;
+     * null for everything else. Never an urgent kind (a coached "it is fine" must not silence a spying app), and never a link on the scam
+     * list ([ScamLink]): a look-alike is a guess Aegida can get wrong, the scam list is not (findings #155). The one place this is decided:
+     * the page shows the button and the action accepts it from here.
+     */
+    val allowableFrom: com.aegida.core.model.DetectorId?
+        get() = when (this) {
+            NoisyApp -> com.aegida.core.model.DetectorId.NoisyApp
+            LookalikeLink -> com.aegida.core.model.DetectorId.Link
+            else -> null
+        }
 
     /**
      * The note for the guardian. For a scam link or a look-alike it also names the app the message came from and a masked
