@@ -189,6 +189,14 @@ class PublicPagesTest {
         for (sentence in sentences) assertTrue(sentence, sentence.contains("on a Samsung, the Galaxy Store"))
     }
 
+    /** Findings #160: the look-alike rule's exception for the most-linked sites is stated, and its list is credited where it is downloaded. */
+    @Test fun theLookAlikeRowNamesTheMostLinkedListAndTheDownloadStepCreditsMajestic() {
+        val row = plain.substringAfter("Look-alike link").substringBefore("What the owner sees")
+        assertTrue(row, row.contains("10,000 most-linked") && row.contains("Majestic Million") && row.contains("never called a look-alike"))
+        val download = Regex("<svg[^>]*aria-label=\"Pipeline.*?</svg>", RegexOption.DOT_MATCHES_ALL).find(html)!!.value
+        assertTrue("the download step names the Majestic Million and its licence", download.contains("Majestic Million") && download.contains("CC BY 3.0"))
+    }
+
     @Test fun theSimpleViewAnswersTheQuestionsAnEightyYearOldAndHerFamilyWouldAsk() {
         assertTrue(plain.contains("Does it cost anything?"))
         assertTrue(plain.contains("Can I turn it off"))

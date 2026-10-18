@@ -20,4 +20,3 @@ Same idea as above, with one result column: how it was checked, what changed, an
 
 | # | Date | Context | Finding | Result: how it was checked, what changed, status |
 |---|---|---|---|---|
-| 160 | 2026-10-18 | Opus 5.5 high review of #155 (627f0c6..7d90477) | how-it-works.html does not say a site on the 10,000 most-linked list is never a look-alike, and its "Download the public lists" diagram does not name Majestic (CC BY 3.0). | Update the page; the Aegida-Feed NOTICE.txt credit is committed locally (e034b89) and goes with the push. | **Status:** open; fix next |
