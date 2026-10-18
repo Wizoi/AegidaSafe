@@ -20,6 +20,12 @@ object TopLevelDomains {
 
     fun isDomain(ending: String): Boolean = list.isEmpty() || ending.lowercase() in list
 
+    /**
+     * True only when [ending] is on the list read from the file. For letting a link through (a brand's own ending, findings #155), so
+     * an unreadable file lets nothing through, the other way round from [isDomain].
+     */
+    fun isListed(ending: String): Boolean = ending.lowercase() in list
+
     /** Absolute: the release build renames this class, so a name relative to it would find nothing there (findings #102). */
     private const val RESOURCE = "/com/aegida/core/url/tlds.txt"
 }

@@ -107,11 +107,18 @@ object LinkSigns {
         val labels = unicode.split('.').map { label -> label.split('-').flatMap(::wordsOf) }
         // Only a parcel word in the same name between dots counts: track.check-ups-clinic.com is a clinic (Kevin, Oct 14).
         val tokens = labels.flatMap { words -> brandWords(words, aboutParcels = words.any { it in PARCEL_WORDS }) }
+        val ending = host.lowercase().trimEnd('.').substringAfterLast('.')
         return BRANDS.any { (brand, domains) ->
-            val owned = domains.any { host == it || host.endsWith(".$it") }
+            val owned = domains.any { host == it || host.endsWith(".$it") } || ownsItsEnding(brand, ending)
             !owned && tokens.any { it == brand }
         }
     }
+
+    /**
+     * A brand that runs its own top-level domain owns every name under it: share.google and store.apple are the brand's (findings #155).
+     * Only the ending as written counts, so google.evil.com and share.goog1e are still look-alikes.
+     */
+    private fun ownsItsEnding(brand: String, ending: String): Boolean = ending == brand && TopLevelDomains.isListed(ending)
 
     /**
      * One hyphen-separated word, look-alike letters undone: "ups24" is the brand with a number, and "upsdelivery" reads as "ups
