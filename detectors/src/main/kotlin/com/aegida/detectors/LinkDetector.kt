@@ -71,16 +71,13 @@ class LinkDetector @Inject constructor() : Detector {
 
     /**
      * A site on the popular list is never called a look-alike (findings #155): share.google, media-amazon.com. Only the part in
-     * front of the popular site is still read, so paypal-login.sites.google.com is warned about: that part is not the site's.
+     * front of the popular site is still read, so paypal-login.sites.google.com is warned about: that part is not the site's. Whose
+     * site it is comes from the whole host, so icloud.apple.com stays Apple's (findings #159).
      */
     private fun looksAlike(link: Link, feed: ThreatFeed?): Boolean {
         val popular = feed?.popularSite(link)
-        val judged = when (popular) {
-            null -> link
-            link.host -> return false
-            else -> link.copy(host = link.host.removeSuffix(".$popular") + NOT_A_SITE)
-        }
-        val signs = LinkSigns.of(judged)
+        if (popular == link.host) return false
+        val signs = LinkSigns.of(link, popular)
         return LinkSign.BrandLookalike in signs || LinkSign.MixedScript in signs
     }
 
@@ -89,8 +86,5 @@ class LinkDetector @Inject constructor() : Detector {
 
     private companion object {
         const val KEPT_CHARS = 200
-
-        /** Stands in for the popular site when only the part in front of it is judged: a reserved ending no brand owns. */
-        const val NOT_A_SITE = ".invalid"
     }
 }

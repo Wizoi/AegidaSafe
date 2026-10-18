@@ -83,13 +83,30 @@ object LinkSigns {
     private val JOINED_PARCEL_WORDS = PARCEL_WORDS + "express"
     private const val UPS = "ups"
     private val UPS_NUMBER = Regex("""ups\d+""")
+    /** How a name with letters outside a-z is written in a link (IDNA): "xn--80ak6aa92e" is the all-Cyrillic "apple". */
+    private const val ACE_PREFIX = "xn--"
     private val DELEET = listOf("rn" to "m", "vv" to "w", "0" to "o", "1" to "l", "3" to "e", "5" to "s", "4" to "a", "@" to "a")
 
-    fun of(link: Link): Set<LinkSign> = buildSet {
+    /**
+     * The signs of [link]. With [popularSite] (a parent domain of the host on the popular list), only the part in front of it is read
+     * for brand words and alphabets, while whose site it is still comes from the whole host: icloud.apple.com is Apple's, and
+     * paypal-login.sites.google.com is not PayPal's (findings #155, #159).
+     */
+    fun of(link: Link, popularSite: String? = null): Set<LinkSign> = buildSet {
+        val read = popularSite?.takeIf { link.host.endsWith(".$it") }?.let { link.host.removeSuffix(".$it") } ?: link.host
         if (link.hostCandidates.any { it in SHORTENERS }) add(LinkSign.Shortener)
-        if (link.host.split('.').any(::mixesScripts)) add(LinkSign.MixedScript)
-        if (imitatesBrand(link.host)) add(LinkSign.BrandLookalike)
+        if (read.split('.').any(::mixesScripts)) add(LinkSign.MixedScript)
+        if (imitatesBrand(link.host, read)) add(LinkSign.BrandLookalike)
     }
+
+    /**
+     * Whether a look-alike warning about [link] may be a false alarm she can wave off with "This link is fine" (findings #156, rows
+     * ST37-ST39): a brand's name in plain letters on a site Aegida does not know (google-reviews.example). Never a name with a letter
+     * outside a-z (the all-Cyrillic "apple" is not mixed, yet reads "apple"), and never a brand spelled only with swapped letters
+     * (paypa1, rnicrosoft): no ordinary site spells a brand that way, so those are the ones a scammer would coach her to allow.
+     */
+    fun namesBrandPlainly(link: Link): Boolean =
+        link.host.split('.').none { it.startsWith(ACE_PREFIX) } && imitatesBrand(link.host, link.host, undoLookAlikes = false)
 
     private fun mixesScripts(asciiLabel: String): Boolean {
         val label = IDN.toUnicode(asciiLabel, IDN.ALLOW_UNASSIGNED)
@@ -102,9 +119,10 @@ object LinkSigns {
         return scripts.size > 1
     }
 
-    private fun imitatesBrand(host: String): Boolean {
-        val unicode = IDN.toUnicode(host, IDN.ALLOW_UNASSIGNED).lowercase()
-        val labels = unicode.split('.').map { label -> label.split('-').flatMap(::wordsOf) }
+    /** A brand word in [read] (the host, or the part of it in front of a popular site) on a [host] the brand does not own. */
+    private fun imitatesBrand(host: String, read: String, undoLookAlikes: Boolean = true): Boolean {
+        val unicode = IDN.toUnicode(read, IDN.ALLOW_UNASSIGNED).lowercase()
+        val labels = unicode.split('.').map { label -> label.split('-').flatMap { wordsOf(it, undoLookAlikes) } }
         // Only a parcel word in the same name between dots counts: track.check-ups-clinic.com is a clinic (Kevin, Oct 14).
         val tokens = labels.flatMap { words -> brandWords(words, aboutParcels = words.any { it in PARCEL_WORDS }) }
         val ending = host.lowercase().trimEnd('.').substringAfterLast('.')
@@ -124,8 +142,8 @@ object LinkSigns {
      * One hyphen-separated word, look-alike letters undone: "ups24" is the brand with a number, and "upsdelivery" reads as "ups
      * delivery" so its parcel word counts. "pickups" stays one word: in a name about parcels [joinedToUps] makes it the brand.
      */
-    private fun wordsOf(token: String): List<String> {
-        val word = deleet(token)
+    private fun wordsOf(token: String, undoLookAlikes: Boolean): List<String> {
+        val word = if (undoLookAlikes) deleet(token) else token
         val rest = word.removePrefix(UPS)
         return when {
             UPS_NUMBER.matches(token) -> listOf(UPS)

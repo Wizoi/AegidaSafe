@@ -52,7 +52,7 @@ class SettingsScreenTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark,
     /** ST29 (findings #155): a website she said is fine is listed by its name, as plain words, with the same way to take it back. */
     @Test fun aWebsiteSheSaidIsFineIsListedByNameAndTakingItBackIsOneTap() {
         var removed: com.aegida.core.notice.AllowedItem? = null
-        val item = com.aegida.core.notice.AllowedItem(Problem.LookalikeLink, "paypa1-help.com", "paypa1-help.com", now)
+        val item = com.aegida.core.notice.AllowedItem(Problem.LookalikeLink, "paypal-help.com", "paypal-help.com", now)
         show {
             SettingsScreen(
                 SettingsContent(
@@ -66,7 +66,7 @@ class SettingsScreenTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark,
                 ),
             )
         }
-        reachable("Links to paypa1-help.com")
+        reachable("Links to paypal-help.com")
         compose.onNodeWithText(Texts.Settings.ALLOWED_REMOVE).performScrollTo().performClick()
         assertEquals(item, removed)
     }

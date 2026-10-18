@@ -49,6 +49,18 @@ class LinkDetectorPopularSitesTest {
         )
     }
 
+    /** PS9: ownership is the real host's, so Apple's own names under a popular apple.com or icloud.com stay quiet (findings #159). */
+    @Test fun aBrandsOwnNameUnderItsPopularSiteIsNotALookalike() {
+        val feed = feedWith(popularSites = popular + listOf("apple.com", "icloud.com", "google.com"))
+        assertEquals(emptyList<Any>(), problems("Your photos https://icloud.apple.com/photos", feed))
+        assertEquals(emptyList<Any>(), problems("Shared album https://apple.icloud.com/sharedalbum", feed))
+        assertEquals(emptyList<Any>(), problems("Directions https://maps.google.com/?q=clinic", feed))
+        assertEquals(
+            listOf(Problem.LookalikeLink to "paypal-login.sites.google.com"),
+            problems("Your account is locked: https://paypal-login.sites.google.com/view/verify", feed),
+        )
+    }
+
     @Test fun mixedAlphabetsInFrontOfAPopularSiteAreStillALookalike() {
         val found = problems("Locked: https://раypal.sites.google.com/view/verify") // "раypal": two Cyrillic letters
         assertEquals(listOf(Problem.LookalikeLink), found.map { it.first })

@@ -8,7 +8,10 @@ Decisions: `decisions.md` (Build step 1 choices, Feed publishing). Sources and l
 Phishing.Database (MIT), Echap's stalkerware indicators (CC BY 4.0) and the top 10,000 of the Majestic Million (CC BY 3.0,
 findings #155) are published; their notices travel in `NOTICE.txt` on the feed site. URLhaus stays out until abuse.ch confirms in writing that republishing is allowed.
 The build refuses an Echap file that yields fewer than 100 package names or 100 certificates, so a changed layout
-fails the run instead of publishing an empty list (the previous feed stays live).
+fails the run instead of publishing an empty list (the previous feed stays live). A Majestic problem never fails the run (findings
+#158): a missing file, a changed layout, or fewer than 9,000 good host names in its top 10,000 rows builds the feed without the
+popular list, with a warning in the job log, and phones use the look-alike rule as before. Popular names the look-alike rule flags
+are left out unless they are on `FeedBuilder.REVIEWED_BRAND_SITES`; the log names each one (findings #157), to review.
 
 ## What you do once (keys never pass through chat)
 
