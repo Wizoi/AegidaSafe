@@ -49,6 +49,28 @@ class SettingsScreenTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark,
         assertEquals(item, removed)
     }
 
+    /** ST29 (findings #155): a website she said is fine is listed by its name, as plain words, with the same way to take it back. */
+    @Test fun aWebsiteSheSaidIsFineIsListedByNameAndTakingItBackIsOneTap() {
+        var removed: com.aegida.core.notice.AllowedItem? = null
+        val item = com.aegida.core.notice.AllowedItem(Problem.LookalikeLink, "paypa1-help.com", "paypa1-help.com", now)
+        show {
+            SettingsScreen(
+                SettingsContent(
+                    Setup(null, emptySet(), pictureId = picture),
+                    Guardians(alertsOn = false, ownerName = "Ruth", firstTopic = null, firstGuardianName = "Kevin"),
+                    filterOn = true, listsUpdatedAt = null, zone = zone, locale = locale, allowed = listOf(item),
+                ),
+                SettingsActions(
+                    onChangePicture = {}, onChangeGuardian = {}, onResendInvite = {}, onAlerts = {}, onFilterHelp = {}, onHowItWorks = {},
+                    onStopAllowing = { removed = it },
+                ),
+            )
+        }
+        reachable("Links to paypa1-help.com")
+        compose.onNodeWithText(Texts.Settings.ALLOWED_REMOVE).performScrollTo().performClick()
+        assertEquals(item, removed)
+    }
+
     @Test fun settingsHasNoAllowedListWhenNothingWasAllowed() {
         show {
             SettingsScreen(

@@ -43,4 +43,6 @@ data class Inputs(
     val processStartedAt: Instant? = null,
     /** The problems open before this check, so a check that cannot tell yet keeps what was there (finding #136). */
     val openBefore: Set<com.aegida.core.text.Problem> = emptySet(),
+    /** Websites (exact names) the owner said are fine on a look-alike link warning, so no look-alike warning for them (findings #155). */
+    val allowedSites: Set<String> = emptySet(),
 )

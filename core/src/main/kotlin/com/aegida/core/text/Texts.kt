@@ -42,6 +42,12 @@ object Texts {
         /** The same for an app with no name: its package name looks like a web address and is never sent (findings #98). */
         const val ALLOWED_NO_NAME = "%1\$s told Aegida that an app is fine, so Aegida will stop warning about it. " +
             "If that surprises you, it may be a good time to ask %1\$s."
+        /**
+         * %1 the owner, %2 the masked website (never the whole address). Sent when she taps "This link is fine" on a look-alike link
+         * warning (findings #155). It does not say Aegida stops warning about the site: the scam list still does.
+         */
+        const val SITE_ALLOWED = "%1\$s told Aegida that a link to a website (%2\$s) is fine, so Aegida will stop warning that it pretends to be " +
+            "a company. If that surprises you, it may be a good time to ask %1\$s."
         const val NOT_CHECKED_IN = "Aegida hasn't checked in on %1\$s's phone for 2 days. The phone may be off or asleep. It may be a good time to call %1\$s."
     }
 
@@ -66,6 +72,8 @@ object Texts {
         const val NOISY_TURN_OFF = "Turn off its notices"
         const val NOISY_REMOVE = "Remove this app"
         const val NOISY_FINE = "This app is fine"
+        /** On a look-alike link warning only, never a scam-list one (findings #155). */
+        const val LINK_FINE = "This link is fine"
         const val ADVICE_FROM = "It came from the %s app."
         const val CAME_IN_TODAY = "It came in today at %s."
         const val CAME_IN_YESTERDAY = "It came in yesterday at %s."
@@ -280,6 +288,16 @@ object Texts {
         const val TURN_ON_WEBSITE_PROTECTION = "Turn on website protection"
         const val ALLOWED_TITLE = "Things you told Aegida are fine"
         const val ALLOWED_REMOVE = "Warn me again"
+        const val ALLOWED_SITE = "Links to %s"
+
+        /**
+         * One line of that list: an app by its cleaned name (it picks its own label, R17), a website by its name as History shows it
+         * (whole on her own phone, plain text, never a link; findings #155).
+         */
+        fun allowedLine(problem: Problem, label: String, subject: String): String {
+            val clean = Home.cleanLabel(label).ifEmpty { subject }
+            return if (problem == Problem.LookalikeLink) ALLOWED_SITE.format(clean) else clean
+        }
         const val ON = "On"
         const val OFF = "Off"
         const val CHANGE = "Change"

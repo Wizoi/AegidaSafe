@@ -11,6 +11,7 @@ import com.aegida.core.model.Evidence
 import com.aegida.core.model.Finding
 import com.aegida.core.model.FindingKey
 import com.aegida.core.model.FindingState
+import com.aegida.core.model.mayBeAllowed
 import com.aegida.core.model.Snapshotter
 import com.aegida.core.notice.AllowList
 import com.aegida.core.notice.AllowedItem
@@ -19,6 +20,7 @@ import com.aegida.core.text.Problem
 import com.aegida.core.text.Texts
 import com.aegida.core.text.Fix
 import com.aegida.core.time.Clock
+import com.aegida.core.url.HostMask
 import java.time.Instant
 import javax.inject.Inject
 
@@ -37,8 +39,9 @@ class FindingActions @Inject constructor(
     suspend fun acknowledge(key: FindingKey): Boolean = gate.run { seen.markSeen(key, clock.now()) }
 
     /**
-     * "This one is fine": for a warning about an app that sends ads as notices only (never a spying or remote-control app). The app goes on
-     * the list shown in My settings, the warning is marked seen, and the guardian is told. False for anything else or if nothing is open.
+     * "This app is fine" / "This link is fine": for a warning about an app that sends ads as notices, or a look-alike link (never a spying
+     * or remote-control app, never a link on the scam list; [Problem.allowableFrom]). The app or website goes on the list shown in My
+     * settings, the warning is marked seen, and the guardian is told. False for anything else or if nothing is open.
      */
     suspend fun allow(key: FindingKey): Boolean = gate.run { allowing.allow(key) }
 
@@ -72,7 +75,7 @@ class SeenMarker @Inject constructor(
     }
 }
 
-/** The list of apps she said are fine ("This one is fine"), shown in My settings. */
+/** The list of apps and websites she said are fine ("This app is fine", "This link is fine"), shown in My settings. */
 class AppAllowing @Inject constructor(
     private val findings: FindingStore,
     private val history: HistoryLog,
@@ -82,19 +85,38 @@ class AppAllowing @Inject constructor(
     private val clock: Clock,
 ) {
     suspend fun allow(key: FindingKey): Boolean {
-        val finding = (if (key.problem in ALLOWABLE) findings.get(key) else null)?.takeIf { it.state.needsHer }
+        val finding = (if (key.mayBeAllowed()) findings.get(key) else null)?.takeIf { it.state.needsHer }
         if (finding == null) return false
-        record(key, finding)
+        if (key.problem == Problem.LookalikeLink) recordSite(key) else record(key, finding)
         return true
+    }
+
+    /**
+     * "This link is fine" (findings #155): the very name that was warned about goes on the list, not its whole domain, so another name on
+     * that domain or a look-alike of it is still warned about. On her phone the name is shown whole; the guardian gets it masked.
+     */
+    private suspend fun recordSite(key: FindingKey) {
+        val now = clock.now()
+        val host = key.subject
+        val detail = Texts.History.LINK_WENT.format(host)
+        pipeline.tellAllowed(Problem.SiteAllowed, detail, now) { owner -> Texts.Guardian.SITE_ALLOWED.format(owner, HostMask.of(host)) }
+        history.add(HistoryEntry(now, Problem.SiteAllowed, Outcome.Acknowledged, detail))
+        allowList.add(AllowedItem(key.problem, host, host, now))
+        seen.markSeen(key, now)
     }
 
     private suspend fun record(key: FindingKey, finding: Finding) {
         val now = clock.now()
         val raw = finding.evidence[Evidence.APP_LABEL].orEmpty()
         val label = Texts.Home.cleanLabel(raw).ifEmpty { key.subject } // on the phone the package name is fine
+        val detail = Texts.History.APP_IS.format("“$label”")
+        // Sent off the phone: masked, and an app with no name is not named by its package (findings #98).
+        val sent = Texts.Home.guardianLabel(raw)
         // The guardian first (sent or queued), so a check killed half way never leaves a silent allow (finding #93).
-        pipeline.tellAllowed(raw, label, now)
-        history.add(HistoryEntry(now, Problem.AppAllowed, Outcome.Acknowledged, Texts.History.APP_IS.format("“$label”")))
+        pipeline.tellAllowed(Problem.AppAllowed, detail, now) { owner ->
+            if (sent.isEmpty()) Texts.Guardian.ALLOWED_NO_NAME.format(owner) else Texts.Guardian.ALLOWED.format(owner, sent)
+        }
+        history.add(HistoryEntry(now, Problem.AppAllowed, Outcome.Acknowledged, detail))
         allowList.add(AllowedItem(key.problem, key.subject, label, now))
         seen.markSeen(key, now)
     }
@@ -102,15 +124,10 @@ class AppAllowing @Inject constructor(
     suspend fun stopAllowing(problem: Problem, subject: String) {
         allowList.remove(problem, subject)
         val quiet = problem.quietAfterSeen
-        val stored = ALLOWABLE[problem]?.let { findings.get(FindingKey(it, problem, subject)) }
+        val stored = problem.allowableFrom?.let { findings.get(FindingKey(it, problem, subject)) }
         if (quiet != null && stored != null && !stored.state.needsHer) {
             findings.put(stored.copy(lastSeen = stored.lastSeen.minus(quiet)))
         }
-    }
-
-    private companion object {
-        /** What an owner may tell Aegida to leave alone. Not urgent kinds: a coached "it is fine" must not silence a spying app. */
-        val ALLOWABLE = mapOf(Problem.NoisyApp to DetectorId.NoisyApp)
     }
 }
 

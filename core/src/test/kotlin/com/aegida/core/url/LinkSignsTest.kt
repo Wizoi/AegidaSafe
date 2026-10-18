@@ -128,4 +128,35 @@ class LinkSignsTest {
         assertEquals(emptySet<LinkSign>(), signs("https://purchase.example/"))
         assertEquals(emptySet<LinkSign>(), signs("https://groups.example/"))
     }
+
+    // Scenario rows ST20-ST23 (docs/scenarios/scam-texts.md, findings #155): Kevin's Pixel warned on share.google links from his wife.
+
+    @Test fun aBrandsOwnTopLevelDomainIsTheBrandsSite() {
+        for (url in listOf("https://share.google/aBcD123", "https://store.apple/", "https://about.amazon/news", "https://news.microsoft/x")) {
+            assertEquals(url, false, LinkSign.BrandLookalike in signs(url))
+        }
+    }
+
+    /** Findings #155: Apple News share links are Apple's own (apple.news), like Google's share.google. */
+    @Test fun anAppleNewsShareLinkIsNotALookalike() {
+        assertEquals(false, LinkSign.BrandLookalike in signs("https://apple.news/AbCdEf123"))
+        assertEquals(setOf(LinkSign.BrandLookalike), signs("https://apple.news-alert.example/"))
+    }
+
+    @Test fun aBrandTopLevelDomainUsedAsASubdomainIsStillALookalike() {
+        for (url in listOf("http://google.evil.com/", "http://share.google.evil.com/", "http://apple.verify-id.example/")) {
+            assertEquals(url, setOf(LinkSign.BrandLookalike), signs(url))
+        }
+    }
+
+    @Test fun aLookAlikeOfABrandEndingIsNotTheBrand() {
+        assertEquals(setOf(LinkSign.BrandLookalike), signs("http://share.goog1e/x")) // a number one: not Google's ending
+        assertEquals(setOf(LinkSign.BrandLookalike), signs("http://paypal.google/")) // Google's ending, PayPal's name
+    }
+
+    @Test fun realLookalikesAreStillWarnedAbout() {
+        for (url in listOf("http://paypa1-help.com/", "http://google-security.com/")) {
+            assertEquals(url, setOf(LinkSign.BrandLookalike), signs(url))
+        }
+    }
 }

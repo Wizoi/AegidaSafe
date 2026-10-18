@@ -16,6 +16,27 @@ class LinkDetectorScenariosTest {
 
     private val plain = listOf(Problem.LookalikeLink to "paypa1-help.com")
 
+    private fun problemsAllowing(text: String, sites: Set<String>) =
+        detector.evaluate(inputs(event = message(text)).copy(allowedSites = sites)).map { it.key.problem to it.key.subject }
+
+    /** ST24 (findings #155): only the very name she said is fine is quiet; another name on the same domain, or a look-alike of it, is not. */
+    @Test fun onlyTheWebsiteSheSaidIsFineIsQuiet() {
+        val allowed = setOf("paypa1-help.com")
+        assertEquals(emptyList<Any>(), problemsAllowing("Refund: paypa1-help.com/claim", allowed))
+        assertEquals(listOf(Problem.LookalikeLink to "login.paypa1-help.com"), problemsAllowing("Refund: login.paypa1-help.com/claim", allowed))
+        assertEquals(listOf(Problem.LookalikeLink to "paypa1-help.net"), problemsAllowing("Refund: paypa1-help.net/claim", allowed))
+        assertEquals(listOf(Problem.LookalikeLink to "paypa1-he1p.com"), problemsAllowing("Refund: paypa1-he1p.com/claim", allowed))
+        assertEquals(listOf(Problem.LookalikeLink to "www.paypa1-help.com"), problemsAllowing("Refund: www.paypa1-help.com/claim", allowed))
+        // Written in capitals or with a trailing dot it is still the same name (the link's host is made lower case without the dot).
+        assertEquals(emptyList<Any>(), problemsAllowing("Refund: PAYPA1-HELP.COM./claim", allowed))
+    }
+
+    /** ST26, must never: a site on the scam list is warned about even when she said it is fine. */
+    @Test fun aSiteSheSaidIsFineIsStillWarnedWhenItIsOnTheScamList() {
+        val listed = inputs(event = message("Refund: evil.example/claim")).copy(allowedSites = setOf("evil.example"))
+        assertEquals(listOf(Problem.ScamLink), detector.evaluate(listed).map { it.key.problem })
+    }
+
     @Test fun anIdeographicOrFullwidthDotIsStillTheLink() {
         assertEquals(plain, problems("Refund: paypa1-help。com/claim"))
         assertEquals(plain, problems("Refund: paypa1-help．com/claim"))

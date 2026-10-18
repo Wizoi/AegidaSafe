@@ -32,7 +32,7 @@ object LinkSigns {
             "amazon.com", "amazon.co.uk", "amazon.ca", "amazon.de", "amazon.fr", "amazon.it", "amazon.es", "amazon.nl", "amazon.com.au",
             "amazon.co.jp", "amazon.in", "amazon.com.mx", "amazon.com.br",
         ),
-        "apple" to setOf("apple.com", "icloud.com", "apple.co"),
+        "apple" to setOf("apple.com", "icloud.com", "apple.co", "apple.news"),
         "icloud" to setOf("icloud.com", "apple.com"),
         "microsoft" to setOf("microsoft.com", "live.com", "office.com"),
         "google" to setOf(
@@ -107,11 +107,18 @@ object LinkSigns {
         val labels = unicode.split('.').map { label -> label.split('-').flatMap(::wordsOf) }
         // Only a parcel word in the same name between dots counts: track.check-ups-clinic.com is a clinic (Kevin, Oct 14).
         val tokens = labels.flatMap { words -> brandWords(words, aboutParcels = words.any { it in PARCEL_WORDS }) }
+        val ending = host.lowercase().trimEnd('.').substringAfterLast('.')
         return BRANDS.any { (brand, domains) ->
-            val owned = domains.any { host == it || host.endsWith(".$it") }
+            val owned = domains.any { host == it || host.endsWith(".$it") } || ownsItsEnding(brand, ending)
             !owned && tokens.any { it == brand }
         }
     }
+
+    /**
+     * A brand that runs its own top-level domain owns every name under it: share.google and store.apple are the brand's (findings #155).
+     * Only the ending as written counts, so google.evil.com and share.goog1e are still look-alikes.
+     */
+    private fun ownsItsEnding(brand: String, ending: String): Boolean = ending == brand && TopLevelDomains.isListed(ending)
 
     /**
      * One hyphen-separated word, look-alike letters undone: "ups24" is the brand with a number, and "upsdelivery" reads as "ups
