@@ -116,3 +116,19 @@ Decided toward quiet (findings #138): "express" alone is in many ordinary names 
 scam named "pop-ups-express" or "pickups-express" is missed; "express" still counts when joined to "ups" (U23), and "ups" alone
 next to it is still warned (U27, U29). Not a row: no such names
 were found.
+
+## PS: popular sites are never look-alikes (findings #155 part 3)
+
+The signed feed carries the 10,000 most-linked sites of the Majestic Million (CC BY 3.0). A site whose host, or a parent
+domain of it, is on that list is never called a look-alike; only the part in front of it is still read. The scam list still wins.
+
+| ID | Situation (Mom's words) | Mom sees | Guardian gets | Variants | Data source | Test | Emulator | Mutant |
+|---|---|---|---|---|---|---|---|---|
+| PS1 | "A link my daughter sent, share.google" (the field report) | Nothing | Nothing | Its own subdomains (www.share.google, m.media-amazon.com) too | Majestic Million, Oct 18 (share.google ranks 162) | LinkDetectorPopularSitesTest#aGoogleShareLinkIsNotALookalikeWhenTheSiteIsPopular; LinkDetectorPopularSitesTest#anAmazonImageLinkIsNotALookalikeWhenTheSiteIsPopular; LinkDetectorPopularSitesTest#aSubdomainOfAPopularSiteIsNotALookalike | none | popular-site-not-a-lookalike |
+| PS2 | Must never: "PayPal" in front of a popular host (paypal-login.sites.google.com) | The look-alike warning, as today | The note, as today | Mixed alphabets in front of it (Cyrillic "раypal") | Invented names on real popular hosts | LinkDetectorPopularSitesTest#aBrandNameInFrontOfAPopularSiteIsStillALookalike; LinkDetectorPopularSitesTest#mixedAlphabetsInFrontOfAPopularSiteAreStillALookalike | none | popular-site-front-part-still-read |
+| PS3 | Must never: a popular site that is on the scam list | The scam warning | The note |  | Invented | LinkDetectorPopularSitesTest#aPopularSiteOnTheScamListIsStillAScamLink | none | link-uses-feed |
+| PS4 | Hostile: a popular name with a look-alike letter, or inside another address (media-amaz0n.com, media-amazon.com.refund-help.example) | The look-alike warning | The note |  | Invented | LinkDetectorPopularSitesTest#aLookAlikeLetterVersionOfAPopularSiteIsStillALookalike; LinkDetectorPopularSitesTest#aPopularSiteNameInsideAnotherAddressIsStillALookalike | none | popular-site-not-a-lookalike |
+| PS5 | Old feed (built before the list) or no feed yet (offline since install) | Exactly as today | Exactly as today | A site that drops out of the top 10,000 goes back to today's rule | Invented | LinkDetectorPopularSitesTest#anOldFeedWithoutThePopularListBehavesAsToday; LinkDetectorPopularSitesTest#noFeedAtAllBehavesAsToday | none | popular-site-not-a-lookalike |
+| PS6 | Phone on the released 0.3.10 gets a feed with the list | The new feed is used as before; the list is never read as scam sites | Nothing new | The list rides in the host hashes under its own prefix, no new section | Real excerpts (Majestic, Phishing.Database, Echap) | PopularSitesFeedTest#theReleasedDecoderReadsAFeedWithThePopularList; PopularSitesFeedTest#aPopularSiteIsNeverAScamMatch | none | popular-entries-kept-apart |
+| PS7 | The daily build gets a short, changed or junk Majestic file, or empty scam lists | The last good feed stays | Nothing | Layout changed, fewer than 10,000 rows, rows that are not host names | Real Majestic excerpt, cut | PopularSitesFeedTest#aShortOrChangedPopularListFailsTheBuild; PopularSitesFeedTest#aRowThatIsNotAHostNameIsNotCounted; PopularSitesFeedTest#scamEntriesLeaveThePopularSitesOut | none | popular-list-full-or-refused; build-counts-scam-entries-only |
+| PS8 | Only the top 10,000 go in |  |  |  | Real Majestic excerpt | PopularSitesFeedTest#theTopMostLinkedSitesGoInAndNoMore; PopularSitesFeedTest#theRealSitesOfTheFieldReportAreOnTheList | none | popular-list-full-or-refused |

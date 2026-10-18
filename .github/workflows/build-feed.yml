@@ -58,13 +58,16 @@ jobs:
           # Echap's spying-app indicators (CC BY 4.0, attribution in the feed's NOTICE.txt).
           curl -fsSL --retry 3 -o lists/echap-ioc.yaml https://raw.githubusercontent.com/AssoEchap/stalkerware-indicators/master/ioc.yaml
           grep -c '^- name:' lists/echap-ioc.yaml
+          # The most-linked sites (CC BY 3.0, attribution in NOTICE.txt): a site on it is never called a look-alike (findings #155).
+          curl -fsSL --retry 3 -o lists/majestic-million.csv https://downloads.majestic.com/majestic_million.csv
 
       - name: Build and sign
         env:
           AEGIDA_FEED_SIGNING_KEY: ${{ secrets.AEGIDA_FEED_SIGNING_KEY }}
         run: |
           feedtool/build/install/feedtool/bin/feedtool build \
-            --domains lists/phishing-domains.txt --links lists/phishing-links.txt --echap lists/echap-ioc.yaml --out out
+            --domains lists/phishing-domains.txt --links lists/phishing-links.txt --echap lists/echap-ioc.yaml \
+            --popular lists/majestic-million.csv --out out
 
       - name: Fetch the feed that is live now
         run: curl -fsS --retry 2 -o previous.bin "$FEED_URL/feed.bin" || echo "no previous feed (first run)"

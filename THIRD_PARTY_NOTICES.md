@@ -14,6 +14,11 @@ published at https://wizoi.github.io/Aegida-Feed/ (with the notices in `NOTICE.t
   prefixes (a change from the original). A copy of `ioc.yaml` is kept as test data
   (`feedtool/src/test/resources/feeds/echap-ioc.yaml`). No endorsement by Echap or the Coalition Against Stalkerware
   is suggested.
+- **The Majestic Million**: https://majestic.com/reports/majestic-million, by Majestic-12 Ltd, under Creative Commons
+  Attribution 3.0 Unported (CC BY 3.0), https://creativecommons.org/licenses/by/3.0/. Only the 10,000 highest-ranked domains
+  are used, stored in the feed as 8-byte SHA-256 prefixes (a change from the original), so that the most-linked sites are not
+  called look-alikes (findings #155). The first 300 rows are kept as test data
+  (`feedtool/src/test/resources/feeds/majestic-million.csv`). No endorsement by Majestic is suggested.
 
 ## Software
 

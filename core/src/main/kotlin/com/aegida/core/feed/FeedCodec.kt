@@ -15,7 +15,8 @@ import java.time.Instant
  * feed.bin layout (big-endian): "AEGF", version byte, generatedAt epoch seconds (long),
  * source count (int) then per source name/licence (UTF) and entries (int), host count (int) + hashes,
  * URL count (int) + hashes. Version 2 adds package-name count (int) + hashes and signing-certificate count (int) +
- * hashes after that; version 1 feeds still read, with no app lists. feed.sig is an ECDSA P-256 / SHA-256
+ * hashes after that; version 1 feeds still read, with no app lists. The popular-site list (findings #155) rides in the host
+ * hashes under its own prefix, never as a new section: the released 0.3.10 decoder refuses any other version and trailing bytes. feed.sig is an ECDSA P-256 / SHA-256
  * signature of the whole feed.bin.
  */
 object FeedCodec {

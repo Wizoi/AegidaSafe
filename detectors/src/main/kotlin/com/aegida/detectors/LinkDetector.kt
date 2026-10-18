@@ -6,7 +6,9 @@ import com.aegida.core.model.Evidence
 import com.aegida.core.model.Finding
 import com.aegida.core.model.FindingKey
 import com.aegida.core.model.NotificationEvent
+import com.aegida.core.feed.ThreatFeed
 import com.aegida.core.text.Problem
+import com.aegida.core.url.Link
 import com.aegida.core.url.LinkSign
 import com.aegida.core.url.LinkSigns
 import com.aegida.core.url.LinkText
@@ -40,10 +42,9 @@ class LinkDetector @Inject constructor() : Detector {
             .filter { it.raw.contains("://") || TopLevelDomains.isDomain(it.host.substringAfterLast('.')) }
         val links = (plain + prepared).distinctBy { it.host to it.path }
         return links.mapNotNull { link ->
-            val signs = LinkSigns.of(link)
             val problem = when {
                 input.feed?.match(link) != null -> Problem.ScamLink
-                LinkSign.BrandLookalike in signs || LinkSign.MixedScript in signs -> Problem.LookalikeLink
+                looksAlike(link, input.feed) -> Problem.LookalikeLink
                 else -> return@mapNotNull null
             }
             Finding(
@@ -66,10 +67,28 @@ class LinkDetector @Inject constructor() : Detector {
         }
     }
 
+    /**
+     * A site on the popular list is never called a look-alike (findings #155): share.google, media-amazon.com. Only the part in
+     * front of the popular site is still read, so paypal-login.sites.google.com is warned about: that part is not the site's.
+     */
+    private fun looksAlike(link: Link, feed: ThreatFeed?): Boolean {
+        val popular = feed?.popularSite(link)
+        val judged = when (popular) {
+            null -> link
+            link.host -> return false
+            else -> link.copy(host = link.host.removeSuffix(".$popular") + NOT_A_SITE)
+        }
+        val signs = LinkSigns.of(judged)
+        return LinkSign.BrandLookalike in signs || LinkSign.MixedScript in signs
+    }
+
     private fun cap(raw: String): String =
         if (raw.codePointCount(0, raw.length) <= KEPT_CHARS) raw else raw.substring(0, raw.offsetByCodePoints(0, KEPT_CHARS))
 
     private companion object {
         const val KEPT_CHARS = 200
+
+        /** Stands in for the popular site when only the part in front of it is judged: a reserved ending no brand owns. */
+        const val NOT_A_SITE = ".invalid"
     }
 }
