@@ -61,7 +61,7 @@ jobs:
           # The most-linked sites (CC BY 3.0, attribution in NOTICE.txt): a site on it is never called a look-alike (findings #155).
           # A Majestic problem never stops the scam lists (findings #158): without the file the feed is built without the popular
           # list, the build prints a warning, and phones use the look-alike rule as before.
-          if ! curl -fsSL --retry 3 -o lists/majestic-million.csv https://downloads.majestic.com/majestic_million.csv; then
+          if ! curl -fsSL --retry 3 --max-time 300 -o lists/majestic-million.csv https://downloads.majestic.com/majestic_million.csv; then
             echo "::warning::The Majestic Million did not download; the feed is built without the popular list."
             rm -f lists/majestic-million.csv
           fi

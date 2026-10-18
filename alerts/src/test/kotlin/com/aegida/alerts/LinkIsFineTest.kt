@@ -105,7 +105,8 @@ class LinkIsFineTest {
 
     /** ST38: no ordinary site spells a brand with a number or "rn" for "m"; those are made to fool her (findings #156). */
     @Test fun aBrandSpelledWithSwappedLettersCanNeverBeSaidToBeFine() = runTest {
-        listOf("paypa1-help.com", "rnicrosoft-support.com").forEach { host ->
+        // paypal-rnicrosoft.com: a plain brand next to a swapped one is still a swapped brand (findings #161).
+        listOf("paypa1-help.com", "rnicrosoft-support.com", "paypal-rnicrosoft.com").forEach { host ->
             val swapped = link(Problem.LookalikeLink, host)
             pipeline.handle(listOf(swapped), setOf(DetectorId.Link))
             assertFalse(host, actions.allow(swapped.key))

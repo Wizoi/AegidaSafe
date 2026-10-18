@@ -106,7 +106,11 @@ object LinkSigns {
      * (paypa1, rnicrosoft): no ordinary site spells a brand that way, so those are the ones a scammer would coach her to allow.
      */
     fun namesBrandPlainly(link: Link): Boolean =
-        link.host.split('.').none { it.startsWith(ACE_PREFIX) } && imitatesBrand(link.host, link.host, undoLookAlikes = false)
+        link.host.split('.').none { it.startsWith(ACE_PREFIX) } &&
+            brandsImitated(link.host, link.host, undoLookAlikes = false).let { plain ->
+                // Every brand the warning found must be written plainly: paypal-rnicrosoft.com hides a swapped brand (findings #161).
+                plain.isNotEmpty() && plain.containsAll(brandsImitated(link.host, link.host, undoLookAlikes = true))
+            }
 
     private fun mixesScripts(asciiLabel: String): Boolean {
         val label = IDN.toUnicode(asciiLabel, IDN.ALLOW_UNASSIGNED)
@@ -120,16 +124,19 @@ object LinkSigns {
     }
 
     /** A brand word in [read] (the host, or the part of it in front of a popular site) on a [host] the brand does not own. */
-    private fun imitatesBrand(host: String, read: String, undoLookAlikes: Boolean = true): Boolean {
+    private fun imitatesBrand(host: String, read: String): Boolean = brandsImitated(host, read, undoLookAlikes = true).isNotEmpty()
+
+    /** The brands whose word is in [read] on a [host] they do not own. */
+    private fun brandsImitated(host: String, read: String, undoLookAlikes: Boolean): Set<String> {
         val unicode = IDN.toUnicode(read, IDN.ALLOW_UNASSIGNED).lowercase()
         val labels = unicode.split('.').map { label -> label.split('-').flatMap { wordsOf(it, undoLookAlikes) } }
         // Only a parcel word in the same name between dots counts: track.check-ups-clinic.com is a clinic (Kevin, Oct 14).
         val tokens = labels.flatMap { words -> brandWords(words, aboutParcels = words.any { it in PARCEL_WORDS }) }
         val ending = host.lowercase().trimEnd('.').substringAfterLast('.')
-        return BRANDS.any { (brand, domains) ->
+        return BRANDS.filter { (brand, domains) ->
             val owned = domains.any { host == it || host.endsWith(".$it") } || ownsItsEnding(brand, ending)
             !owned && tokens.any { it == brand }
-        }
+        }.keys
     }
 
     /**

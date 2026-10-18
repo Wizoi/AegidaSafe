@@ -166,7 +166,8 @@ object FeedBuilder {
     /**
      * How many of the most-linked sites go in (findings #155, Oct 18 count over the whole Majestic Million): all 203 sites in the top
      * 10,000 that the brand rule calls look-alikes are the brands' own (Google's country and .google sites, media-amazon.com,
-     * cloud.microsoft); the first that is not comes at 15,574 (whats-on-netflix.com), and facebook-mypage.ru at 70,427.
+     * cloud.microsoft). Of those 203, the names under a brand's own ending (.google, .microsoft) and the shorteners need no help, which
+     * leaves the 188 in [REVIEWED_BRAND_SITES] (findings #157, #161). The first that is not comes at 15,574 (whats-on-netflix.com), and facebook-mypage.ru at 70,427.
      */
     const val POPULAR_TOP = 10_000
 
