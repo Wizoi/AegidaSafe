@@ -1,0 +1,4 @@
+What's new:
+• Fewer false warnings about real links, such as Google share links and other well-known websites
+• A look-alike link warning now has a "This link is fine" button. Your guardian is told, and "Warn me again" in My settings undoes it
+• Links on the scam list are still always warned about
