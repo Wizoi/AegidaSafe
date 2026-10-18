@@ -20,3 +20,4 @@ Same idea as above, with one result column: how it was checked, what changed, an
 
 | # | Date | Context | Finding | Result: how it was checked, what changed, status |
 |---|---|---|---|---|
+| 161 | 2026-10-18 | Opus 5.5 high review of #156-#160 | (a) build-feed.yml's Majestic curl has no time limit, so a stalled download can hit the job's 20-minute timeout and stop that day's scam feed (breaks PS7); (b) a name with a plain brand and a letter-swapped brand (paypal-rnicrosoft.com) can be marked fine, against ST38 and the page; (c) ST37 names a mutation check its test cannot catch; FeedBuilder.POPULAR_TOP's comment shows 203 next to 188 unexplained. | (a) --max-time on that curl; (b) refuse when any brand is matched only after letters are undone; test + mutation check; (c) fix the row and the comment. | **Status:** open; fix next |
