@@ -119,7 +119,7 @@ The sections above describe the baselines as they were on the way here.
 
 A 45-minute run by hand, on Opus, from a clean `main`; commits are deletions or corrections only, one topic each, staged by path.
 
-1. `./gradlew build` and `python scripts/mutation-check.py`: both green before anything changes.
+1. `./gradlew build` and `python scripts/mutation-check.py`: both green before anything changes. The mutation run uses `--jobs 4` by default: four worktrees of HEAD under %TEMP%\amut, one check at a time in each, removed on exit (a killed run's leftovers are removed at the next start). `--jobs 1` runs in this checkout.
 2. Update "Weekly numbers" above: deletion ratio from the commit log (`--numstat`), largest main and test file, suite time and
    slowest class (the `testTimeBudget` line), mutation checks counted from `scripts/mutants.json`.
 3. Search `*/src/main` for TODO, FIXME, "for now", commented-out code and unused private functions; fix or delete each.
