@@ -2,7 +2,7 @@ name: CI
 
 # Runs the whole build (compile, unit tests, guards, detekt and Android Lint with no baselines, test-time budget) on
 # every push to any branch and on pull requests (Kevin, Oct 14). Needs no secrets, publishes nothing (the Play upload and the signed feed are separate, manual or
-# in build-feed.yml). The project builds with JDK 17 targets; Gradle itself is run on JDK 17.
+# in build-feed.yml). The project builds with JDK 17 targets; Gradle and the tests run on JDK 21 (Robolectric needs it for SDK 36).
 # Emulator checks are not here (scripts/emulator-checks.sh is run by hand, see docs/emulator-vs-device.md).
 
 on:
@@ -25,7 +25,8 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          # Gradle and the tests run on Java 21: Robolectric needs it for Android 15+ (SDK 36 here). The app still targets Java 17.
+          java-version: '21'
       # Points Gradle at the Android SDK the ubuntu runner image already carries ($ANDROID_HOME).
       - name: Point Gradle at the Android SDK
         run: echo "sdk.dir=$ANDROID_HOME" > local.properties
