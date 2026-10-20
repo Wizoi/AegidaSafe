@@ -64,7 +64,8 @@ class InviteAndFixTest {
     @Test fun theInviteTellsTheGuardianTheyCanGiveTheChannelALabelTheyRecognize() { // finding #162, first-run FR14
         val body = InviteEmail.intent(guardians)!!.getStringExtra(Intent.EXTRA_TEXT)!!
         // The example label is her own name, never "Mom": the text does not assume how the guardian calls her (findings #163).
-        val line = "In ntfy on Android, or on the ntfy website, you can give it a label you will recognize, such as “${guardians.ownerName.trim()} (Aegida)”. " +
+        val owner = guardians.ownerName.trim()
+        val line = "In ntfy on Android, or on the ntfy website, you can give it a label you will recognize, such as “$owner (Aegida)”. " +
             "Look for “Display name”."
         assertTrue(body, body.contains(line))
         assertTrue("it comes with step 2, before the web page step", body.indexOf(line) in body.indexOf("2. Open ntfy")..body.indexOf("3. Optional"))
