@@ -20,4 +20,3 @@ Same idea as above, with one result column: how it was checked, what changed, an
 
 | # | Date | Context | Finding | Result: how it was checked, what changed, status |
 |---|---|---|---|---|
-| 162 | 2026-10-19 | Kevin, using ntfy with more than one person | A guardian's channel name (aegida_ + 40 random characters) does not say whose it is, so in the ntfy app or website with several channels it is unclear who a note is for. | Kevin chose (Oct 19): new channel names start with the owner's first name (e.g. Ruth-aegida-<40 random>; name cut to 12 plain letters, accents removed, left out if it has no Latin letters; 64-character ntfy limit; the random part unchanged); names already given out are not changed; the invitation email adds one line that the guardian can rename the channel in ntfy. | **Status:** open; building |

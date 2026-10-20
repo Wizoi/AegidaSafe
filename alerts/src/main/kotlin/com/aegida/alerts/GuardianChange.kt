@@ -28,7 +28,7 @@ class GuardianChange @Inject constructor(
         val cancelled = if (before.alertsOn || !before.heartbeatCancelled) switch.disarm() else null
         settings.save(
             settings.current().copy( // read again: disarm may have saved
-                firstTopic = NtfyTopic.generate(),
+                firstTopic = NtfyTopic.generate(before.ownerName),
                 firstGuardianName = name.trim(),
                 firstGuardianEmail = email.trim(),
                 firstGuardianPhone = phone.trim(),

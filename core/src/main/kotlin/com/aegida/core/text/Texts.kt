@@ -330,7 +330,9 @@ object Texts {
             "   iPhone: https://apps.apple.com/app/ntfy/id1625396347\n\n" +
             "2. Open ntfy, tap +, then copy this name and paste it:\n" +
             "   %s\n" +
-            "   (On Android you can instead tap this link once ntfy is installed: ntfy://ntfy.sh/%s)\n\n" +
+            "   (On Android you can instead tap this link once ntfy is installed: ntfy://ntfy.sh/%s)\n" +
+            "   In ntfy on Android, or on the ntfy website, you can give it a label you will recognize, such as “Mom (Aegida)”. " +
+            "Look for “Display name”.\n\n" +
             "3. Optional, to read them on a computer too: open https://ntfy.sh/%s in a web browser. " +
             "It only shows messages while that page is open, so it does not replace step 2.\n\n" +
             "Please save this email. The name above is all you need to get my messages on another phone or computer later.\n\n" +

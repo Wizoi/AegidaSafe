@@ -54,8 +54,39 @@ value class NtfyTopic(val value: String) {
         private const val ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789"
         private const val RANDOM_LENGTH = 40
 
-        /** "aegida_" plus 40 random letters and digits without look-alikes (57 characters, about 233 bits). Pass a SecureRandom; the default is one. */
-        fun generate(random: java.util.Random = java.security.SecureRandom()): NtfyTopic =
-            NtfyTopic("aegida_" + String(CharArray(RANDOM_LENGTH) { ALPHABET[random.nextInt(ALPHABET.length)] }))
+        /** At most 12 letters of her name, so the whole name stays inside ntfy's 64 characters (12 + "-aegida-" + 40 = 60). */
+        private const val NAME_LETTERS = 12
+
+        /** Letters that do not come apart into a plain letter and an accent, written the usual plain way. */
+        private val PLAIN_FORMS = mapOf(
+            'ß' to "ss", 'ø' to "o", 'Ø' to "O", 'æ' to "ae", 'Æ' to "Ae", 'œ' to "oe", 'Œ' to "Oe", 'ł' to "l", 'Ł' to "L",
+            'đ' to "d", 'Đ' to "D", 'ð' to "d", 'Ð' to "D", 'þ' to "th", 'Þ' to "Th", 'ı' to "i",
+        )
+        private val MARKS = Regex("\\p{M}+")
+        private val WORD_BREAK = Regex("[\\p{Z}\\s]+")
+
+        /**
+         * A new channel name (finding #162): her first name, "-aegida-", then 40 random letters and digits without look-alikes
+         * (57 characters, about 233 bits), so a guardian who follows several channels in ntfy sees whose it is. With no
+         * name that can be written in plain letters it is "aegida-" and the 40. Pass a SecureRandom; the default is one.
+         */
+        fun generate(ownerName: String, random: java.util.Random = java.security.SecureRandom()): NtfyTopic {
+            val secret = String(CharArray(RANDOM_LENGTH) { ALPHABET[random.nextInt(ALPHABET.length)] })
+            val name = plainFirstName(ownerName)
+            return NtfyTopic(if (name.isEmpty()) "aegida-$secret" else "$name-aegida-$secret")
+        }
+
+        /**
+         * The first word of her name that has a letter, accents taken off, in plain letters A-Z and a-z only (no digits, so
+         * no 0 or 1 next to an O or l), first letter raised, at most [NAME_LETTERS]. Empty when any letter in it has no plain
+         * form (another alphabet, or one look-alike letter mixed in), so the name is never spelled half or wrong.
+         */
+        private fun plainFirstName(ownerName: String): String {
+            val word = ownerName.split(WORD_BREAK).firstOrNull { w -> w.any { it.isLetter() } }.orEmpty()
+            val plain = MARKS.replace(java.text.Normalizer.normalize(word, java.text.Normalizer.Form.NFKD), "")
+                .map { PLAIN_FORMS[it] ?: it.toString() }.joinToString("")
+            if (plain.any { it.isLetter() && it !in 'A'..'Z' && it !in 'a'..'z' }) return ""
+            return plain.filter { it in 'A'..'Z' || it in 'a'..'z' }.take(NAME_LETTERS).replaceFirstChar { it.uppercaseChar() }
+        }
     }
 }

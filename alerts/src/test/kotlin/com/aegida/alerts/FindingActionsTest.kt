@@ -38,7 +38,7 @@ class FindingActionsTest {
     private val owner = Owner()
     private val history = History()
     private val http = Http()
-    private val topic = NtfyTopic.generate(java.util.Random(3))
+    private val topic = NtfyTopic.generate("Ruth", java.util.Random(3))
     private val outbox = FakeOutbox()
     private val guardians = FakeGuardians(Guardians(alertsOn = true, ownerName = "Ruth", firstTopic = topic))
     private val pipeline = AlertPipeline(findings, owner, history, GuardianLine(guardians, NtfySender(http), outbox)) { now }
