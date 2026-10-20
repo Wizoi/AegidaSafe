@@ -61,6 +61,26 @@ class InviteAndFixTest {
         assertTrue("and comes after the app steps", body.indexOf("https://ntfy.sh/") > body.indexOf("ntfy://ntfy.sh/"))
     }
 
+    @Test fun theAndroidLinkSetsTheDisplayNameToTheSameLabelTheEmailSuggests() { // finding #163, first-run FR16
+        val body = InviteEmail.intent(guardians)!!.getStringExtra(Intent.EXTRA_TEXT)!!
+        // ntfy docs (docs.ntfy.sh/subscribe/phone, Android app 1.21.1 or later): ntfy://<host>/<topic>?display=<name>
+        assertTrue(body, body.contains("tap this link once ntfy is installed: ntfy://ntfy.sh/${topic.value}?display=Ruth+%28Aegida%29)"))
+        assertTrue("the web link and the name to copy are unchanged", body.contains("open https://ntfy.sh/${topic.value} in a web browser"))
+    }
+
+    @Test fun theLinkLabelIsTheNameAsTypedEncodedSoNothingCanBreakTheLink() {
+        val tricky = guardians.copy(ownerName = " Zoë O'Brien & Co?#=% ")
+        val body = InviteEmail.intent(tricky)!!.getStringExtra(Intent.EXTRA_TEXT)!!
+        val link = body.substringAfter("ntfy://ntfy.sh/").substringBefore(")")
+        assertEquals("${topic.value}?display=Zo%C3%AB+O%27Brien+%26+Co%3F%23%3D%25+%28Aegida%29", link)
+    }
+
+    @Test fun withNoOwnerNameTheLinkHasNoDisplayName() {
+        val body = InviteEmail.intent(guardians.copy(ownerName = "  "))!!.getStringExtra(Intent.EXTRA_TEXT)!!
+        assertTrue(body, body.contains("ntfy://ntfy.sh/${topic.value})"))
+        assertFalse(body.contains("display="))
+    }
+
     @Test fun theInviteTellsTheGuardianTheyCanGiveTheChannelALabelTheyRecognize() { // finding #162, first-run FR14
         val body = InviteEmail.intent(guardians)!!.getStringExtra(Intent.EXTRA_TEXT)!!
         // The example label is her own name, never "Mom": the text does not assume how the guardian calls her (findings #163).
