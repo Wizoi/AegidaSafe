@@ -32,7 +32,7 @@ class LinkIsFineTest {
     private val history = History()
     private val http = Http()
     private val outbox = FakeOutbox()
-    private val guardians = FakeGuardians(Guardians(alertsOn = true, ownerName = "Ruth", firstTopic = NtfyTopic.generate(java.util.Random(3))))
+    private val guardians = FakeGuardians(Guardians(alertsOn = true, ownerName = "Ruth", firstTopic = NtfyTopic.generate("Ruth", java.util.Random(3))))
     private val pipeline = AlertPipeline(findings, owner, history, GuardianLine(guardians, NtfySender(http), outbox)) { now }
     private val allowList = FakeAllowList()
     private val phone = Snapshot(now, PrivateDns.Automatic, "com.android.chrome", true, true, Reading.NotPresent, Reading.NotPresent)

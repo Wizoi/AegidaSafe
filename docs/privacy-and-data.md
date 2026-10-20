@@ -15,14 +15,16 @@ Written for someone auditing the code. Each statement is backed by a test or a g
 
 ## Stores on the phone
 In Aegida's private storage only (excluded from backup and phone-to-phone transfer): the owner's first name, the chosen safety
-picture, the guardian's name, email and phone number, a random private topic name for guardian messages, a baseline of the
+picture, the guardian's name, email and phone number, a private topic name for guardian messages, a baseline of the
 phone at setup, the findings, a 90-day history, queued guardian messages, and the downloaded scam list.
 
 ## Sends
 - To the public ntfy.sh service, only when the owner turned guardian alerts on: short fixed sentences written with the owner's first name
   ("A message with a scam link arrived on Ruth's phone. Aegida warned Ruth."). **No message text and no whole web address. It may name the app a scam message came from and a masked address (`pa*****.example`).**
-  The topic name is the only access control, so it is random (238 bits) and is given to the guardian by email from the
-  owner's own phone.
+  The topic name is the only access control, so its last 40 characters are random (about 233 bits) and it is given to the guardian by email from the
+  owner's own phone. A new topic starts with the owner's first name in plain letters (`Ruth-aegida-` and the 40),
+  so a guardian with several topics in ntfy sees whose it is; the notes already carry the owner's first name, so ntfy.sh learns nothing new
+  beyond the topic name itself. Topics given out before keep their old `aegida_` form.
 - To https://wizoi.github.io/Aegida-Feed/ : an ordinary download of the signed list. Nothing about the phone is sent.
 - Nothing else. The app contains no analytics, no advertising, no crash-reporting service and no accounts.
 

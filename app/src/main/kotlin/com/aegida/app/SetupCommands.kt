@@ -53,7 +53,7 @@ class SetupCommands @Inject constructor(
     suspend fun prepareInvite(): Guardians {
         val current = guardianSettings.current()
         if (current.firstTopic != null) return current
-        val made = current.copy(firstTopic = NtfyTopic.generate())
+        val made = current.copy(firstTopic = NtfyTopic.generate(current.ownerName))
         guardianSettings.save(made)
         return made
     }

@@ -131,7 +131,7 @@ Pure, deterministic, given `Inputs(snapshot, baseline, feeds, linkEvent?, now)`.
 4. Reminder: a finding still Open after 24 h reminds the same guardian once and becomes `Escalated` (still open, still on Home). Checked on each run.
 A failed send goes to the outbox (`QueuedMessage` in Room: topic, words, kind, the app or site it was about, and every other warning a reminder covers), tried again after every check with a wait of 15 minutes doubling to at most 6 hours, given up after 7 days with a History line (`OutboxFlusher`). Delivered later, it writes the same History lines as a message sent at once. A message held for a day raises `GuardianUnreachable` (`DeliveryDetector`).
 
-**Topic**: `aegida_` plus 40 random characters from a 57-character alphabet without I, l, 1, O or 0 (`NtfyTopic.generate`, SecureRandom, findings #110), one per install; the topic name is the only access control.
+**Topic**: the owner's first name in plain letters (at most 12, left out when it has none), `-aegida-`, then 40 random characters from a 57-character alphabet without I, l, 1, O or 0 (`NtfyTopic.generate`, SecureRandom, findings #110 and #162), one per guardian; topics given out before keep their `aegida_` form; the topic name is the only access control.
 
 ## 6. Failure design (decided before building)
 

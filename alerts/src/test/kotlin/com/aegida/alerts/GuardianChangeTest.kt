@@ -36,6 +36,13 @@ class GuardianChangeTest {
         assertEquals("https://ntfy.sh/${oldTopic.value}/heartbeat", http.deleted.single().url)
     }
 
+    @Test fun theNewGuardiansChannelStartsWithTheOwnersName() = runTest { // GN8, finding #162
+        guardians.value = guardians.value.copy(ownerName = "Zoë Smith")
+        change.change("Ann", "ann@example.com", "")
+        val topic = guardians.value.firstTopic!!.value
+        assertTrue(topic, topic.matches(Regex("Zoe-aegida-[A-Za-z0-9]{40}")))
+    }
+
     @Test fun withAlertsOnTheNewGuardianIsToldAndTheHeartbeatMovesToThem() = runTest {
         change.change("Ann", "ann@example.com", "")
         val newTopic = guardians.value.firstTopic!!

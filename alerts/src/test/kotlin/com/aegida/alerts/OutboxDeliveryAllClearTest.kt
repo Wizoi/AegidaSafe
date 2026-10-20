@@ -27,7 +27,7 @@ class OutboxDeliveryAllClearTest {
     private val history = History()
     private val http = Http()
     private val outbox = FakeOutbox()
-    private val topic = NtfyTopic.generate(java.util.Random(3))
+    private val topic = NtfyTopic.generate("Ruth", java.util.Random(3))
     private val guardians = FakeGuardians(Guardians(alertsOn = true, ownerName = "Ruth", firstTopic = topic))
     private val pipeline = AlertPipeline(findings, Owner(), history, GuardianLine(guardians, NtfySender(http), outbox)) { now }
     private val flusher = OutboxFlusher(outbox, NtfySender(http), history, guardians) { now }

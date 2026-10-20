@@ -259,13 +259,13 @@ class SafetyPictureAndTopicTest {
 
     @Test fun generatedTopicsAreLongUrlSafeAndDifferentEachTime() {
         val random = Random(42)
-        val topics = List(50) { NtfyTopic.generate(random).value }
+        val topics = List(50) { NtfyTopic.generate("", random).value }
         assertEquals(50, topics.toSet().size)
         topics.forEach {
-            assertEquals(47, it.length) // "aegida_" + 40
-            assertTrue(it.all { c -> c.isLetterOrDigit() || c == '_' })
+            assertEquals(47, it.length) // "aegida-" + 40 with no name
+            assertTrue(it.all { c -> c.isLetterOrDigit() || c == '-' })
         }
-        assertNotEquals(NtfyTopic.generate().value, NtfyTopic.generate().value) // the real SecureRandom
+        assertNotEquals(NtfyTopic.generate("Ruth").value, NtfyTopic.generate("Ruth").value) // the real SecureRandom
     }
 
     @Test fun anUnansweredWebsiteQuestionIsNotShownAsHandledAndALateAllowNoteIsNotShownAsNeedsYou() { // findings #94, #96

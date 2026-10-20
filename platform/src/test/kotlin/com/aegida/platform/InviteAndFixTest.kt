@@ -22,7 +22,7 @@ import java.time.Instant
 
 @RunWith(RobolectricTestRunner::class)
 class InviteAndFixTest {
-    private val topic = NtfyTopic.generate(java.util.Random(7))
+    private val topic = NtfyTopic.generate("Ruth", java.util.Random(7))
     private val guardians = Guardians(
         alertsOn = false, ownerName = "Ruth", firstTopic = topic,
         firstGuardianName = "Kevin", firstGuardianEmail = " kevin@example.org ", firstGuardianPhone = "(555) 010-0199",
@@ -59,6 +59,15 @@ class InviteAndFixTest {
         val offered = "3. Optional, to read them on a computer too: open https://ntfy.sh/${topic.value} in a web browser"
         assertTrue("the web page is offered for a computer", body.contains(offered))
         assertTrue("and comes after the app steps", body.indexOf("https://ntfy.sh/") > body.indexOf("ntfy://ntfy.sh/"))
+    }
+
+    @Test fun theInviteTellsTheGuardianTheyCanGiveTheChannelALabelTheyRecognize() { // finding #162, first-run FR14
+        val body = InviteEmail.intent(guardians)!!.getStringExtra(Intent.EXTRA_TEXT)!!
+        val line = "In ntfy on Android, or on the ntfy website, you can give it a label you will recognize, such as “Mom (Aegida)”. " +
+            "Look for “Display name”."
+        assertTrue(body, body.contains(line))
+        assertTrue("it comes with step 2, before the web page step", body.indexOf(line) in body.indexOf("2. Open ntfy")..body.indexOf("3. Optional"))
+        assertTrue("the iPhone app is not claimed", body.lines().single { "Display name" in it }.contains("iPhone").not())
     }
 
     @Test fun withNoOwnerNameTheInviteDoesNotSayTheAppPickedThem() { // findings #95
