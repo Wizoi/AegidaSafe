@@ -14,6 +14,7 @@ import com.aegida.core.net.BytesResult
 import com.aegida.core.net.Endpoint
 import com.aegida.core.net.FailureReason
 import com.aegida.core.net.HttpResult
+import com.aegida.core.net.NtfyAppLink
 import com.aegida.core.net.NtfyTopic
 import com.aegida.core.oem.Reading
 import com.aegida.core.text.Texts
@@ -105,7 +106,9 @@ internal class WholePhone(network: (Http) -> com.aegida.core.net.HttpClient = { 
     suspend fun invitation(): String {
         val g = guardians.current()
         val label = if (g.ownerName.isBlank()) "" else Texts.Invite.LABEL_EXAMPLE.format(g.ownerName.trim())
-        return Texts.Invite.BODY.format(g.firstGuardianName, g.firstTopic!!.value, g.firstTopic!!.value, label, g.firstTopic!!.value, g.ownerName)
+        val topic = g.firstTopic!!
+        val link = NtfyAppLink.pathFor(topic, g.ownerName)
+        return Texts.Invite.BODY.format(g.firstGuardianName, topic.value, link, label, topic.value, g.ownerName)
     }
 
     /** finishStep for every step. */

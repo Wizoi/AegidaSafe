@@ -44,6 +44,22 @@ class EndpointTest {
 
     private fun hasNoName(owner: String) = NtfyTopic.generate(owner, java.util.Random(3)).value.matches(Regex("aegida-[A-Za-z0-9]{40}"))
 
+    @Test fun aTitleBeforeTheNameIsSkippedAndNeverBecomesTheName() { // FR15, finding #163
+        assertEquals("Ruth", nameOf("Dr. Ruth"))
+        assertEquals("Smith", nameOf("Mrs Smith"))
+        assertEquals("John", nameOf("Mr. John Smith"))
+        assertEquals("case does not matter", "Ruth", nameOf("PROF. ruth"))
+        assertEquals("more than one title", "Ruth", nameOf("Rev Dr Ruth"))
+        for (title in listOf("Dr", "Mr", "Mrs", "Ms", "Miss", "Mx", "Prof", "Rev", "Sir", "Dame", "Fr")) {
+            assertEquals(title, "Ruth", nameOf("$title Ruth"))
+            assertEquals("$title with a dot", "Ruth", nameOf("$title. Ruth"))
+        }
+        assertEquals("a name that only starts like a title is a name", "Drew", nameOf("Drew"))
+        assertEquals("Frances", nameOf("Frances Dr"))
+        assertEquals("only a title gives no name", true, hasNoName("Dr."))
+        assertEquals("only titles give no name", true, hasNoName("Mrs Dr"))
+    }
+
     @Test fun aNewChannelNameStartsWithTheOwnersFirstName() { // FR8, finding #162
         val made = NtfyTopic.generate("Ruth", java.util.Random(3)).value
         assertTrue(made, made.matches(Regex("Ruth-aegida-[A-Za-z0-9]{40}")))

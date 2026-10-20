@@ -62,6 +62,8 @@ value class NtfyTopic(val value: String) {
             'ß' to "ss", 'ø' to "o", 'Ø' to "O", 'æ' to "ae", 'Æ' to "Ae", 'œ' to "oe", 'Œ' to "Oe", 'ł' to "l", 'Ł' to "L",
             'đ' to "d", 'Đ' to "D", 'ð' to "d", 'Ð' to "D", 'þ' to "th", 'Þ' to "Th", 'ı' to "i",
         )
+        /** Titles skipped before her first name, with or without a dot (finding #163, Kevin Oct 19). None is a usual first name; "Sr" is left out as it is also a name ending. */
+        private val TITLES = setOf("dr", "mr", "mrs", "ms", "miss", "mx", "prof", "rev", "sir", "dame", "fr")
         private val MARKS = Regex("\\p{M}+")
         private val WORD_BREAK = Regex("[\\p{Z}\\s]+")
 
@@ -82,7 +84,7 @@ value class NtfyTopic(val value: String) {
          * form (another alphabet, or one look-alike letter mixed in), so the name is never spelled half or wrong.
          */
         private fun plainFirstName(ownerName: String): String {
-            val word = ownerName.split(WORD_BREAK).firstOrNull { w -> w.any { it.isLetter() } }.orEmpty()
+            val word = ownerName.split(WORD_BREAK).firstOrNull { w -> w.any { it.isLetter() } && w.trimEnd('.').lowercase() !in TITLES }.orEmpty()
             val plain = MARKS.replace(java.text.Normalizer.normalize(word, java.text.Normalizer.Form.NFKD), "")
                 .map { PLAIN_FORMS[it] ?: it.toString() }.joinToString("")
             // Code points, not chars: a letter outside the basic range is two chars, neither a letter alone (findings #163).

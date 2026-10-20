@@ -323,7 +323,8 @@ object Texts {
         const val SUBJECT_NO_NAME = "You have been picked as a guardian"
 
         /** The example label in [BODY]: her own name, never "Mom", which assumes how the guardian calls her (findings #163). */
-        const val LABEL_EXAMPLE = ", such as “%s (Aegida)”"
+        const val LABEL = "%s (Aegida)"
+        const val LABEL_EXAMPLE = ", such as “$LABEL”"
         const val BODY = "Hi %s,\n\n" +
             "I've picked you as my guardian. If I have switched on “Tell my guardian about serious problems” in my Aegida app, " +
             "you will get a first message saying it is set up, and then a message if my phone needs help. " +
