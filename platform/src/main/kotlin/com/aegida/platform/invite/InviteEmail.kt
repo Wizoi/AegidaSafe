@@ -30,11 +30,12 @@ object InviteEmail {
     private fun draft(guardians: Guardians, topic: String, email: String, mailApps: List<String>): Intent {
         val owner = guardians.ownerName.trim() // blank: no name, never "Aegida has picked you" (findings #95)
         val guardian = guardians.firstGuardianName.ifBlank { "there" }
+        val labelExample = if (owner.isEmpty()) "" else Texts.Invite.LABEL_EXAMPLE.format(owner)
         fun send() = Intent(Intent.ACTION_SEND)
             .setType("text/plain")
             .putExtra(Intent.EXTRA_EMAIL, arrayOf(email))
             .putExtra(Intent.EXTRA_SUBJECT, if (owner.isEmpty()) Texts.Invite.SUBJECT_NO_NAME else Texts.Invite.SUBJECT.format(owner))
-            .putExtra(Intent.EXTRA_TEXT, Texts.Invite.BODY.format(guardian, topic, topic, topic, owner))
+            .putExtra(Intent.EXTRA_TEXT, Texts.Invite.BODY.format(guardian, topic, topic, labelExample, topic, owner))
         val intent = when (mailApps.size) {
             0 -> send()
             1 -> send().setPackage(mailApps.single())

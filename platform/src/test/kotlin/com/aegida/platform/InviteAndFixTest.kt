@@ -63,11 +63,18 @@ class InviteAndFixTest {
 
     @Test fun theInviteTellsTheGuardianTheyCanGiveTheChannelALabelTheyRecognize() { // finding #162, first-run FR14
         val body = InviteEmail.intent(guardians)!!.getStringExtra(Intent.EXTRA_TEXT)!!
-        val line = "In ntfy on Android, or on the ntfy website, you can give it a label you will recognize, such as “Mom (Aegida)”. " +
+        // The example label is her own name, never "Mom": the text does not assume how the guardian calls her (findings #163).
+        val line = "In ntfy on Android, or on the ntfy website, you can give it a label you will recognize, such as “${guardians.ownerName.trim()} (Aegida)”. " +
             "Look for “Display name”."
         assertTrue(body, body.contains(line))
         assertTrue("it comes with step 2, before the web page step", body.indexOf(line) in body.indexOf("2. Open ntfy")..body.indexOf("3. Optional"))
         assertTrue("the iPhone app is not claimed", body.lines().single { "Display name" in it }.contains("iPhone").not())
+    }
+
+    @Test fun withNoOwnerNameTheLabelLineGivesNoExampleName() { // findings #163
+        val body = InviteEmail.intent(guardians.copy(ownerName = " "))!!.getStringExtra(Intent.EXTRA_TEXT)!!
+        assertTrue(body, body.contains("you can give it a label you will recognize. Look for “Display name”."))
+        assertFalse(body, body.contains("Mom"))
     }
 
     @Test fun withNoOwnerNameTheInviteDoesNotSayTheAppPickedThem() { // findings #95

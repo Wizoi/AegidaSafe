@@ -104,7 +104,8 @@ internal class WholePhone(network: (Http) -> com.aegida.core.net.HttpClient = { 
     /** The invitation's text, as InviteEmail fills it in. */
     suspend fun invitation(): String {
         val g = guardians.current()
-        return Texts.Invite.BODY.format(g.firstGuardianName, g.firstTopic!!.value, g.firstTopic!!.value, g.firstTopic!!.value, g.ownerName)
+        val label = if (g.ownerName.isBlank()) "" else Texts.Invite.LABEL_EXAMPLE.format(g.ownerName.trim())
+        return Texts.Invite.BODY.format(g.firstGuardianName, g.firstTopic!!.value, g.firstTopic!!.value, label, g.firstTopic!!.value, g.ownerName)
     }
 
     /** finishStep for every step. */

@@ -85,7 +85,8 @@ value class NtfyTopic(val value: String) {
             val word = ownerName.split(WORD_BREAK).firstOrNull { w -> w.any { it.isLetter() } }.orEmpty()
             val plain = MARKS.replace(java.text.Normalizer.normalize(word, java.text.Normalizer.Form.NFKD), "")
                 .map { PLAIN_FORMS[it] ?: it.toString() }.joinToString("")
-            if (plain.any { it.isLetter() && it !in 'A'..'Z' && it !in 'a'..'z' }) return ""
+            // Code points, not chars: a letter outside the basic range is two chars, neither a letter alone (findings #163).
+            if (plain.codePoints().anyMatch { Character.isLetter(it) && it !in 'A'.code..'Z'.code && it !in 'a'.code..'z'.code }) return ""
             return plain.filter { it in 'A'..'Z' || it in 'a'..'z' }.take(NAME_LETTERS).replaceFirstChar { it.uppercaseChar() }
         }
     }

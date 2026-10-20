@@ -75,7 +75,9 @@ class EndpointTest {
         val ivan = "Иван"
         val wangFang = "王芳"
         val cyrillicU = "у"
-        listOf(ivan, wangFang, "", "   ", "🌸", "1234", "'-'", "R${cyrillicU}th", "Ruth李", "Ruthα").forEach { owner ->
+        // A letter outside the basic range takes two chars (Adlam, CJK Extension B): still never half a name (findings #163).
+        val adlam = String(Character.toChars(0x1E900))
+        listOf(ivan, wangFang, "", "   ", "🌸", "1234", "'-'", "R${cyrillicU}th", "Ruth李", "Ruthα", "Ruth$adlam").forEach { owner ->
             assertTrue("'$owner' gave ${NtfyTopic.generate(owner, java.util.Random(3)).value}", hasNoName(owner))
         }
         assertEquals("letters before an emoji are kept", "Ruth", nameOf("Ruth🌸"))
