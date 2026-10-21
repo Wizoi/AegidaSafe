@@ -1,0 +1,4 @@
+What's new:
+• Your guardian's channel in the ntfy app now starts with your first name, so they can tell whose it is
+• On Android, the invitation link also labels the channel for them, such as "Ruth (Aegida)"
+• Guardians already set up keep their channel; nothing changes for them
