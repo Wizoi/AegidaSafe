@@ -1,0 +1,4 @@
+What's new:
+• Every warning now says what caused it: the website's name, or the app's name with where it came from and when it was added
+• Tapping a "Was that you?" notice opens that question right away
+• At large text sizes, the main buttons always stay on screen
