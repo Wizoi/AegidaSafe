@@ -117,14 +117,18 @@ class HomeScreenTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark, fon
             mapOf(com.aegida.core.model.Evidence.SITE to "https://news.example"), now, now,
         )
         var home: HomeState = HomeState.NoKnownProblems(now)
-        val vm = appViewModel { home }
+        // As on a phone, a reload runs off the main thread and finishes after the screen has been drawn: here, when the test says.
+        val work = kotlinx.coroutines.test.StandardTestDispatcher()
+        val vm = appViewModel(work) { home }
         var asked by androidx.compose.runtime.mutableStateOf<FindingKey?>(null)
         show { com.aegida.app.ui.AppRoot(vm, asked = asked, onAsked = { asked = null }) }
+        work.scheduler.advanceUntilIdle()
         reachable(Texts.Home.ALL_GOOD)
         home = HomeState.NeedsTaps(listOf(question)) // the check that posted the banner stored the warning
         asked = question.key // onNewIntent
-        compose.waitForIdle()
+        compose.waitForIdle() // drawn with the screen from before the warning
         vm.refresh(runCheck = false) // onResume
+        work.scheduler.advanceUntilIdle()
         reachable(Texts.Home.CONFIRM_YES)
         reachable("The website: news.example")
     }
@@ -149,12 +153,12 @@ class HomeScreenTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark, fon
         compose.onNodeWithText(Texts.Home.CONFIRM_YES).assertDoesNotExistOrFail()
     }
 
-    private fun appViewModel(home: () -> HomeState): MainViewModel {
+    private fun appViewModel(work: kotlinx.coroutines.CoroutineDispatcher = Dispatchers.Unconfined, home: () -> HomeState): MainViewModel {
         val loader = mockk<MainStateLoader>()
         val done = Setup("x", emptySet(), stepsDone = SetupStep.entries.size)
         coEvery { loader.load() } answers { MainState(loaded = true, now = now, setup = done, home = home()) }
         return MainViewModel(loader, mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true))
-            .also { it.work = Dispatchers.Unconfined }
+            .also { it.work = work }
     }
 
     private fun showApp(home: HomeState, asked: FindingKey) {
