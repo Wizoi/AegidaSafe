@@ -176,13 +176,33 @@ class AndroidSnapshotterTest {
             }
             applicationInfo = android.content.pm.ApplicationInfo().apply {
                 packageName = pkg
-                this.name = label
                 nonLocalizedLabel = label
                 flags = if (system) android.content.pm.ApplicationInfo.FLAG_SYSTEM else 0
             }
         }
         shadowOf(context.packageManager).installPackage(info)
         @Suppress("DEPRECATION") context.packageManager.setInstallerPackageName(pkg, installer)
+    }
+
+    /**
+     * WN38 (#169): an app with no android:label. Android's own loadLabel (run here by Robolectric) then hands back the Application class
+     * name, or the package name; neither is a name, so the label is empty and the owner reads "Aegida can't read this app's name."
+     */
+    @Test fun anAppWithNoNameOfItsOwnHasNoLabelRatherThanItsPackageOrClassName() {
+        fun installNameless(pkg: String, applicationClass: String?) = shadowOf(context.packageManager).installPackage(
+            android.content.pm.PackageInfo().apply {
+                packageName = pkg
+                applicationInfo = ApplicationInfo().apply { packageName = pkg; name = applicationClass; className = applicationClass }
+            },
+        )
+        installNameless("com.evil.app", null)
+        installNameless("com.evil.other", "com.evil.other.App")
+        val pm = context.packageManager
+        assertEquals("com.evil.app", pm.getApplicationLabel(pm.getApplicationInfo("com.evil.app", 0)).toString())
+        assertEquals("com.evil.other.App", pm.getApplicationLabel(pm.getApplicationInfo("com.evil.other", 0)).toString())
+        val apps = take().apps.associateBy { it.packageName }
+        assertEquals("", apps.getValue("com.evil.app").label)
+        assertEquals("", apps.getValue("com.evil.other").label)
     }
 
     @Test fun appsAreReadWithTheirNameTheStoreThatInstalledThemAndWhetherTheyShippedWithThePhone() {

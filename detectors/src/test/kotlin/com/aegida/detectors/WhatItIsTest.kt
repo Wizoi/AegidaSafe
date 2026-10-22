@@ -100,8 +100,18 @@ class WhatItIsTest {
         val added = now.minus(Duration.ofDays(20))
         val firefox = aPlayApp("org.mozilla.firefox").copy(label = "Firefox", firstInstalled = added)
         val finding = drift(snapshot().copy(browser = "org.mozilla.firefox", apps = listOf(firefox))).single()
-        val day = DateTimeFormatter.ofPattern("MMMM d", locale).format(added.atZone(zone))
+        val sameYear = added.atZone(zone).year == now.atZone(zone).year
+        val day = DateTimeFormatter.ofPattern(if (sameYear) "MMMM d" else "MMMM d, yyyy", locale).format(added.atZone(zone))
         assertEquals(listOf("The app is called: “Firefox”", "It came from the Play Store.", "Added on $day."), finding.what())
+    }
+
+    /** WN36 (#167): an app added in an earlier year says the year, so one from years ago never reads as this month. */
+    @Test fun anAppAddedInAnEarlierYearSaysTheYear() {
+        val added = now.atZone(zone).minusYears(3).toInstant()
+        val app = aPlayApp("org.mozilla.firefox").copy(label = "Firefox", firstInstalled = added)
+        val finding = drift(snapshot().copy(browser = "org.mozilla.firefox", apps = listOf(app))).single()
+        val day = DateTimeFormatter.ofPattern("MMMM d, yyyy", locale).format(added.atZone(zone))
+        assertEquals("Added on $day.", finding.what().last())
     }
 
     @Test fun aNewAppFromOutsideThePlayStoreSaysSo() { // WN10

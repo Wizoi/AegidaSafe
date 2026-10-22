@@ -1,6 +1,8 @@
 package com.aegida.alerts
 
 import com.aegida.core.alert.Guardians
+import com.aegida.core.alert.HistoryDetail
+import com.aegida.core.alert.Outcome
 import com.aegida.core.model.Baseline
 import com.aegida.core.model.DetectorId
 import com.aegida.core.model.Evidence
@@ -70,6 +72,12 @@ class WebsiteAnswersTest {
         assertEquals(setOf(newSite), baselines.value!!.websites)
         assertEquals(FindingState.Acknowledged, findings.get(f.key)!!.state)
         assertEquals(listOf("Ruth confirmed the change Aegida asked about. Nothing more to do."), http.bodies)
+        // The all-clear's History line is made from the finding as the guardian was told about it, so it says what the site said, as the
+        // alarm's line does; seen has taken those words out of the stored finding (findings #117, #166).
+        val told = history.entries.filter { it.outcome == Outcome.GuardianTold }.map { HistoryDetail.display(it.detail) }
+        assertEquals(2, told.size)
+        assertTrue(told[0]!!.contains("Today's recipes"))
+        assertEquals(told[0], told[1])
     }
 
     /** What the real detector makes of a fake virus warning from a site she has not allowed: a fake warning, on record. */

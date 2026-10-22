@@ -1,5 +1,7 @@
 package com.aegida.app
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -105,12 +107,62 @@ class HomeScreenTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark, fon
         compose.onNodeWithText(Texts.Home.CONFIRM_YES).assertDoesNotExistOrFail()
     }
 
-    private fun showApp(home: HomeState, asked: FindingKey) {
+    /**
+     * WN34 (#165): Aegida is already open in the background with a screen from before the warning. The tap's key arrives first
+     * (onNewIntent), the reload after it (onResume): the question page opens once the screen has the warning, not Home.
+     */
+    @Test fun aBannerTappedWhileAegidaIsOpenOpensTheQuestionOnceTheScreenHasReloaded() {
+        val question = Finding(
+            FindingKey(DetectorId.PopupSpam, Problem.NewWebsiteNotifications, "https://news.example"),
+            mapOf(com.aegida.core.model.Evidence.SITE to "https://news.example"), now, now,
+        )
+        var home: HomeState = HomeState.NoKnownProblems(now)
+        // As on a phone, a reload runs off the main thread and finishes after the screen has been drawn: here, when the test says.
+        val work = kotlinx.coroutines.test.StandardTestDispatcher()
+        val vm = appViewModel(work) { home }
+        var asked by androidx.compose.runtime.mutableStateOf<FindingKey?>(null)
+        show { com.aegida.app.ui.AppRoot(vm, asked = asked, onAsked = { asked = null }) }
+        work.scheduler.advanceUntilIdle()
+        reachable(Texts.Home.ALL_GOOD)
+        home = HomeState.NeedsTaps(listOf(question)) // the check that posted the banner stored the warning
+        asked = question.key // onNewIntent
+        compose.waitForIdle() // drawn with the screen from before the warning
+        vm.refresh(runCheck = false) // onResume
+        work.scheduler.advanceUntilIdle()
+        reachable(Texts.Home.CONFIRM_YES)
+        reachable("The website: news.example")
+    }
+
+    /** WN34: the warning closed before the reload finished: Home, and the request is used up (a later reload opens no question). */
+    @Test fun aBannerTappedWhileAegidaIsOpenForAWarningClosedSinceOpensHome() {
+        val gone = Finding(
+            FindingKey(DetectorId.PopupSpam, Problem.NewWebsiteNotifications, "https://gone.example"),
+            mapOf(com.aegida.core.model.Evidence.SITE to "https://gone.example"), now, now,
+        )
+        var home: HomeState = HomeState.NoKnownProblems(now)
+        val vm = appViewModel { home }
+        var asked by androidx.compose.runtime.mutableStateOf<FindingKey?>(null)
+        show { com.aegida.app.ui.AppRoot(vm, asked = asked, onAsked = { asked = null }) }
+        asked = gone.key
+        compose.waitForIdle()
+        vm.refresh(runCheck = false)
+        reachable(Texts.Home.ALL_GOOD)
+        home = HomeState.NeedsTaps(listOf(gone))
+        vm.refresh(runCheck = false)
+        reachable(Texts.Home.FIX_MY_PHONE)
+        compose.onNodeWithText(Texts.Home.CONFIRM_YES).assertDoesNotExistOrFail()
+    }
+
+    private fun appViewModel(work: kotlinx.coroutines.CoroutineDispatcher = Dispatchers.Unconfined, home: () -> HomeState): MainViewModel {
         val loader = mockk<MainStateLoader>()
         val done = Setup("x", emptySet(), stepsDone = SetupStep.entries.size)
-        coEvery { loader.load() } returns MainState(loaded = true, now = now, setup = done, home = home)
-        val vm = MainViewModel(loader, mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true))
-            .also { it.work = Dispatchers.Unconfined }
+        coEvery { loader.load() } answers { MainState(loaded = true, now = now, setup = done, home = home()) }
+        return MainViewModel(loader, mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true))
+            .also { it.work = work }
+    }
+
+    private fun showApp(home: HomeState, asked: FindingKey) {
+        val vm = appViewModel { home }
         show { com.aegida.app.ui.AppRoot(vm, asked = asked) }
     }
 

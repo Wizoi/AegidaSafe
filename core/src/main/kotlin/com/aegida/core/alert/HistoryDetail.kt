@@ -45,7 +45,8 @@ object HistoryDetail {
         else -> a == b
     }
 
-    private fun namesSite(words: String, key: String): Boolean = Regex("""(^| )${Regex.escape(key)}([. ]|$)""").containsMatchIn(words)
+    /** After the host: a space, the end, or a final "." then a space or the end (findings #168: "paypal.com.secure-login.net" is not paypal.com). */
+    private fun namesSite(words: String, key: String): Boolean = Regex("""(^| )${Regex.escape(key)}( |$|\.( |$))""").containsMatchIn(words)
 
     /**
      * True when a line written before #164 had no words for this finding, so a told-line with none may be about it: an urgent app's

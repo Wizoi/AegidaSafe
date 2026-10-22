@@ -166,7 +166,8 @@ class AlertPipeline @Inject constructor(
         if (!toldAndNotWaiting(asTold)) return
         val text = if (problem.severity == Severity.Urgent) Texts.Guardian.CONFIRMED_URGENT else Texts.Guardian.CONFIRMED
         val message = GuardianMessage(title = guardianName(settings), body = text.format(guardianName(settings)), urgent = false)
-        sendOrHold(topic, message, problem, clock.now())
+        // Its own line names the app it is about, so it can never count as "told" for another app of the kind (findings #166).
+        sendOrHold(topic, message, problem, clock.now(), HistoryDetail.of(asTold))
     }
 
     /**
