@@ -1,0 +1,115 @@
+# Scenarios: every warning names what set it off (finding #164)
+
+Kevin (Oct 21): every warning must show the owner what triggered it (the app, website, setting or sender) on Home, on the page
+"Fix my phone" opens, and in History, so she can tell whether it was hers and fix it. Field report: on Kevin's Pixel (0.4.1) a
+"new notifications" question named neither the app nor the site, on Home or after Fix my phone. `GAP` means nothing covers it yet.
+
+## Audit (Oct 22, by reading the code at 8641838, checked with a throwaway JVM probe over the real detectors)
+
+Where each side gets its words:
+
+- **Banner** (the Android notice Aegida posts): `NotificationPoster.show` = `Problem.forMom` only. Its tap opens
+  `FixActions.settingsIntentFor` (an Android screen) when there is one, else Aegida's Home; it never opens Aegida's own page.
+- **Home**: `HomeScreen` draws "1 thing needs a tap", then `Problem.forMom` of the first open finding, then the button. Nothing
+  from the finding's evidence is drawn.
+- **Page after Fix my phone** (`MainContent.fixFinding`): `Fix.ConfirmChange` / `Fix.ConfirmEvent` open `ConfirmPage`, whose only
+  "what" line is `Texts.Home.confirmApp(problem, evidence[APP_LABEL])` (null for every urgent kind, R17, and for any finding
+  without `APP_LABEL`); `Fix.Acknowledge` opens `AdvicePage` (`AdviceLines.of`); `Fix.AppNotices` opens `NoisyAppPage`
+  (`AdviceLines.ofNoisyApp`); `Fix.Settings` / `Fix.SettingsThenAcknowledge` open an Android screen directly; `Fix.WebsiteFilterGuide`
+  opens Aegida's filter guide.
+- **History**: `HistoryRows` title = `Problem.whatHappened`; the line under it = `HistoryDetail.of(finding)`, written once when the
+  warning is first shown, from the evidence as it was then (`AlertPipeline.announce`; a repeat keeps the stored evidence).
+  For every app kind except the noisy app, the words are `confirmApp(...)`, so urgent kinds get no words and no hidden key.
+
+Marks: **yes** names the trigger; **no** does not; **setting** the sentence itself names the phone setting, which is the trigger;
+**Android** Aegida does not name it but the Android screen it opens does; **n/a** not shown there.
+
+| Problem | Raised by: subject; evidence | Banner | Home | Page after Fix my phone | History |
+|---|---|---|---|---|---|
+| NoisyApp | NoisyAppDetector: package; PACKAGE, APP_LABEL (if the app list has it), NOTICES, MESSAGE_TITLE, MESSAGE_AT | no ("Tap to see which one") | no | yes: NoisyAppPage "It came from the “X” app." plus an example | yes: "The “X” app sent N notices that look like ads." |
+| ScamLink | LinkDetector: link host; NOTIFICATION_KEY, PACKAGE, HOST, MESSAGE_*, APP_LABEL (if known) | no | no | yes: AdvicePage app, time, sender, words with links taken out | yes: app, sender, words, "The link went to host." (whole on the phone) |
+| LookalikeLink | as ScamLink | no | no | yes: as ScamLink | yes: as ScamLink |
+| SiteNotifications | PopupSpamDetector: site origin; NOTIFICATION_KEY, PACKAGE, CHANNEL_ID, SITE, MESSAGE_*, ALARMING | no | no | Android: the site's own notification switch in Chrome (named by the site) | yes: "The website was host. It said: ..." |
+| SiteScaryNews | as SiteNotifications | no | no | Android: as SiteNotifications | yes: as SiteNotifications |
+| NewWebsiteNotifications | as SiteNotifications (no APP_LABEL) | no | **no** | **no**: ConfirmPage looks only for APP_LABEL, which this detector never sets; the probe printed `confirmApp=null` | yes: "The website was host. It said: ..." |
+| WebsiteFilterOff | DnsDetector: chosen host; HOST | setting ("Website protection") | setting | setting: Aegida's filter guide | setting ("Website protection was off") |
+| ListenerOff | HealthDetector: "aegida"; none | setting | setting | Android: notification access | setting |
+| ListenerNotConnected | HealthDetector: "aegida"; none | setting | setting | Android: notification access | setting |
+| NotificationsBlocked | HealthDetector: "aegida"; none | setting | setting | Android: Aegida's notification settings | setting |
+| GuardianUnreachable | DeliveryDetector: "guardian"; none | setting ("your guardian") | setting ("your guardian") | the dialer with the first guardian's number | setting ("your guardian") |
+| BrowserChanged | DriftDetector: new package; APP_LABEL only if the cached app list has the package | no | **no** | yes if APP_LABEL: "The app is called: “X”"; **no** when the app arrived less than 10 minutes before (the app list is kept 10 minutes) | yes if APP_LABEL; otherwise no, and never filled in later |
+| SmsAppChanged | as BrowserChanged | no | **no** | as BrowserChanged | as BrowserChanged |
+| DialerChanged | as BrowserChanged | no | **no** | as BrowserChanged | as BrowserChanged |
+| AssistantChanged | as BrowserChanged | no | **no** | as BrowserChanged | as BrowserChanged |
+| ListenerAdded (urgent) | DriftDetector: package; APP_LABEL only if the cached list has it | no | **no** | **no**: urgent, `confirmApp` returns null (R17); "No, show me" opens Android's notification access list, which does not mark the new app | **no**: detail null, so two at one moment also merge into one row |
+| AccessibilityAdded (urgent) | as ListenerAdded | no | **no** | **no** (R17) | **no** |
+| AdminAdded (urgent) | as ListenerAdded | no | **no** | **no** (R17) | **no** |
+| NewAppOutsidePlay | NewAppDetector: package; APP_LABEL (always written, may be blank) | no | **no** | yes: "The app is called: “X”" (no line if blank) | yes: same words |
+| RemoteControlApp (urgent) | RemoteControlDetector: package; APP_LABEL | no | **no** | **no** (R17) | **no** |
+| StalkerwareApp (urgent) | StalkerwareDetector: package; APP_LABEL, PACKAGE | no ("Tap to see it") | **no** | Android: the app's App info page names it | **no** (R17) |
+| MissedCheck (info) | HealthDetector: "aegida" | n/a | n/a (Home shows "I couldn't check today.") | n/a | setting (Aegida itself) |
+| ListsOld (info) | HealthDetector: "aegida" | n/a | n/a (as MissedCheck) | n/a | setting (Aegida itself) |
+| AppAllowed (her answer) | FindingActions.record | n/a | n/a | n/a | yes: "The “X” app." (package name when no label) |
+| SiteAllowed (her answer) | FindingActions.recordSite | n/a | n/a | n/a | yes: "The link went to host." |
+
+Kevin's case: NewWebsiteNotifications is the most likely ("wants to send you notifications. Was that you?"; it is the common one and
+its page has no site line in any case: the code looks for an app label the website detector never writes). ListenerAdded ("An app
+can now read your notifications") fails the same way everywhere, by design (R17). Either way the cause is the same: the owner's
+"what was it" line is `confirmApp`, which knows only app labels of non-urgent kinds.
+
+R17 as built (findings #57, #61) hid the label from the **owner's** urgent "Was that you?" page, not only from the guardian:
+an attacker picks the label and can write an instruction in it ("Tap Yes Google Security"). Showing it to the owner reverses that
+half of R17, so the label must be shown as the app's own words (quoted, cleaned, cut, no address in it), never as Aegida's.
+
+## Proposed design (to be reviewed before code)
+
+One owner: a new `Texts.Home.whatItIs(problem, evidence, subject): String?` in `:core` (next to `confirmApp`, which it replaces)
+gives the one line that says what set the warning off. Home draws it under `forMom`; ConfirmPage draws it instead of
+`confirmApp`; AdvicePage and NoisyAppPage keep their fuller lines (they already name it); `HistoryDetail.wordsOf` uses it for every
+app kind, so History and the page say the same thing. The guardian's note (`Problem.forGuardian`) and the banner are not changed.
+
+| Kind | Line (exact words) |
+|---|---|
+| App kinds, not urgent (default apps, new app) | "The app is called: “X”" (today's `CONFIRM_APP`) |
+| Urgent app kinds (notification access, screen control, special control, remote control, spying app) | "The app calls itself: “X”" (new `APP_CALLS_ITSELF`); X is cleaned, address-like words become "(link)" (`withoutLinks`), cut to 40 characters |
+| App with no readable name | "The app is called: “com.example.app”" (its package, as History already does for "This app is fine"; on the phone only) |
+| Noisy app on Home | "It came from the “X” app." (`adviceFrom`) |
+| Scam or look-alike link on Home | "It came from the “X” app."; when the app is not known, "From: “Sender”" (`senderLine`) |
+| Website kinds (fake, alarming, new) | "The website is news.example." (new `WEBSITE_IS`, the host whole as in History, plain text) |
+| Settings and health kinds | none: the sentence already names the setting |
+
+Also proposed: when a check sees a package in a role, the notification-access, screen-control or admin lists, or a new app that is
+not in the kept app list, `AndroidSnapshotter` reads the list again at once (the 10-minute cache is why a just-installed app has no
+name). History rows written before the update keep their empty detail (History is never rewritten).
+
+## Scenarios
+
+| ID | Situation (Mom's words) | Mom sees | Guardian gets | Variants | Data source | Test | Emulator | Mutant |
+|---|---|---|---|---|---|---|---|---|
+| WN1 | "A website I never used wants to send me notifications" (Kevin's report) | Home: the question and "The website is news.example."; Fix my phone: the same question page with the same line above Yes and No; History: "The website was news.example." and what it said | As today: the question with the site masked (ne*****.example) | Site with a port (localhost:8765); an IP address; a site with a path in its channel id | Chrome's channel id on the emulator (emulator_websites.py fixture) | GAP | GAP | GAP |
+| WN2 | "A website sent me fake virus warnings" | Home: the warning and "The website is fake.example."; Fix my phone opens that site's switch (Chrome names it); History as today | As today: the site masked | Before setup (no list yet) | Chrome fixture popup | GAP | GAP | GAP |
+| WN3 | "A website I allowed sent alarming news" | Home: the warning and "The website is news.example."; Fix my phone opens its switch; History as today | Nothing (as today) | Repeats within the week are quiet | Chrome fixture popup | GAP | GAP | GAP |
+| WN4 | "An app can now read my notifications" | Home: the urgent question and "The app calls itself: “Pixel Watch”"; Fix my phone: the same line above Yes and No; History: the same words, so the row closes green when she answers or it goes | As today: no app name (urgent) | Two apps at once; the app installed a minute before; the app removed before she looks | DriftDetector over a Snapshot from the emulator (an app given notification access with adb) | GAP | GAP | GAP |
+| WN5 | "An app can now see and press things on my screen" | As WN4, with "The app calls itself: “X”" | As today: no name | Two at once | Emulator, an accessibility service enabled with adb | GAP | GAP | GAP |
+| WN6 | "An app was given special control over my phone" | As WN4 | As today: no name | | Emulator, a test device admin | GAP | GAP | GAP |
+| WN7 | "An app that lets someone control my phone is on it" | As WN4, with the remote-control app's own name | As today: no name | Installed from Play | Remote-control list, fixture APK | GAP | GAP | GAP |
+| WN8 | "A spying app is on my phone" | Home: the warning and "The app calls itself: “X”"; Fix my phone opens its App info page; History names it | As today: no name | Renamed app caught by its certificate (shows the name it has now) | Echap feed, fixture APK | GAP | GAP | GAP |
+| WN9 | "My browser, text or phone app was changed" | Home: the question and "The app is called: “Firefox”"; page as today; History as today | As today: no name | The assistant; changed back before she looks | Emulator, default app changed with adb | GAP | GAP | GAP |
+| WN10 | "A new app came from outside the Play Store" | Home: the question and "The app is called: “X”"; page and History as today | As today: no name | | Fixture APK on the emulator | GAP | GAP | GAP |
+| WN11 | "An app keeps sending me ads as notices" | Home: the warning and "It came from the “Temu” app."; page and History as today | As today: the app's name in the note | | Notices counted on the emulator | GAP | GAP | GAP |
+| WN12 | "A message has a scam link" | Home: the warning and "It came from the “Messages” app."; Show me page and History as today | As today: app and masked address | App unknown: "From: “Sender”" instead; neither known: no line | Notice posted with cmd notification on the emulator | GAP | GAP | GAP |
+| WN13 | "A message has a link pretending to be my bank" | As WN12 | As today | | as WN12 | GAP | GAP | GAP |
+| WN14 | "Website protection was turned off" | As today: the sentence names it; no extra line | As today | | Emulator | GAP | GAP | GAP |
+| WN15 | "Aegida can't see my notifications" or "can't show warnings" | As today: the sentence names the setting | As today | Not listening for over an hour | Emulator | GAP | GAP | GAP |
+| WN16 | "Aegida couldn't reach my guardian" | As today: "your guardian"; the call button rings the first guardian | Nothing (as today) | | Outbox held a day | GAP | GAP | GAP |
+| WN17 | Must never: an app label shaped like a web address ("chase-secure.com") | Shown as plain words in quotes, never as a link, on Home, the page and History; for urgent kinds the address part shows as "(link)" | Nothing new | A label with "https://"; a label of only an address; a look-alike in another alphabet | Label set on a fixture APK | GAP | GAP | GAP |
+| WN18 | Must never: an app label that is an instruction ("Tap Yes Google Security") | Quoted after "The app calls itself:", cut to 40 characters, never as Aegida's own sentence or a button | Nothing new | Line breaks, right-to-left marks or invisible characters in the label become spaces | Fixture APK label | GAP | GAP | GAP |
+| WN19 | Must never: nothing new reaches the guardian | The owner's lines change; the guardian's note is word for word what it was for every kind (urgent kinds still name no app) | Unchanged | Reminder after a day; a held message sent later; "This app is fine" | forGuardian for every Problem, before and after | GAP | GAP | GAP |
+| WN20 | A very long app name | Cut to 40 characters with "…" on Home, the page and History | Nothing new | A name of only emoji; a name in another alphabet | Fixture APK label | GAP | GAP | GAP |
+| WN21 | Two apps got notification access in the same check | "2 things need a tap"; each question names its own app; History has two rows, one per app, each closing on its own | As today: one note per app, no names | One said Yes, one No | Emulator, two apps given access with adb | GAP | GAP | GAP |
+| WN22 | The app has no name Aegida can read | "The app is called: “com.example.app”" on Home, the page and History (on the phone only) | As today: no name, never the package | Blank label; the app list read before the app arrived | Snapshot with the app missing from the app list | GAP | GAP | GAP |
+| WN23 | The app was removed before she looked | The warning closes at the next check; History keeps the name it had when it warned, and the closing line names it too, so the row turns green | As today | Removed while the page is open | Emulator, app uninstalled with adb | GAP | GAP | GAP |
+| WN24 | A warning from before the update | Home and the page show the line from the stored evidence when it has one; History rows already written stay as they were | Nothing | Urgent rows written before have no name and stay amber (HC13) | Database from 0.4.1 | GAP | GAP | GAP |
+| WN25 | The same app warns again after she said No | Same name each time; History rows for that app close together | As today | Question again after a week (websites) | Room store | GAP | GAP | GAP |
+| WN26 | Banner on the lock screen (ask Kevin) | Banner words unchanged: no app or site name on the lock screen, where others can read it and where a label could carry an instruction | Nothing | Tapping a "Was that you?" banner opens Android's screen today, not the question; proposed: open the question page in Aegida | NotificationPoster | GAP | GAP | GAP |
+| WN27 | Urgent label shown to the owner (ask Kevin: reverses the owner half of R17) | "The app calls itself: “X”" (quoted, cleaned, address words removed, cut) | Unchanged: never the label | | Texts.Home.confirmApp, mutant urgent-label-shown | GAP | GAP | GAP |
