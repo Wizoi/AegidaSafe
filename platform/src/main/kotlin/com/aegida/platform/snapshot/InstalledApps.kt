@@ -72,7 +72,7 @@ internal class InstalledApps(private val context: Context, private val clock: Cl
         val signed = if (system) null else signedPackageOf(pm, info.packageName)
         return InstalledApp(
             packageName = info.packageName,
-            label = pm.getApplicationLabel(info).toString(),
+            label = labelOf(pm, info),
             installer = installer,
             initiatingInstaller = initiating,
             isSystem = system,
@@ -80,6 +80,15 @@ internal class InstalledApps(private val context: Context, private val clock: Cl
             category = info.category,
             firstInstalled = signed?.firstInstallTime?.takeIf { it > 0 }?.let(Instant::ofEpochMilli),
         )
+    }
+
+    /**
+     * The app's own name, or empty when it has none: with no android:label, Android hands back the Application class name or the package
+     * name, and neither is a name (findings #169); the owner then reads "Aegida can't read this app's name." and never the package.
+     */
+    private fun labelOf(pm: PackageManager, info: ApplicationInfo): String {
+        val label = pm.getApplicationLabel(info).toString()
+        return if (label == info.packageName || label == info.name || label == info.className) "" else label
     }
 
     /** The package with its signing certificates and install time, from one lookup; null when it is gone since the list was read. */

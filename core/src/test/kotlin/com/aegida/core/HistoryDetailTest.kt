@@ -86,6 +86,12 @@ class HistoryDetailTest {
         assertEquals(true, HistoryDetail.same("The website was news.example.", now))
         assertEquals(false, HistoryDetail.same("The website was ews.example.", now))
         assertEquals(false, HistoryDetail.same("The website was other.example.", now))
+        // WN37 (#168): a website that only starts with the key is another website.
+        val paypal = HistoryDetail.of(Problem.NewWebsiteNotifications, mapOf(Evidence.SITE to "https://paypal.com"))
+        assertEquals(true, HistoryDetail.same("The website was paypal.com.", paypal))
+        assertEquals(true, HistoryDetail.same("The website was paypal.com. It said: “Hello”.", paypal))
+        assertEquals(false, HistoryDetail.same("The website was paypal.com.secure-login.net.", paypal))
+        assertEquals(false, HistoryDetail.same("The website was paypal.com:8080.", paypal))
     }
 
     /** WN4, WN24: the same app's line matches though its words grew facts in #164; two apps with one name stay two. */

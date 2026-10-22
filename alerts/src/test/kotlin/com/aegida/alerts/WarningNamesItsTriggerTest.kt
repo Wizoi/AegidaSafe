@@ -101,6 +101,24 @@ class WarningNamesItsTriggerTest {
         assertEquals(true, HistoryDetail.same(warned.detail, closed.detail))
     }
 
+    /**
+     * WN35 (must never, #166): two apps with no name Aegida can read became the browser; the guardian heard about A, and B came the same
+     * day so the repeat back-off held it. Her Yes to A sends its all-clear; that all-clear's own History line must not count as "told
+     * about B", so her Yes to B sends nothing.
+     */
+    @Test fun aYesToAnAppTheGuardianHeardAboutThenToOneHeldBackSendsOnlyOneAllClear() = runTest {
+        val phone = Phone(now, topic)
+        val a = finding(Problem.BrowserChanged, mapOf(Evidence.PACKAGE to "org.a") + facts, "org.a")
+        val b = finding(Problem.BrowserChanged, mapOf(Evidence.PACKAGE to "org.b") + facts, "org.b")
+        phone.pipeline.handle(listOf(a), setOf(DetectorId.Drift))
+        phone.pipeline.handle(listOf(a, b), setOf(DetectorId.Drift))
+        assertEquals(listOf(Outcome.OwnerWarned, Outcome.GuardianTold, Outcome.OwnerWarned), phone.history.entries.map { it.outcome })
+        phone.http.bodies.clear()
+        phone.pipeline.tellConfirmed(a)
+        phone.pipeline.tellConfirmed(b)
+        assertEquals(listOf(Texts.Guardian.CONFIRMED.format("Ruth")), phone.http.bodies)
+    }
+
     /** WN21 (must never): two apps of one kind; the guardian was told about A only, so her Yes to B sends nothing. */
     @Test fun aYesToAnotherAppOfTheSameKindSendsNoAllClear() = runTest {
         val phone = Phone(now, topic)

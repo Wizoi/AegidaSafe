@@ -59,12 +59,22 @@ internal sealed interface Page {
 internal fun MainContent(state: MainState, vm: MainViewModel, asked: FindingKey? = null, onAsked: () -> Unit = {}) {
     var tab by rememberSaveable { mutableStateOf(Tab.Home) }
     var page by remember { mutableStateOf<Page>(Page.None) }
-    // A tapped "Was that you?" banner: its question page, or Home when that warning is already closed (#164, Kevin Oct 22).
+    // A tapped "Was that you?" banner: its question page, or Home when that warning is already closed (#164, Kevin Oct 22). Aegida may
+    // be open with a screen from before the warning, so the request waits for a reload that started after the tap (#165).
+    var waiting by remember { mutableStateOf<Pair<FindingKey, Long>?>(null) }
     LaunchedEffect(asked) {
         if (asked != null) {
-            tab = Tab.Home
-            page = questionPageFor(asked, state.home)
+            waiting = asked to vm.loadsStarted
             onAsked()
+            vm.refresh(runCheck = false)
+        }
+    }
+    LaunchedEffect(waiting, state.loadNumber) {
+        val (key, since) = waiting ?: return@LaunchedEffect
+        if (state.loadNumber > since) {
+            waiting = null
+            tab = Tab.Home
+            page = questionPageFor(key, state.home)
         }
     }
     BackHandler(enabled = page != Page.None) { page = Page.None }

@@ -19,6 +19,8 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.update
+import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -41,6 +43,8 @@ data class MainState(
     val blockerRelevant: Boolean = false,
     /** When the scam lists on the phone were built (the feed's own date), or null before the first download. */
     val listsUpdatedAt: Instant? = null,
+    /** Which reload this is ([MainViewModel.loadsStarted] when it started), so a tapped banner can wait for one that began after it (#165). */
+    val loadNumber: Long = 0,
 ) {
     val filterOn: Boolean get() = snapshot?.privateDns == PrivateDns.Hostname(WebsiteFilter.HOST)
 }
@@ -82,8 +86,16 @@ class MainViewModel @Inject constructor(
 
     private var firstDailyTried = false
 
+    private val loadCounter = AtomicLong()
+
+    /** How many reloads have started; a state with a higher [MainState.loadNumber] was read after this was asked. */
+    val loadsStarted: Long get() = loadCounter.get()
+
     private suspend fun load() {
-        mutableState.value = loader.load()
+        val number = loadCounter.incrementAndGet()
+        val loaded = loader.load().copy(loadNumber = number)
+        // A reload that started earlier but finished later never puts an older screen back.
+        mutableState.update { if (it.loadNumber > number) it else loaded }
     }
 
     /** Marks a finding seen ("Got it", or after she has been to the screen that fixes it). */

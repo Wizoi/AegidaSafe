@@ -83,7 +83,7 @@ New code goes where design section 2 puts it. Modules (compile-time layering, im
   seen on a device is a finding in the same step, with an emulator reproduction tried before it is deferred.
 - Samsung-specific checks come last (see `docs/samsung-validation-options.md`).
 - Look at every screen in both themes and at 200% font size.
-- `python scripts/mutation-check.py` breaks each guarded rule on purpose and requires a test to go red (392 checks in
+- `python scripts/mutation-check.py` breaks each guarded rule on purpose and requires a test to go red (398 checks in
   `scripts/mutants.json`). Add one when you add a rule worth guarding; it always restores the file. It runs `--jobs 4` by
   default in throwaway copies of HEAD under %TEMP%\amut (commit first; your tree is never touched); `--jobs 1` is the old one-checkout run.
 - Check per-class test times when the suite passes 5 minutes or a class passes 60 s.

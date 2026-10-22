@@ -109,7 +109,11 @@ internal object WhatItIs {
             when (val day = DayLabel.of(Instant.ofEpochMilli(millis), now, zone)) {
                 DayLabel.Today -> Texts.Home.ADDED_TODAY
                 DayLabel.Yesterday -> Texts.Home.ADDED_YESTERDAY
-                is DayLabel.On -> Texts.Home.ADDED_ON.format(DateTimeFormatter.ofPattern(DAY_PATTERN, locale).format(day.date))
+                // The year when it is not this year in her zone, so an app from years ago never reads as this month (findings #167).
+                is DayLabel.On -> {
+                    val pattern = if (day.date.year == now.atZone(zone).year) DAY_PATTERN else DAY_YEAR_PATTERN
+                    Texts.Home.ADDED_ON.format(DateTimeFormatter.ofPattern(pattern, locale).format(day.date))
+                }
             }
         }
         return listOfNotNull(from, added)
@@ -119,4 +123,5 @@ internal object WhatItIs {
     private const val PATH_SIGNS = "/@"
     private val RIGHT_TO_LEFT = setOf(Character.DIRECTIONALITY_RIGHT_TO_LEFT, Character.DIRECTIONALITY_RIGHT_TO_LEFT_ARABIC)
     private const val DAY_PATTERN = "MMMM d"
+    private const val DAY_YEAR_PATTERN = "MMMM d, yyyy"
 }
