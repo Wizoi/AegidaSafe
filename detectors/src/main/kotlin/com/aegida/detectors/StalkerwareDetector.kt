@@ -34,7 +34,7 @@ class StalkerwareDetector @Inject constructor() : Detector {
             .map {
                 Finding(
                     FindingKey(id, Problem.StalkerwareApp, it.packageName),
-                    mapOf(Evidence.APP_LABEL to it.label, Evidence.PACKAGE to it.packageName),
+                    mapOf(Evidence.APP_LABEL to it.label) + it.facts(input.snapshot.makerStores),
                     input.now, input.now,
                 )
             }

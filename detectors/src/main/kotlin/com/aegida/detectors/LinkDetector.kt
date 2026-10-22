@@ -60,8 +60,8 @@ class LinkDetector @Inject constructor() : Detector {
                     put(Evidence.MESSAGE_TEXT, cap(event.text))
                     put(Evidence.MESSAGE_AT, event.postedAt.toEpochMilli().toString())
                     // The owner is told which app it came from (Kevin, Oct 10); the phone's own app list names it.
-                    input.snapshot.apps.firstOrNull { it.packageName == event.packageName }?.label?.takeIf { it.isNotBlank() }
-                        ?.let { put(Evidence.APP_LABEL, it) }
+                    input.snapshot.app(event.packageName)?.label?.takeIf { it.isNotBlank() }?.let { put(Evidence.APP_LABEL, it) }
+                    putAll(input.snapshot.factsOf(event.packageName)) // where that app came from and when (#164)
                 },
                 input.now,
                 input.now,

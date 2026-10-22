@@ -45,7 +45,8 @@ class CheckRunner @Inject constructor(
 ) {
     /** [late]: [event] arrived while the listener was not bound and is checked at the next bind, perhaps again after a kill (finding #146 b). */
     suspend fun run(trigger: Trigger, event: NotificationEvent? = null, late: Boolean = false): CheckOutcome = gate.run { finished ->
-        val snapshot = snapshotter.take()
+        // The app that posted the notice is looked up on its own when the kept app list is older than it (#164).
+        val snapshot = snapshotter.take(setOfNotNull(event?.packageName))
         baseline.keep(snapshot)
         val findings = evaluator.run(trigger, snapshot, event)
         val result = pipeline.handle(

@@ -30,9 +30,10 @@ class NoisyAppDetector @Inject constructor() : Detector {
     }
 
     private fun finding(event: NotificationEvent, input: Inputs): Finding {
-        val label = input.snapshot.apps.firstOrNull { it.packageName == event.packageName }?.label?.takeIf { it.isNotBlank() }
+        val label = input.snapshot.app(event.packageName)?.label?.takeIf { it.isNotBlank() }
         val evidence = buildMap {
             put(Evidence.PACKAGE, event.packageName)
+            putAll(input.snapshot.factsOf(event.packageName)) // where it came from and when (#164)
             label?.let { put(Evidence.APP_LABEL, it) }
             put(Evidence.NOTICES, NoticeRules.adLike(input.notices, input.now).toString()) // only the ones that looked like ads (finding #93)
             // One example for the warning page; cleared when the owner has seen it.

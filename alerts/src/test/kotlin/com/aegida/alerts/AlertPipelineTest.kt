@@ -325,6 +325,33 @@ class AlertPipelineTest {
         assertTrue(http.bodies.none { "evil.example" in it || "http" in it })
     }
 
+    /** WN32 (#164): the name and facts stored when the warning was first shown are kept; an app that renames itself later does not change them. */
+    @Test fun anAppThatRenamesItselfAfterTheWarningKeepsTheNameItWarnedWith() = runTest {
+        val atSetup = com.aegida.core.model.Snapshot(
+            now, com.aegida.core.model.PrivateDns.Automatic, null, true, true,
+            com.aegida.core.oem.Reading.NotPresent, com.aegida.core.oem.Reading.NotPresent,
+        )
+        val baseline = com.aegida.core.model.Baseline.of(atSetup)
+        fun check(label: String) = com.aegida.detectors.DriftDetector().evaluate(
+            com.aegida.detectors.Inputs(
+                atSetup.copy(
+                    notificationListeners = setOf("org.watch"),
+                    apps = listOf(com.aegida.core.model.InstalledApp("org.watch", label, null, false, firstInstalled = now.minusSeconds(90))),
+                ),
+                clockAt, com.aegida.core.model.Setup.NotDone, null, null, null, baseline = baseline,
+            ),
+        )
+        pipeline.handle(check("Pixel Watch"), setOf(DetectorId.Drift))
+        val firstRows = history.entries.toList()
+        clockAt = now.plusSeconds(60)
+        pipeline.handle(check("Tap Yes Google Security"), setOf(DetectorId.Drift))
+        val stored = findings.rows.values.single()
+        assertEquals("Pixel Watch", stored.evidence[com.aegida.core.model.Evidence.APP_LABEL])
+        assertEquals("outside", stored.evidence[com.aegida.core.model.Evidence.APP_SOURCE])
+        assertEquals(firstRows, history.entries)
+        assertEquals(1, owner.shown.size)
+    }
+
     @Test fun aRepeatDoesNotAlertAgain() = runTest {
         pipeline.handle(listOf(scamLink), setOf(DetectorId.Link))
         val result = pipeline.handle(listOf(scamLink.copy(lastSeen = now.plusSeconds(60))), setOf(DetectorId.Link))

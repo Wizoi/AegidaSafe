@@ -21,7 +21,11 @@ class RemoteControlDetector @Inject constructor() : Detector {
             .filter { it.packageName in RemoteControlApps.PACKAGES && it.packageName !in baseline.acceptedRemoteApps }
             .sortedBy { it.packageName }
             .map {
-                Finding(FindingKey(id, Problem.RemoteControlApp, it.packageName), mapOf(Evidence.APP_LABEL to it.label), input.now, input.now)
+                Finding(
+                    FindingKey(id, Problem.RemoteControlApp, it.packageName),
+                    mapOf(Evidence.APP_LABEL to it.label) + it.facts(input.snapshot.makerStores),
+                    input.now, input.now,
+                )
             }
     }
 }
