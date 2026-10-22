@@ -67,7 +67,11 @@ abstract class ScreenTestBase(private val dark: Boolean, private val fontScale: 
     protected fun finding(problem: Problem, minutesOld: Long = 5) =
         Finding(FindingKey(DetectorId.Dns, problem, problem.name), emptyMap(), now.minus(Duration.ofMinutes(minutesOld)), now)
 
-    protected fun reachable(text: String) = compose.onNodeWithText(text).performScrollTo().assertIsDisplayed()
+    protected fun reachable(text: String) = compose.onNodeWithText(text).scrollIfInsideScroller().assertIsDisplayed()
+
+    /** Scrolls to the node when it lives in the scrolling part of a screen; a pinned button (#171) is already on screen and has no scroller. */
+    protected fun androidx.compose.ui.test.SemanticsNodeInteraction.scrollIfInsideScroller() =
+        try { performScrollTo() } catch (ignored: AssertionError) { this }
 
 
     protected fun noisy() = Finding(
