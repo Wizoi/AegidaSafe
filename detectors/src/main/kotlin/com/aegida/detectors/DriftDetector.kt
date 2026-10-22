@@ -21,10 +21,10 @@ class DriftDetector @Inject constructor() : Detector {
     override fun evaluate(input: Inputs): List<Finding> {
         val baseline = input.baseline ?: return emptyList()
         val phone = input.snapshot
-        // The app by the name the owner sees, so History and the "Was that you?" page can say which one.
+        // The app by the name the owner sees, so History and the "Was that you?" page can say which one, and the facts it cannot fake (#164).
         fun finding(problem: Problem, subject: String) = Finding(
             FindingKey(id, problem, subject),
-            phone.apps.firstOrNull { it.packageName == subject }?.label?.takeIf { it.isNotBlank() }?.let { mapOf(Evidence.APP_LABEL to it) }.orEmpty(),
+            phone.app(subject)?.label?.takeIf { it.isNotBlank() }?.let { mapOf(Evidence.APP_LABEL to it) }.orEmpty() + phone.factsOf(subject),
             input.now, input.now,
         )
 

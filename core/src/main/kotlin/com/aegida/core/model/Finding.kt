@@ -31,6 +31,13 @@ object Evidence {
     const val HOST = "host"
     const val APP_LABEL = "appLabel"
 
+    /**
+     * Facts an app cannot fake, shown next to its claimed name (#164): where it came from ([AppSource.evidence]) and when it was
+     * first installed (epoch millis).
+     */
+    const val APP_SOURCE = "appSource"
+    const val APP_ADDED = "appAdded"
+
     /** Who sent a scam message, what it said (both cut short) and when it came in (epoch millis); kept on the phone only until the owner has seen the warning. */
     const val MESSAGE_TITLE = "messageTitle"
     const val MESSAGE_TEXT = "messageText"

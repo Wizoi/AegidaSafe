@@ -308,4 +308,91 @@ class AndroidSnapshotterTest {
         assertEquals(setOf(expected), apps.getValue("org.signed.app").certSha1s)
         assertEquals(emptySet<String>(), apps.getValue("com.android.phone").certSha1s)
     }
+
+    // #164: a warning names its app and says where it came from and when, even when the app arrived inside the kept list's 5 minutes.
+
+    private fun installAt(pkg: String, label: String, firstInstalled: Instant, system: Boolean = false) {
+        val info = android.content.pm.PackageInfo().apply {
+            packageName = pkg
+            firstInstallTime = firstInstalled.toEpochMilli()
+            applicationInfo = android.content.pm.ApplicationInfo().apply {
+                packageName = pkg
+                nonLocalizedLabel = label
+                flags = if (system) android.content.pm.ApplicationInfo.FLAG_SYSTEM else 0
+            }
+        }
+        shadowOf(context.packageManager).installPackage(info)
+    }
+
+    @Test fun whenAnAppWasFirstInstalledIsReadAndAnAppThatCameWithThePhoneHasNone() { // WN29
+        val added = now.minus(Duration.ofDays(3))
+        installAt("org.byhand.app", "By Hand", added)
+        installAt("com.android.phone", "Phone", now.minus(Duration.ofDays(900)), system = true)
+        val apps = take().apps.associateBy { it.packageName }
+        assertEquals(added.toEpochMilli(), apps.getValue("org.byhand.app").firstInstalled?.toEpochMilli())
+        assertNull(apps.getValue("com.android.phone").firstInstalled)
+    }
+
+    private fun sharedSnapshotter(clock: () -> Instant) =
+        AndroidSnapshotter(context, { clock() }, FixedOem(Reading.NotPresent, Reading.NotPresent), listener)
+
+    private fun giveNotificationAccess(pkg: String) =
+        Settings.Secure.putString(context.contentResolver, "enabled_notification_listeners", "$pkg/$pkg.Listener")
+
+    @Test fun anAppInstalledAMinuteAgoThatGetsNotificationAccessIsNamedAtOnce() { // WN30
+        var at = now
+        val snapshotter = sharedSnapshotter { at }
+        snapshotter.take() // the kept list, read before the app arrived
+        installAt("org.watch.app", "Pixel Watch", now)
+        giveNotificationAccess("org.watch.app")
+        at = at.plus(Duration.ofMinutes(1))
+        val app = snapshotter.take().apps.singleOrNull { it.packageName == "org.watch.app" }
+        assertEquals("Pixel Watch", app?.label)
+        assertEquals(now.toEpochMilli(), app?.firstInstalled?.toEpochMilli())
+    }
+
+    @Test fun anAppInstalledAMinuteAgoThatBecomesTheBrowserIsNamedAtOnce() { // WN30, the default-app kinds
+        var at = now
+        val snapshotter = sharedSnapshotter { at }
+        snapshotter.take()
+        installAt("org.mozilla.firefox", "Firefox", now)
+        resolvesTo("org.mozilla.firefox")
+        at = at.plus(Duration.ofMinutes(1))
+        assertEquals("Firefox", snapshotter.take().apps.singleOrNull { it.packageName == "org.mozilla.firefox" }?.label)
+    }
+
+    @Test fun theAppThatJustPostedANoticeIsLookedUpWhenTheKeptListIsOlderThanIt() { // WN30, notices (noisy app, scam link)
+        var at = now
+        val snapshotter = sharedSnapshotter { at }
+        snapshotter.take()
+        installAt("org.new.shop", "Shop", now)
+        at = at.plus(Duration.ofMinutes(1))
+        assertEquals("Shop", snapshotter.take(setOf("org.new.shop")).apps.singleOrNull { it.packageName == "org.new.shop" }?.label)
+    }
+
+    @Test fun aPackageThatIsNotThereIsAskedForOnceInFiveMinutesNotEveryCheck() { // WN31: uninstalled, or in the work profile
+        var at = now
+        val snapshotter = sharedSnapshotter { at }
+        giveNotificationAccess("org.gone.app")
+        assertFalse(snapshotter.take().apps.any { it.packageName == "org.gone.app" })
+        // Installed after the miss: a check within the five minutes does not ask again, so it is still not seen.
+        installAt("org.gone.app", "Gone", now)
+        at = at.plus(Duration.ofMinutes(2))
+        assertFalse(snapshotter.take().apps.any { it.packageName == "org.gone.app" })
+        at = at.plus(Duration.ofMinutes(4))
+        assertEquals("Gone", snapshotter.take().apps.singleOrNull { it.packageName == "org.gone.app" }?.label)
+    }
+
+    @Test fun aMissRememberedUnderAClockThatWasAheadIsAskedAgain() { // WN31 + R14
+        val ahead = now.plus(Duration.ofDays(2))
+        var at = ahead
+        val snapshotter = sharedSnapshotter { at }
+        giveNotificationAccess("org.late.app")
+        snapshotter.take()
+        installAt("org.late.app", "Late", now)
+        at = ahead.plus(Duration.ofMinutes(1))
+        assertFalse(snapshotter.take().apps.any { it.packageName == "org.late.app" }) // inside the miss's five minutes: not asked
+        at = ahead.minus(Duration.ofMinutes(1)) // the clock set back a little: the miss time is in the future, so it no longer counts
+        assertEquals("Late", snapshotter.take().apps.singleOrNull { it.packageName == "org.late.app" }?.label)
+    }
 }

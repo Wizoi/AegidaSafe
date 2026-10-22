@@ -22,8 +22,8 @@ object DebugSeeds {
         override fun processStartedAt() = DebugSeeds.processStartedAt ?: real.processStartedAt()
     }
 
-    fun snapshotter(real: Snapshotter) = Snapshotter {
-        val snapshot = real.take()
+    fun snapshotter(real: Snapshotter) = Snapshotter { alsoApps ->
+        val snapshot = real.take(alsoApps)
         updatedAt?.let { snapshot.copy(aegidaUpdatedAt = it) } ?: snapshot
     }
 }

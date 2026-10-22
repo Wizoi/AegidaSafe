@@ -41,7 +41,13 @@ data class Snapshot(
     val listenerBound: Boolean = true,
     /** When Aegida was installed or last updated (PackageInfo.lastUpdateTime), or null if not read. */
     val aegidaUpdatedAt: Instant? = null,
-)
+) {
+    /** The app with [packageName] as Aegida read it, or null when it is not in the list. */
+    fun app(packageName: String): InstalledApp? = apps.firstOrNull { it.packageName == packageName }
+
+    /** [InstalledApp.facts] of the app with [packageName], or nothing when it is not in the list (#164). */
+    fun factsOf(packageName: String): Map<String, String> = app(packageName)?.facts(makerStores).orEmpty()
+}
 
 /** The Private DNS ("website filter") setting as read from the phone. */
 sealed interface PrivateDns {

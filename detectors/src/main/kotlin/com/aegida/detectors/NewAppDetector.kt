@@ -1,5 +1,6 @@
 package com.aegida.detectors
 
+import com.aegida.core.model.AppSource
 import com.aegida.core.model.DetectorId
 import com.aegida.core.model.Evidence
 import com.aegida.core.model.Finding
@@ -19,12 +20,16 @@ class NewAppDetector @Inject constructor() : Detector {
     override fun evaluate(input: Inputs): List<Finding> {
         val known = input.baseline?.apps ?: return emptyList()
         return input.snapshot.apps
-            .filter { !it.isSystem && !it.fromPlayStore && !it.fromStoreIn(input.snapshot.makerStores) }
+            .filter { it.sourceIn(input.snapshot.makerStores) == AppSource.Outside }
             .filter { it.packageName !in known && it.packageName !in RemoteControlApps.PACKAGES }
             .filter { input.feed?.matchApp(it.packageName, it.certSha1s) == null }
             .sortedBy { it.packageName }
             .map {
-                Finding(FindingKey(id, Problem.NewAppOutsidePlay, it.packageName), mapOf(Evidence.APP_LABEL to it.label), input.now, input.now)
+                Finding(
+                    FindingKey(id, Problem.NewAppOutsidePlay, it.packageName),
+                    mapOf(Evidence.APP_LABEL to it.label) + it.facts(input.snapshot.makerStores),
+                    input.now, input.now,
+                )
             }
     }
 }

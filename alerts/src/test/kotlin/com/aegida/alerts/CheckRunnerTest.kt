@@ -66,6 +66,22 @@ class CheckRunnerTest {
 
     private val scamText = aScamText(now, "https://login.evil.example/x", text = "Locked! Verify at https://login.evil.example/x", from = "Bank alert")
 
+    /**
+     * WN30 (#164): the app that posted the notice is asked for by name, so a warning about a message from an app installed inside the
+     * kept app list's five minutes still names it. This snapshotter knows only the apps it is asked for, as the real one does then.
+     */
+    @Test fun theAppThatPostedTheNoticeIsAskedForSoTheWarningCanNameIt() = runTest {
+        val messages = com.aegida.testkit.aPlayApp("com.google.android.apps.messaging")
+        val asked = CheckRunner(
+            { alsoApps -> snapshot().copy(apps = listOf(messages).filter { it.packageName in alsoApps }) },
+            evaluator, pipeline, BaselineKeeper(setupStore, baselines),
+            OutboxFlusher(outbox, NtfySender(http), history, guardians, { now }), CheckGate(AlertGate()),
+        )
+        val finding = asked.run(Trigger.NotificationPosted, scamText).findings.single()
+        assertEquals("messaging", finding.evidence[com.aegida.core.model.Evidence.APP_LABEL])
+        assertEquals("play", finding.evidence[com.aegida.core.model.Evidence.APP_SOURCE])
+    }
+
     @Test fun aFakeVirusPopUpIsHiddenAndOwnerAndTheGuardianAreTold() = runTest {
         val outcome = runner.run(Trigger.NotificationPosted, siteNotification(1))
         assertEquals(listOf(Problem.SiteNotifications), outcome.findings.map { it.key.problem })
