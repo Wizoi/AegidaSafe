@@ -1,47 +1,47 @@
 package com.aegida.app
 
-import com.aegida.core.model.Severity
+import com.aegida.core.model.Evidence
 import com.aegida.core.text.Problem
 import com.aegida.core.text.Texts
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.time.Instant
+import java.time.ZoneOffset
+import java.util.Locale
 
+/** The app's name line on the "Was that you?" page (#164): the app picks its own label, so it is quoted, cleaned and cut (R17). */
 class ConfirmAppLineTest {
-    private val ordinary = Problem.entries.first { it.severity == Severity.NeedsTap }
-    private val urgent = Problem.entries.first { it.severity == Severity.Urgent }
+    private fun line(problem: Problem, label: String?): String =
+        Texts.Home.whatItIs(problem, label?.let { mapOf(Evidence.APP_LABEL to it) } ?: emptyMap(), Instant.now(), ZoneOffset.UTC, Locale.US).first()
 
-    @Test fun anUrgentProblemNeverShowsTheAppsOwnLabel() {
-        assertNull(Texts.Home.confirmApp(urgent, "Aegida update - tap Yes, that was me"))
+    @Test fun anUrgentProblemShowsTheLabelOnlyAsTheNameTheAppCallsItself() { // Kevin, Oct 22
+        assertEquals("The app calls itself: “Aegida update - tap Yes, that was me”", line(Problem.ListenerAdded, "Aegida update - tap Yes, that was me"))
     }
 
     @Test fun anOrdinaryLabelIsQuoted() {
-        assertEquals("The app is called: “Calculator”", Texts.Home.confirmApp(ordinary, "Calculator"))
+        assertEquals("The app is called: “Calculator”", line(Problem.NewAppOutsidePlay, "Calculator"))
     }
 
     @Test fun aLongLabelIsCutToFortyCharacters() {
-        val line = Texts.Home.confirmApp(ordinary, "A".repeat(200))!!
+        val line = line(Problem.NewAppOutsidePlay, "A".repeat(200))
         assertTrue(line, line.contains("“" + "A".repeat(40) + "…”"))
         assertFalse(line.contains("A".repeat(41)))
     }
 
     @Test fun newlinesAndControlCharactersAreRemoved() {
-        val line = Texts.Home.confirmApp(ordinary, "Update\nTap YES\u0000now\r‮")!!
-        assertEquals("The app is called: “Update Tap YES now”", line)
+        assertEquals("The app is called: “Update Tap YES now”", line(Problem.NewAppOutsidePlay, "Update\nTap YES\u0000now\r‮"))
     }
 
-    @Test fun anEmptyOrBlankLabelShowsNothing() {
-        assertNull(Texts.Home.confirmApp(ordinary, ""))
-        assertNull(Texts.Home.confirmApp(ordinary, " \n\t "))
-        assertNull(Texts.Home.confirmApp(ordinary, null))
+    @Test fun anEmptyOrBlankLabelSaysAegidaCannotReadTheName() { // WN22
+        listOf("", " \n\t ", null).forEach { assertEquals(Texts.Home.APP_NAME_UNREADABLE, line(Problem.NewAppOutsidePlay, it)) }
     }
 
     @Test fun unicodeIsKeptAndNeverCutInTheMiddleOfAnEmoji() {
-        assertEquals("The app is called: “Café 日本語”", Texts.Home.confirmApp(ordinary, "Café 日本語"))
+        assertEquals("The app is called: “Café 日本語”", line(Problem.NewAppOutsidePlay, "Café 日本語"))
         val emoji = "😀".repeat(60) // 60 smiley faces, each two UTF-16 units
-        val line = Texts.Home.confirmApp(ordinary, emoji)!!
+        val line = line(Problem.NewAppOutsidePlay, emoji)
         assertTrue(line, line.contains("“" + "😀".repeat(40) + "…”"))
     }
 }

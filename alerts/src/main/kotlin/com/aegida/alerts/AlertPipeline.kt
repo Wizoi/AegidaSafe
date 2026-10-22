@@ -182,7 +182,10 @@ class AlertPipeline @Inject constructor(
         val what = HistoryDetail.of(finding)
         val entries = history.since(finding.firstSeen).filter { it.problem == problem }
         val toldOutcomes = setOf(Outcome.GuardianTold, Outcome.GuardianReminded)
-        val told = entries.any { HistoryDetail.same(it.detail, what) && it.outcome in toldOutcomes }
+        // A told-line written before #164 had no words for an urgent app (its name was hidden then) or a nameless one: it matches, so her
+        // "Yes" after the update still gets its all-clear (Kevin, Oct 22).
+        val olderLine = HistoryDetail.hadNoWordsBefore164(finding)
+        val told = entries.any { it.outcome in toldOutcomes && (HistoryDetail.same(it.detail, what) || (olderLine && it.detail == null)) }
         return told && !line.isWaiting(problem)
     }
 

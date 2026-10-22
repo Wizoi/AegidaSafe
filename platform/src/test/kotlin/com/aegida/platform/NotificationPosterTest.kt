@@ -62,6 +62,30 @@ class NotificationPosterTest {
         assertNull(posted().single().getLargeIcon())
     }
 
+    /** WN26 (Kevin, Oct 22, #164): the banner words stay generic; its tap opens Aegida's own question page for exactly that warning. */
+    @Test fun aWasThatYouBannerStaysGenericAndOpensAegidasQuestionForThatWarning() {
+        val launcher = android.content.ComponentName(context.packageName, "com.aegida.app.MainActivity")
+        shadowOf(context.packageManager).addActivityIfNotPresent(launcher)
+        shadowOf(context.packageManager).addIntentFilterForActivity(
+            launcher,
+            android.content.IntentFilter(android.content.Intent.ACTION_MAIN).apply { addCategory(android.content.Intent.CATEGORY_LAUNCHER) },
+        )
+        val question = finding(
+            Problem.ListenerAdded, DetectorId.Drift, "org.helper", mapOf(Evidence.APP_LABEL to "Tap Yes Helper", Evidence.PACKAGE to "org.helper"),
+        )
+        poster.show(question)
+        val n = posted().single()
+        assertEquals(Problem.ListenerAdded.forMom, n.extras.getString(Notification.EXTRA_TEXT))
+        val intent = shadowOf(n.contentIntent).savedIntent
+        assertEquals(context.packageName, intent.component?.packageName)
+        assertEquals(question.key, NotificationPoster.questionFrom(intent))
+    }
+
+    @Test fun aBannerFromLauncherOrAnotherAppCarriesNoQuestion() {
+        assertNull(NotificationPoster.questionFrom(null))
+        assertNull(NotificationPoster.questionFrom(android.content.Intent().putExtra(NotificationPoster.EXTRA_PROBLEM, "NoSuchProblem")))
+    }
+
     @Test fun aSiteBannerOpensThatSitesOwnSwitch() {
         poster.show(siteFinding)
         val intent = shadowOf(posted().single().contentIntent).savedIntent

@@ -10,6 +10,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -26,8 +27,8 @@ import com.aegida.app.ui.setup.ChangeGuardianScreen
 import com.aegida.app.ui.setup.FilterGuideBody
 import com.aegida.app.ui.setup.PictureStep
 import com.aegida.app.ui.setup.StepPosition
-import com.aegida.core.model.Evidence
 import com.aegida.core.model.Finding
+import com.aegida.core.model.FindingKey
 import com.aegida.core.model.SafetyPicture
 import com.aegida.core.text.Fix
 import com.aegida.core.text.Texts
@@ -55,9 +56,17 @@ internal sealed interface Page {
 }
 
 @Composable
-internal fun MainContent(state: MainState, vm: MainViewModel) {
+internal fun MainContent(state: MainState, vm: MainViewModel, asked: FindingKey? = null, onAsked: () -> Unit = {}) {
     var tab by rememberSaveable { mutableStateOf(Tab.Home) }
     var page by remember { mutableStateOf<Page>(Page.None) }
+    // A tapped "Was that you?" banner: its question page, or Home when that warning is already closed (#164, Kevin Oct 22).
+    LaunchedEffect(asked) {
+        if (asked != null) {
+            tab = Tab.Home
+            page = questionPageFor(asked, state.home)
+            onAsked()
+        }
+    }
     BackHandler(enabled = page != Page.None) { page = Page.None }
     Scaffold(
         contentWindowInsets = WindowInsets(0, 0, 0, 0), // AegidaScreen adds the status bar space; the bar handles its own
@@ -156,7 +165,7 @@ private fun PageContent(page: Page, state: MainState, vm: MainViewModel, show: (
             onContinue = { show(Page.None) }, buttonText = Texts.Common.SAVE,
         )
         Page.ChangeGuardian -> ChangeGuardianPage(state, vm, show)
-        is Page.Confirm -> ConfirmPage(page.finding, pictureId, vm, show)
+        is Page.Confirm -> ConfirmPage(page.finding, pictureId, ShownAt(state.now, ZoneId.systemDefault(), Locale.getDefault()), vm, show)
         Page.KeptHidden -> KeptHiddenPage(pictureId) { show(Page.None) }
         is Page.NoisyApp -> NoisyAppScreen(page.finding, state, vm, show)
         is Page.Advice -> AdvicePage(
@@ -197,12 +206,12 @@ private fun ChangeGuardianPage(state: MainState, vm: MainViewModel, show: (Page)
 }
 
 @Composable
-private fun ConfirmPage(finding: Finding, pictureId: String?, vm: MainViewModel, show: (Page) -> Unit) {
+private fun ConfirmPage(finding: Finding, pictureId: String?, shown: ShownAt, vm: MainViewModel, show: (Page) -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     AegidaScreen(pictureId) {
         Headline(finding.key.problem.forMom)
-        Texts.Home.confirmApp(finding.key.problem, finding.evidence[Evidence.APP_LABEL])?.let { Body(it) }
+        WhatItIsLines.of(finding, shown).forEach { Body(it) }
         BigButton(Texts.Home.CONFIRM_YES, {
             scope.launch { show(if (vm.answerNow { acceptChange(finding.key); keptHidden(finding.key) } == true) Page.KeptHidden else Page.None) }
         })
