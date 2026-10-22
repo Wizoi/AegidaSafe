@@ -93,6 +93,18 @@ object Texts {
         const val GOT_IT = "Got it"
         const val CONFIRM_YES = "Yes, that was me"
         const val CONFIRM_APP = "The app is called: %s"
+        /** An urgent kind: the name is the app's own claim, never Aegida's words (#164, Kevin Oct 22). */
+        const val APP_CALLS_ITSELF = "The app calls itself: %s"
+        const val APP_NAME_UNREADABLE = "Aegida can't read this app's name."
+        const val FROM_PLAY = "It came from the Play Store."
+        const val FROM_MAKER_STORE = "It came from the Galaxy Store."
+        const val FROM_OUTSIDE = "It came from outside the Play Store."
+        const val CAME_WITH_PHONE = "It came with the phone."
+        const val ADDED_TODAY = "Added today."
+        const val ADDED_YESTERDAY = "Added yesterday."
+        const val ADDED_ON = "Added on %s."
+        const val WEBSITE_IS = "The website: %s"
+        const val WEBSITE_UNUSUAL = "It came from a website with an unusual name."
         const val CONFIRM_NO = "No, show me"
         /** She said Yes to a website that sent fake warnings: it is not allowed (findings #149, WP17 A13). */
         const val SITE_KEPT_HIDDEN = "This website sent fake warnings before, so Aegida keeps hiding it."
@@ -103,11 +115,13 @@ object Texts {
         /** The one big button on Home: "Fix my phone" only where something really gets fixed; a scam warning just shows what to do. */
         fun fixButton(fix: Fix): String = if (fix == Fix.Acknowledge || fix == Fix.AppNotices) SHOW_ME else FIX_MY_PHONE
 
-        /** "It came from the “Messages” app." for the scam-link advice page, or null when the app is not known. Cleaned like [confirmApp]. */
-        fun adviceFrom(label: String?): String? {
-            val clean = cleanLabel(label.orEmpty())
-            return if (clean.isEmpty()) null else ADVICE_FROM.format("“$clean”")
-        }
+        /**
+         * What set the warning off, one line each (finding #164): the app with the facts it cannot fake, the website, or the app a
+         * message came in (else its sender); empty for a setting or health warning, whose sentence names it. With [now] null (History,
+         * written once and compared later) the day an app was added is left out.
+         */
+        fun whatItIs(problem: Problem, evidence: Map<String, String>, now: java.time.Instant?, zone: java.time.ZoneId, locale: java.util.Locale): List<String> =
+            WhatItIs.lines(problem, evidence, now, zone, locale)
 
         /** "From: “Chase Bank”" (the notification's title), or null when there is none. Cleaned and cut short like an app label. */
         fun senderLine(title: String?): String? {
@@ -158,17 +172,6 @@ object Texts {
             return if (parts.isEmpty()) null else SAID_LINE.format(parts.joinToString(" ") { "“$it”" })
         }
 
-        /**
-         * The "The app is called" line on the "Was that you?" page, or null for no line. An app chooses its own
-         * label, so an attacker can make it read like an instruction. For an urgent problem the label is never
-         * shown; otherwise it is cut short, stripped of control characters and quoted (R17).
-         */
-        fun confirmApp(problem: Problem, label: String?): String? {
-            if (problem.severity == com.aegida.core.model.Severity.Urgent) return null
-            val clean = cleanLabel(label.orEmpty())
-            return if (clean.isEmpty()) null else CONFIRM_APP.format("“$clean”")
-        }
-
         fun cleanLabel(raw: String, max: Int = CONFIRM_LABEL_MAX): String {
             val spaced = StringBuilder()
             var i = 0
@@ -187,7 +190,6 @@ object Texts {
     }
 
     object History {
-        const val WEBSITE_WAS = "The website was %s."
         const val NOISY = "The %1\$s app sent %2\$s notices that look like ads."
         const val NOISY_NO_COUNT = "The %s app sent notices that look like ads."
         const val APP_IS = "The %s app."

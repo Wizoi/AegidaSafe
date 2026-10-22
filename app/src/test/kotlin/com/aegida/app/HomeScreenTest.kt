@@ -1,5 +1,6 @@
 package com.aegida.app
 
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -47,6 +48,70 @@ class HomeScreenTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark, fon
         compose.onNodeWithText(Texts.Home.FIX_MY_PHONE).performScrollTo().performClick()
         assertEquals(dns, fixed)
         reachable(Texts.Home.CALL_A_GUARDIAN)
+    }
+
+    /** WN1 (#164, Kevin's report): a new website's question names the website on Home, under the sentence. */
+    @Test fun homeNamesTheWebsiteANewWebsiteQuestionIsAbout() {
+        val site = Finding(
+            FindingKey(DetectorId.PopupSpam, Problem.NewWebsiteNotifications, "https://news.example"),
+            mapOf(com.aegida.core.model.Evidence.SITE to "https://news.example"), now, now,
+        )
+        show { HomeScreen(HomeState.NeedsTaps(listOf(site)), picture, ShownAt(now, zone, locale), {}, {}) }
+        reachable(Problem.NewWebsiteNotifications.forMom)
+        reachable("The website: news.example")
+    }
+
+    /**
+     * WN4, WN20 (#164): an urgent warning names the app as it calls itself, with where it came from and when, and on a small phone at
+     * 200% text the line does not push the big button off the screen.
+     */
+    @Test @org.robolectric.annotation.Config(qualifiers = "w360dp-h740dp-xxhdpi")
+    fun homeNamesTheAppAnUrgentWarningIsAboutAndKeepsTheButtonOnScreen() {
+        val e = com.aegida.core.model.Evidence
+        val listener = Finding(
+            FindingKey(DetectorId.Drift, Problem.ListenerAdded, "org.helper"),
+            mapOf(e.APP_LABEL to "W".repeat(60), e.APP_SOURCE to "outside", e.APP_ADDED to now.toEpochMilli().toString()), now, now,
+        )
+        show { HomeScreen(HomeState.NeedsTaps(listOf(listener)), picture, ShownAt(now, zone, locale), {}, {}) }
+        compose.onNodeWithText(Texts.Home.FIX_MY_PHONE).assertIsDisplayed()
+        reachable("The app calls itself: “${"W".repeat(40)}…”")
+        reachable("It came from outside the Play Store.")
+        reachable("Added today.")
+    }
+
+    /** WN14: a setting warning has no extra line. */
+    @Test fun homeShowsNoExtraLineForASettingWarning() {
+        show { HomeScreen(HomeState.NeedsTaps(listOf(finding(Problem.WebsiteFilterOff))), picture, ShownAt(now, zone, locale), {}, {}) }
+        compose.onNodeWithText("The website", substring = true).assertDoesNotExistOrFail()
+        compose.onNodeWithText("The app", substring = true).assertDoesNotExistOrFail()
+    }
+
+    /** WN26 (Kevin, Oct 22): tapping a "Was that you?" banner opens Aegida's question page for that warning, naming the website. */
+    @Test fun aTappedQuestionBannerOpensItsQuestionPage() {
+        val question = Finding(
+            FindingKey(DetectorId.PopupSpam, Problem.NewWebsiteNotifications, "https://news.example"),
+            mapOf(com.aegida.core.model.Evidence.SITE to "https://news.example"), now, now,
+        )
+        showApp(HomeState.NeedsTaps(listOf(question)), asked = question.key)
+        reachable(Texts.Home.CONFIRM_YES)
+        reachable("The website: news.example")
+    }
+
+    /** WN26: a banner for a warning that has closed since opens Home, not a question about nothing. */
+    @Test fun aTappedBannerForAClosedWarningOpensHome() {
+        val gone = FindingKey(DetectorId.PopupSpam, Problem.NewWebsiteNotifications, "https://gone.example")
+        showApp(HomeState.NoKnownProblems(now), asked = gone)
+        reachable(Texts.Home.ALL_GOOD)
+        compose.onNodeWithText(Texts.Home.CONFIRM_YES).assertDoesNotExistOrFail()
+    }
+
+    private fun showApp(home: HomeState, asked: FindingKey) {
+        val loader = mockk<MainStateLoader>()
+        val done = Setup("x", emptySet(), stepsDone = SetupStep.entries.size)
+        coEvery { loader.load() } returns MainState(loaded = true, now = now, setup = done, home = home)
+        val vm = MainViewModel(loader, mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true))
+            .also { it.work = Dispatchers.Unconfined }
+        show { com.aegida.app.ui.AppRoot(vm, asked = asked) }
     }
 
     @Test fun homeOffersShowMeNotFixMyPhoneForAWarningThatFixesNothing() { // Kevin, Oct 10

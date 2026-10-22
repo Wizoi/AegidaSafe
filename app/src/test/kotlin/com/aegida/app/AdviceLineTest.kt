@@ -3,19 +3,22 @@ package com.aegida.app
 import com.aegida.core.text.Fix
 import com.aegida.core.text.Texts
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Test
 
 /** The advice page for a scam link says which app the message came from; an app picks its own label, so it is cleaned like the other labels (R17). */
 class AdviceLineTest {
+    private fun appLine(label: String?) = Texts.Home.whatItIs(
+        com.aegida.core.text.Problem.ScamLink, label?.let { mapOf(com.aegida.core.model.Evidence.APP_LABEL to it) } ?: emptyMap(), now, zone, locale,
+    )
+
     @Test fun namesTheAppInQuotesAndNothingWhenThereIsNoLabel() {
-        assertEquals("It came from the “Messages” app.", Texts.Home.adviceFrom("Messages"))
-        assertNull(Texts.Home.adviceFrom(null))
-        assertNull(Texts.Home.adviceFrom("  "))
+        assertEquals(listOf("It came from the “Messages” app."), appLine("Messages"))
+        assertEquals(emptyList<String>(), appLine(null))
+        assertEquals(emptyList<String>(), appLine("  "))
     }
 
     @Test fun anAppLabelCannotSmuggleAnInstruction() {
-        val line = Texts.Home.adviceFrom("Call 555\nnow " + "x".repeat(100))!!
+        val line = appLine("Call 555\nnow " + "x".repeat(100)).single()
         assertEquals(false, line.contains("\n"))
         assertEquals(true, line.length < 90)
     }

@@ -43,6 +43,7 @@ fun HomeScreen(
                     StatusMark(Mark.NeedsTap)
                     Headline(if (home.items.size == 1) Texts.Home.NEEDS_ONE else Texts.Home.NEEDS_MANY.format(home.items.size))
                     Body(first.key.problem.forMom)
+                    WhatItIsLines.of(first, shown).forEach { Body(it) }
                     BigButton(Texts.Home.fixButton(first.key.problem.fix), { onFix(first) })
                     QuietButton(Texts.Home.CALL_A_GUARDIAN, onCall)
                 }
