@@ -6,7 +6,6 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import com.aegida.app.ui.HomeScreen
 import com.aegida.app.ui.ShownAt
 import com.aegida.core.model.DetectorId
@@ -37,7 +36,7 @@ class HomeScreenTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark, fon
         show { HomeScreen(HomeState.NoKnownProblems(now.minus(Duration.ofHours(3))), picture, ShownAt(now, zone, locale), {}, { called++ }) }
         reachable(Texts.Home.ALL_GOOD)
         reachable(Texts.Home.NO_KNOWN_PROBLEMS)
-        compose.onNodeWithText(Texts.Home.CALL_A_GUARDIAN).performScrollTo().performClick()
+        compose.onNodeWithText(Texts.Home.CALL_A_GUARDIAN).scrollIfInsideScroller().performClick()
         assertEquals(1, called)
     }
 
@@ -47,7 +46,7 @@ class HomeScreenTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark, fon
         show { HomeScreen(HomeState.NeedsTaps(listOf(dns)), picture, ShownAt(now, zone, locale), { fixed = it }, {}) }
         reachable(Texts.Home.NEEDS_ONE)
         reachable(Problem.WebsiteFilterOff.forMom)
-        compose.onNodeWithText(Texts.Home.FIX_MY_PHONE).performScrollTo().performClick()
+        compose.onNodeWithText(Texts.Home.FIX_MY_PHONE).scrollIfInsideScroller().performClick()
         assertEquals(dns, fixed)
         reachable(Texts.Home.CALL_A_GUARDIAN)
     }
@@ -161,7 +160,7 @@ class HomeScreenTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark, fon
             .also { it.work = work }
     }
 
-    private fun showApp(home: HomeState, asked: FindingKey) {
+    private fun showApp(home: HomeState, asked: FindingKey?) {
         val vm = appViewModel { home }
         show { com.aegida.app.ui.AppRoot(vm, asked = asked) }
     }
@@ -171,14 +170,14 @@ class HomeScreenTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark, fon
         var shown: Finding? = null
         show { HomeScreen(HomeState.NeedsTaps(listOf(link)), picture, ShownAt(now, zone, locale), { shown = it }, {}) }
         compose.onNodeWithText(Texts.Home.FIX_MY_PHONE).assertDoesNotExistOrFail()
-        compose.onNodeWithText(Texts.Home.SHOW_ME).performScrollTo().performClick()
+        compose.onNodeWithText(Texts.Home.SHOW_ME).scrollIfInsideScroller().performClick()
         assertEquals(link, shown)
     }
 
     @Test fun homeOffersShowMeForANoisyAppToo() {
         var shown: Finding? = null
         show { HomeScreen(HomeState.NeedsTaps(listOf(noisy())), picture, ShownAt(now, zone, locale), { shown = it }, {}) }
-        compose.onNodeWithText(Texts.Home.SHOW_ME).performScrollTo().performClick()
+        compose.onNodeWithText(Texts.Home.SHOW_ME).scrollIfInsideScroller().performClick()
         assertEquals(noisy().key, shown!!.key)
     }
 
@@ -187,7 +186,7 @@ class HomeScreenTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark, fon
         var fixed: Finding? = null
         show { HomeScreen(HomeState.NeedsTaps(listOf(first, finding(Problem.WebsiteFilterOff))), picture, ShownAt(now, zone, locale), { fixed = it }, {}) }
         reachable(Texts.Home.NEEDS_MANY.format(2))
-        compose.onNodeWithText(Texts.Home.FIX_MY_PHONE).performScrollTo().performClick()
+        compose.onNodeWithText(Texts.Home.FIX_MY_PHONE).scrollIfInsideScroller().performClick()
         assertEquals(first, fixed)
     }
 
@@ -214,7 +213,7 @@ class HomeScreenTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark, fon
         var done = 0
         show { com.aegida.app.ui.KeptHiddenPage(picture) { done++ } }
         reachable("This website sent fake warnings before, so Aegida keeps hiding it.")
-        compose.onNodeWithText(Texts.Common.DONE).performScrollTo().performClick()
+        compose.onNodeWithText(Texts.Common.DONE).scrollIfInsideScroller().performClick()
         assertEquals(1, done)
     }
 
@@ -229,8 +228,8 @@ class HomeScreenTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark, fon
         coEvery { loader.load() } returns MainState(loaded = true, now = now, setup = done, home = HomeState.NeedsTaps(listOf(question)))
         val vm = MainViewModel(loader, mockk(relaxed = true), mockk(relaxed = true), actions, mockk(relaxed = true)).also { it.work = Dispatchers.Unconfined }
         show { com.aegida.app.ui.AppRoot(vm) }
-        compose.onNodeWithText(Texts.Home.FIX_MY_PHONE).performScrollTo().performClick()
-        compose.onNodeWithText(Texts.Home.CONFIRM_YES).performScrollTo().performClick()
+        compose.onNodeWithText(Texts.Home.FIX_MY_PHONE).scrollIfInsideScroller().performClick()
+        compose.onNodeWithText(Texts.Home.CONFIRM_YES).scrollIfInsideScroller().performClick()
         compose.waitForIdle()
         return actions
     }
@@ -248,5 +247,78 @@ class HomeScreenTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark, fon
         compose.onNodeWithText(Texts.Home.SITE_KEPT_HIDDEN).assertDoesNotExistOrFail()
         compose.onNodeWithText(Texts.Home.CONFIRM_YES).assertDoesNotExistOrFail()
         coVerify { actions.acceptChange(any()) }
+    }
+
+    // #171, WN39-WN42: the tab bar present. Robolectric measures text with stand-in glyph widths, so it wraps far fewer lines than the
+    // emulator's 1080x2400 at 420 dpi (its Home at 200% passed while the real one needed a scroll); these tests therefore use a screen
+    // too short for the words whatever they wrap to, and require the main button and its partner on screen above the bar without
+    // scrolling. The emulator screenshots (build/emulator-checks/warning-names-2) show the real wrapping.
+    private fun assertAboveTheTabBar(vararg texts: String) {
+        val barTop = compose.onNodeWithText("History").fetchSemanticsNode().boundsInRoot.top
+        texts.forEach {
+            val node = compose.onNodeWithText(it)
+            node.assertIsDisplayed()
+            org.junit.Assert.assertTrue("$it sits under the tab bar", node.fetchSemanticsNode().boundsInRoot.bottom <= barTop)
+        }
+    }
+
+    private fun listenerWarning(label: String = "Pixel Watch") = Finding(
+        FindingKey(DetectorId.Drift, Problem.ListenerAdded, "org.helper"),
+        mapOf(
+            com.aegida.core.model.Evidence.APP_LABEL to label, com.aegida.core.model.Evidence.APP_SOURCE to "outside",
+            com.aegida.core.model.Evidence.APP_ADDED to now.toEpochMilli().toString(),
+        ),
+        now, now,
+    )
+
+    private fun appWarning() = Finding(
+        FindingKey(DetectorId.NewApp, Problem.NewAppOutsidePlay, "org.fixture"),
+        mapOf(
+            com.aegida.core.model.Evidence.APP_LABEL to "Fixture sideloaded", com.aegida.core.model.Evidence.APP_SOURCE to "outside",
+            com.aegida.core.model.Evidence.APP_ADDED to now.toEpochMilli().toString(),
+        ),
+        now, now,
+    )
+
+    @Test @org.robolectric.annotation.Config(qualifiers = "w411dp-h400dp-420dpi")
+    fun homeForANotificationReaderKeepsTheButtonAndCallAGuardianAboveTheTabBar() {
+        showApp(HomeState.NeedsTaps(listOf(listenerWarning())), asked = null)
+        assertAboveTheTabBar(Texts.Home.FIX_MY_PHONE, Texts.Home.CALL_A_GUARDIAN)
+    }
+
+    @Test @org.robolectric.annotation.Config(qualifiers = "w411dp-h400dp-420dpi")
+    fun homeForANewAppKeepsTheButtonAndCallAGuardianAboveTheTabBar() {
+        showApp(HomeState.NeedsTaps(listOf(appWarning())), asked = null)
+        assertAboveTheTabBar(Texts.Home.FIX_MY_PHONE, Texts.Home.CALL_A_GUARDIAN)
+    }
+
+    @Test @org.robolectric.annotation.Config(qualifiers = "w411dp-h400dp-420dpi")
+    fun homeForANewWebsiteKeepsTheButtonAndCallAGuardianAboveTheTabBar() {
+        val site = Finding(
+            FindingKey(DetectorId.PopupSpam, Problem.NewWebsiteNotifications, "https://news.example"),
+            mapOf(com.aegida.core.model.Evidence.SITE to "https://news.example"), now, now,
+        )
+        showApp(HomeState.NeedsTaps(listOf(site)), asked = null)
+        assertAboveTheTabBar(Texts.Home.FIX_MY_PHONE, Texts.Home.CALL_A_GUARDIAN)
+    }
+
+    @Test @org.robolectric.annotation.Config(qualifiers = "w411dp-h320dp-420dpi")
+    fun theQuestionPageKeepsYesAndNoAboveTheTabBarAndItsClosingLineReachable() {
+        val app = appWarning()
+        showApp(HomeState.NeedsTaps(listOf(app)), asked = app.key)
+        assertAboveTheTabBar(Texts.Home.CONFIRM_YES, Texts.Home.CONFIRM_NO)
+        reachable(Texts.Home.CONFIRM_NO_HELP)
+        val barTop = compose.onNodeWithText("History").fetchSemanticsNode().boundsInRoot.top
+        org.junit.Assert.assertTrue(compose.onNodeWithText(Texts.Home.CONFIRM_NO_HELP).fetchSemanticsNode().boundsInRoot.bottom <= barTop)
+    }
+
+    /** WN43 (#171): a one-line fact ("Added today.") is centred like the lines above it on the question page, not left-aligned. */
+    @Test @org.robolectric.annotation.Config(qualifiers = "w411dp-h914dp-420dpi")
+    fun aOneLineFactOnTheQuestionPageIsCentredLikeTheLinesAboveIt() {
+        val app = appWarning()
+        showApp(HomeState.NeedsTaps(listOf(app)), asked = app.key)
+        val line = compose.onNodeWithText("Added today.").fetchSemanticsNode().boundsInRoot
+        val rootWidth = compose.onAllNodes(androidx.compose.ui.test.isRoot())[0].fetchSemanticsNode().boundsInRoot.width
+        org.junit.Assert.assertEquals("centre of the line", rootWidth / 2, (line.left + line.right) / 2, 2f)
     }
 }

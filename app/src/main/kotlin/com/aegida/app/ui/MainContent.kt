@@ -1,14 +1,6 @@
 package com.aegida.app.ui
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -17,10 +9,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.style.TextAlign
 import com.aegida.app.MainState
 import com.aegida.app.MainViewModel
 import com.aegida.app.ui.setup.ChangeGuardianScreen
@@ -37,23 +26,6 @@ import com.aegida.platform.notify.FixActions
 import kotlinx.coroutines.launch
 import java.time.ZoneId
 import java.util.Locale
-
-/** At very large text "My settings" wraps; every label gets two lines from this scale up, so the icons stay level. */
-private const val TWO_LINE_LABEL_SCALE = 1.4f
-
-/** A page opened from Home or Settings; back returns to the tab. */
-internal sealed interface Page {
-    data object None : Page
-    data object FilterGuide : Page
-    data object ChangePicture : Page
-    data object ChangeGuardian : Page
-    data class Advice(val finding: Finding) : Page
-    data class NoisyApp(val finding: Finding) : Page
-    data class Confirm(val finding: Finding) : Page
-
-    /** She said Yes to a website that sent fake warnings; it stays hidden and she is told so (findings #149). */
-    data object KeptHidden : Page
-}
 
 @Composable
 internal fun MainContent(state: MainState, vm: MainViewModel, asked: FindingKey? = null, onAsked: () -> Unit = {}) {
@@ -78,35 +50,9 @@ internal fun MainContent(state: MainState, vm: MainViewModel, asked: FindingKey?
         }
     }
     BackHandler(enabled = page != Page.None) { page = Page.None }
-    Scaffold(
-        contentWindowInsets = WindowInsets(0, 0, 0, 0), // AegidaScreen adds the status bar space; the bar handles its own
-        bottomBar = { TabBar(tab, page == Page.None) { tab = it; page = Page.None } },
-    ) { padding ->
-        Box(Modifier.padding(padding)) {
-            val current = page
-            if (current == Page.None) TabContent(tab, state, vm) { page = it } else PageContent(current, state, vm) { page = it }
-        }
-    }
-}
-
-@Composable
-private fun TabBar(tab: Tab, onTab: Boolean, onSelect: (Tab) -> Unit) {
-    NavigationBar {
-        Tab.entries.forEach { entry ->
-            NavigationBarItem(
-                selected = tab == entry && onTab,
-                onClick = { onSelect(entry) },
-                icon = { TabIcon(entry) },
-                label = {
-                    Text(
-                        entry.label,
-                        style = MaterialTheme.typography.labelMedium,
-                        textAlign = TextAlign.Center,
-                        minLines = if (LocalDensity.current.fontScale > TWO_LINE_LABEL_SCALE) 2 else 1,
-                    )
-                },
-            )
-        }
+    MainFrame(tab, page == Page.None, { tab = it; page = Page.None }) {
+        val current = page
+        if (current == Page.None) TabContent(tab, state, vm) { page = it } else PageContent(current, state, vm) { page = it }
     }
 }
 
@@ -219,18 +165,23 @@ private fun ChangeGuardianPage(state: MainState, vm: MainViewModel, show: (Page)
 private fun ConfirmPage(finding: Finding, pictureId: String?, shown: ShownAt, vm: MainViewModel, show: (Page) -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    AegidaScreen(pictureId) {
+    // Yes and No stay pinned above the tab bar; the words above them scroll (#171).
+    AegidaScreen(
+        pictureId,
+        pinned = {
+            BigButton(Texts.Home.CONFIRM_YES, {
+                scope.launch { show(if (vm.answerNow { acceptChange(finding.key); keptHidden(finding.key) } == true) Page.KeptHidden else Page.None) }
+            })
+            QuietButton(Texts.Home.CONFIRM_NO, {
+                context.startSafely(FixActions.settingsIntentFor(finding, context.packageName))
+                // Something that happened once is never detected again, so "no" counts it as seen once she has been shown the switch.
+                if (finding.key.problem.fix == Fix.ConfirmEvent) vm.acknowledge(finding)
+                show(Page.None)
+            })
+        },
+    ) {
         Headline(finding.key.problem.forMom)
         WhatItIsLines.of(finding, shown).forEach { Body(it) }
-        BigButton(Texts.Home.CONFIRM_YES, {
-            scope.launch { show(if (vm.answerNow { acceptChange(finding.key); keptHidden(finding.key) } == true) Page.KeptHidden else Page.None) }
-        })
-        QuietButton(Texts.Home.CONFIRM_NO, {
-            context.startSafely(FixActions.settingsIntentFor(finding, context.packageName))
-            // Something that happened once is never detected again, so "no" counts it as seen once she has been shown the switch.
-            if (finding.key.problem.fix == Fix.ConfirmEvent) vm.acknowledge(finding)
-            show(Page.None)
-        })
         Body(Texts.Home.CONFIRM_NO_HELP)
     }
 }

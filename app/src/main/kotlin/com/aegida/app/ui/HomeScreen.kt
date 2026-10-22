@@ -28,7 +28,17 @@ fun HomeScreen(
     onFix: (Finding) -> Unit,
     onCall: () -> Unit,
 ) {
-    AegidaScreen(pictureId) {
+    AegidaScreen(
+        pictureId,
+        // The main button and "Call a guardian" stay pinned above the tab bar; the words above them scroll (#171).
+        pinned = (home as? HomeState.NeedsTaps)?.let { taps ->
+            {
+                val first = taps.items.first()
+                BigButton(Texts.Home.fixButton(first.key.problem.fix), { onFix(first) })
+                QuietButton(Texts.Home.CALL_A_GUARDIAN, onCall)
+            }
+        },
+    ) {
         Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(16.dp)) {
             when (home) {
                 is HomeState.NoKnownProblems -> {
@@ -44,8 +54,6 @@ fun HomeScreen(
                     Headline(if (home.items.size == 1) Texts.Home.NEEDS_ONE else Texts.Home.NEEDS_MANY.format(home.items.size))
                     Body(first.key.problem.forMom)
                     WhatItIsLines.of(first, shown).forEach { Body(it) }
-                    BigButton(Texts.Home.fixButton(first.key.problem.fix), { onFix(first) })
-                    QuietButton(Texts.Home.CALL_A_GUARDIAN, onCall)
                 }
                 is HomeState.CouldntCheck -> {
                     StatusMark(Mark.Unknown)
@@ -71,5 +79,5 @@ fun Headline(text: String, modifier: Modifier = Modifier) {
 
 @Composable
 fun Body(text: String, modifier: Modifier = Modifier, centered: Boolean = true) {
-    Text(text, style = MaterialTheme.typography.bodyLarge, textAlign = if (centered) TextAlign.Center else TextAlign.Start, modifier = modifier)
+    Text(text, style = MaterialTheme.typography.bodyLarge, textAlign = if (centered) TextAlign.Center else TextAlign.Start, modifier = modifier.fillMaxWidth())
 }

@@ -100,16 +100,29 @@ fun AegidaHeader(pictureId: String?, modifier: Modifier = Modifier) {
     }
 }
 
-/** A screen: header, then content that scrolls, so large text never pushes a button off the bottom. */
+/**
+ * A screen: header, then content that scrolls, so large text never pushes a button off the bottom. [pinned] (the screen's main
+ * button and its "no" or "call" partner) stays below the scrolling part, always fully on screen above the tab bar (#171).
+ */
 @Composable
-fun AegidaScreen(pictureId: String?, modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
+fun AegidaScreen(
+    pictureId: String?,
+    modifier: Modifier = Modifier,
+    pinned: (@Composable ColumnScope.() -> Unit)? = null,
+    content: @Composable ColumnScope.() -> Unit,
+) {
     Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        Column(
-            modifier = Modifier.statusBarsPadding().imePadding().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            AegidaHeader(pictureId)
-            content()
+        Column(Modifier.statusBarsPadding().imePadding()) {
+            Column(
+                modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 24.dp, vertical = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                AegidaHeader(pictureId)
+                content()
+            }
+            if (pinned != null) {
+                Column(Modifier.padding(start = 24.dp, end = 24.dp, bottom = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) { pinned() }
+            }
         }
     }
 }
