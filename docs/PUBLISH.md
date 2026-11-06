@@ -49,6 +49,7 @@ no launcher icon.
    ./gradlew publishReleaseBundle                      # sign, bundle, notes, upload to internal
    ./gradlew publishListing                            # text, images and notes only, no new build
    ./gradlew promoteArtifact --from-track internal --promote-track alpha   # same build, no new versionCode
+   ./gradlew promoteArtifact --from-track internal --promote-track "External Testing"   # same build, for the paid testers
    ```
    While the app is still a draft in the Console (forms not all done), Play only accepts **draft** releases outside the internal track:
    add `--release-status draft` to `promoteArtifact` (`./gradlew :app:promoteReleaseArtifact --from-track internal --promote-track alpha --release-status draft`),
@@ -76,3 +77,6 @@ normal one).
   with an in-place update. A tester cannot go to a lower versionCode without uninstalling.
 - A personal Play account made after Nov 2023 needs a closed test with 12 opted-in testers for 14 days before it can ask for
   production.
+- `External Testing` is a second closed track (Nov 6) for the paid Testers Community group, kept apart from alpha because a track takes
+  email lists or a Google Group, not both, and this one runs in all countries. Its track ID has a space; quote it. When production
+  access is approved, pause the track and remove `testers-community@googlegroups.com` from it.
