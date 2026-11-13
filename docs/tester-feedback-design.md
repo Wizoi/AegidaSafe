@@ -74,14 +74,14 @@ from My settings, Done only goes back.
 
 | ID | Situation | Owner sees | Guardian gets | Test |
 |---|---|---|---|---|
-| T2.1 | Finishes setup | The page with her picture; Done goes to Home; the baseline is taken once, as today | First message if alerts on (FR1) | FirstRunScenariosTest |
+| T2.1 | Finishes setup | "All set.", then the page with her picture; Done goes to Home; the baseline is taken once, as today | First message if alerts on (FR1) | SetupFlowTest, WhatYouSeeAndRateTest; mutant setup-ends-with-all-set |
 | T2.2 | Opens it from My settings weeks later | The same page with her current picture; Done returns to My settings | Nothing | Robolectric |
 | T2.3 | must never: Done on the My settings copy runs the setup-finish path or takes a baseline again | Back to My settings | Nothing | Robolectric: setup state unchanged |
 | T2.4 | Banners or notification access off | "Home will show you what needs a tap."; never "you will see a notice" | Nothing | Robolectric with notices off |
 | T2.5 | No picture saved (old database) or it cannot be drawn | No tile; "a notice from Aegida" | Nothing | Robolectric |
 | T2.6 | Changed her picture since setup | The new picture | Nothing | Robolectric |
 | T2.7 | Opens it while a warning is open | Nothing resolved; Home unchanged | Nothing | JVM |
-| T2.8 | must never: a demo notification, anything sent, an overlay or spotlight, several pages | n/a | Nothing | Test: no NotificationPoster or NtfySender call while shown |
+| T2.8 | must never: a demo notification, anything sent, an overlay or spotlight, several pages | n/a | Nothing | By construction: `WhatYouSeePage` takes only the picture, the notices flag, the title and Done; no sender or poster can reach it. One page (WhatYouSeeAndRateTest) |
 | T2.9 | Killed on the Finish page | Reopens on Finish (SetupCommands.finishStep saves Finish; FR7) | Nothing | FirstRunScenariosTest |
 | T2.10 | Guardian phone blank | Until T4 ships: "tap Call a guardian" (opens the keypad, as today); after: "If you are ever unsure, ask Sam." | Nothing | Revisited in release B |
 | T2.11 | 200% font, both themes | Lines scroll; Done pinned (AegidaScreen `pinned`) | n/a | SetupScreensTest variants |
@@ -188,7 +188,7 @@ Uninstall". Uninstalling is reachable other ways too, and the guardian's "hasn't
 | T11.1 | Taps it | Aegida's page in the Play Store app | Nothing | Robolectric: the intent's data and package |
 | T11.2 | No Play Store app (sideloaded, a phone without Play) | The same page in the browser | Nothing | Robolectric with the store intent unresolved |
 | T11.3 | Neither can open | Nothing happens; no error | Nothing | Robolectric |
-| T11.4 | must never: a dialog, timer, count of opens, or reminder asks her to rate | n/a | n/a | Test: nothing schedules or remembers a rating ask; Home has no rate button |
+| T11.4 | must never: a dialog, timer, count of opens, or reminder asks her to rate | n/a | n/a | SettingsScreenTest (Home and setup have no rate button); a rating prompt would need the In-App Review library, a new dependency that needs Kevin's OK |
 | T11.5 | must never: the address is anything but Aegida's own store page (one owner, `PublicPages.PLAY_STORE`) | n/a | n/a | JVM |
 | T11.6 | Comes back from Play | My settings as she left it | Nothing | Robolectric |
 | T11.8 | Offline | The Play app's own offline page; the browser fallback does not run | Nothing | Robolectric (the store intent resolves) |
