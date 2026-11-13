@@ -423,7 +423,7 @@ def board_setup():
     pb = phone(7, "Auto Blocker (Samsung only)", tag(T, X.Setup.STEP.replace("%s", "7", 1).replace("%s", "7", 1)) + hd(T, X.Setup.BLOCKER_TITLE, 23) + bd(T, X.Setup.BLOCKER_BODY, 15)
                + btn(T, X.Setup.BLOCKER_SHOW) + quiet(T, X.Setup.BLOCKER_IS_ON) + quiet(T, X.Common.NOT_NOW),
                "Only on a phone where Samsung's feature may exist, so the whole flow is 7 steps there and 6 elsewhere. Aegida cannot read this switch: 'I turned it on' is recorded as her word, never shown as checked.")
-    pf = phone(8, "All set", hd(T, X.Setup.DONE_TITLE, 28) + bd(T, X.Setup.DONE_BODY, 17) + btn(T, X.Common.DONE),
+    pf = phone(8, "All set", hd(T, X.Setup.SEE_TITLE, 28) + bd(T, X.Setup.SEE_QUIET, 17) + btn(T, X.Common.DONE),
                "No step number. Done leaves setup for good; the first look at the phone is then saved as the baseline for 'Was that you?' questions.")
     # the email
     body = X.Invite.BODY.replace("%s", GUARD, 1).replace("%s", "aegida_xxxxxxxx", 2).replace("%s", OWNER, 1)

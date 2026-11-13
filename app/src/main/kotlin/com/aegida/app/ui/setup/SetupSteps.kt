@@ -147,19 +147,11 @@ private fun Field(value: String, onChange: (String) -> Unit, label: String, type
 }
 
 @Composable
-fun AlertsStep(position: StepPosition, onAnswer: (Boolean) -> Unit) {
+fun AlertsStep(position: StepPosition, ownerName: String, onAnswer: (Boolean) -> Unit) {
     StepScreen(position, Texts.Setup.ALERTS_TITLE) {
-        Body(Texts.Setup.ALERTS_BODY, centered = false)
+        Body(Texts.Setup.alertsBody(ownerName), centered = false)
         BigButton(Texts.Setup.ALERTS_YES, { onAnswer(true) })
         QuietButton(Texts.Setup.ALERTS_NO, { onAnswer(false) })
     }
 }
 
-@Composable
-fun FinishStep(pictureId: String?, onDone: () -> Unit) {
-    AegidaScreen(pictureId) {
-        Text(Texts.Setup.DONE_TITLE, style = MaterialTheme.typography.headlineMedium, modifier = Modifier.semantics { heading() })
-        Body(Texts.Setup.DONE_BODY, centered = false)
-        BigButton(Texts.Common.DONE, onDone)
-    }
-}

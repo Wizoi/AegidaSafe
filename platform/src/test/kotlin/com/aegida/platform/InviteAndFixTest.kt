@@ -104,6 +104,21 @@ class InviteAndFixTest {
         assertFalse(intent.getStringExtra(Intent.EXTRA_TEXT)!!.trimEnd().endsWith("Aegida"))
     }
 
+    /** T8.1 and T8.2: one line before step 1 says what Aegida is, with the bare page address, for the first guardian and for a new one after a change. */
+    @Test fun theInviteSaysWhatAegidaIsBeforeStepOneWithTheBarePageAddress() {
+        val another = guardians.copy(
+            firstGuardianName = "Sam", firstGuardianEmail = "sam@example.org", firstTopic = NtfyTopic.generate("Ruth", java.util.Random(9)),
+        )
+        for (g in listOf(guardians, another)) {
+            val body = InviteEmail.intent(g)!!.getStringExtra(Intent.EXTRA_TEXT)!!
+            val line = "What Aegida is: ${com.aegida.core.net.PublicPages.HOW_IT_WORKS}\n"
+            assertTrue(body, body.contains(line))
+            assertTrue("before step 1", body.indexOf(line) < body.indexOf("1. Get the free ntfy app."))
+            assertEquals("the address once, bare: no name, channel or query", 1, Regex("how-it-works").findAll(body).count())
+            assertFalse(body.contains("how-it-works.html?") || body.contains("how-it-works.html#"))
+        }
+    }
+
     @Test fun theInviteCannotBeBuiltWithoutAnEmailOrATopic() {
         assertNull(InviteEmail.intent(guardians.copy(firstGuardianEmail = "  ")))
         assertNull(InviteEmail.intent(guardians.copy(firstTopic = null)))

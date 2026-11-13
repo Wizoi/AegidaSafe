@@ -1,0 +1,101 @@
+package com.aegida.app
+
+import android.app.Application
+import android.content.ActivityNotFoundException
+import android.content.Context
+import android.content.ContextWrapper
+import android.content.Intent
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.test.core.app.ApplicationProvider
+import com.aegida.app.ui.MainContent
+import com.aegida.app.ui.Tab
+import com.aegida.app.ui.WhatYouSeePage
+import com.aegida.app.ui.openPlayPage
+import com.aegida.core.model.SafetyPicture
+import com.aegida.core.model.Setup
+import com.aegida.core.net.PublicPages
+import com.aegida.core.text.Texts
+import io.mockk.coVerify
+import io.mockk.coEvery
+import io.mockk.mockk
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.ParameterizedRobolectricTestRunner
+
+/** T2 ("What you will see", from My settings) and T11's fallbacks (the Play Store app, then the browser, then nothing). */
+@RunWith(ParameterizedRobolectricTestRunner::class)
+class WhatYouSeeAndRateTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark, fontScale) {
+
+    private fun context(resolves: (Intent) -> Boolean, opened: MutableList<Intent>): Context =
+        object : ContextWrapper(ApplicationProvider.getApplicationContext<Application>()) {
+            override fun startActivity(intent: Intent) {
+                if (!resolves(intent)) throw ActivityNotFoundException()
+                opened += intent
+            }
+        }
+
+    @Test fun ratingOpensThePlayStoreAppWhenThePhoneHasIt() { // T11.1, T11.8
+        val opened = mutableListOf<Intent>()
+        assertTrue(context({ true }, opened).openPlayPage())
+        assertEquals(listOf("market://details?id=com.aegida.app"), opened.map { it.dataString })
+    }
+
+    @Test fun ratingFallsBackToTheSamePageInTheBrowserWithoutThePlayStoreApp() { // T11.2
+        val opened = mutableListOf<Intent>()
+        assertTrue(context({ it.`package` == null }, opened).openPlayPage())
+        assertEquals(listOf(PublicPages.PLAY_STORE), opened.map { it.dataString })
+    }
+
+    @Test fun ratingWhenNeitherCanOpenDoesNothingAndShowsNoError() { // T11.3
+        val opened = mutableListOf<Intent>()
+        assertFalse(context({ false }, opened).openPlayPage())
+        assertTrue(opened.isEmpty())
+    }
+
+    @Test fun theLastSetupStepShowsHerPictureTheFourLinesAndDoneAtTheBottom() { // T2.1, T2.11
+        var done = 0
+        show { WhatYouSeePage(picture, noticesOn = true) { done++ } }
+        reachable(Texts.Setup.SEE_TITLE)
+        // her picture twice: the header and the big tile
+        compose.onAllNodesWithContentDescription(Texts.Common.YOUR_PICTURE.format(SafetyPicture.Sunflower.label)).assertCountEquals(2)
+        Texts.Setup.seeLines(true, true).forEach { reachable(it) }
+        compose.onNodeWithText(Texts.Common.DONE).performClick()
+        assertEquals(1, done)
+    }
+
+    @Test fun withNoticesOffThePageNeverPromisesANotice() { // T2.4
+        show { WhatYouSeePage(picture, noticesOn = false) {} }
+        reachable(Texts.Setup.SEE_NOTICE_OFF)
+        compose.onNodeWithText(Texts.Setup.SEE_NOTICE).assertDoesNotExist()
+        compose.onNodeWithText(Texts.Setup.SEE_NOTICE_PLAIN).assertDoesNotExist()
+    }
+
+    @Test fun withNoPictureThereIsNoTileAndTheLineSaysANoticeFromAegida() { // T2.5
+        show { WhatYouSeePage(null, noticesOn = true) {} }
+        reachable(Texts.Setup.SEE_NOTICE_PLAIN)
+        compose.onNodeWithText(Texts.Setup.SEE_NOTICE).assertDoesNotExist()
+        compose.onAllNodesWithContentDescription(Texts.Common.YOUR_PICTURE.format(SafetyPicture.Sunflower.label)).assertCountEquals(0)
+    }
+
+    @Test fun doneOnTheMySettingsCopyOnlyGoesBackAndNeverFinishesSetupOrTakesABaseline() { // T2.2, T2.3
+        val commands = mockk<SetupCommands>(relaxed = true)
+        val loader = mockk<MainStateLoader>()
+        coEvery { loader.load() } returns MainState()
+        val vm = MainViewModel(loader, mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), commands)
+        show { MainContent(MainState(loaded = true, setup = Setup(null, emptySet(), pictureId = picture).copy(stepsDone = 99)), vm) }
+        compose.onNodeWithText(Tab.Settings.label).performClick()
+        compose.onNodeWithText(Texts.Setup.SEE_TITLE).performScrollTo().performClick()
+        reachable(Texts.Setup.SEE_QUIET)
+        compose.onNodeWithText(Texts.Common.DONE).performClick()
+        compose.onNodeWithText(Texts.Setup.SEE_QUIET).assertDoesNotExist()
+        reachable(Texts.Settings.NAME)
+        coVerify(exactly = 0) { commands.finishStep(any(), any()) }
+    }
+}

@@ -54,7 +54,7 @@ class SetupScreensTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark, f
     @Test fun aboutStepIsHerNameThenOneSentenceThenTheGuardiansThreeDetailsAndNothingElse() {
         show { AboutStep(StepPosition(null, 1, 6), Guardians.None) { _, _, _, _ -> } }
         compose.onNodeWithText(Texts.Setup.ABOUT_TITLE).assertIsDisplayed()
-        compose.onNodeWithText("How shall I address you?").assertIsDisplayed()
+        compose.onNodeWithText(Texts.Setup.YOUR_NAME).assertIsDisplayed()
         compose.onNodeWithText("Aegida looks out for scams", substring = true).assertDoesNotExist()
         compose.onNodeWithText("Who should we tell?").assertDoesNotExist()
         val tops = listOf(Texts.Setup.YOUR_NAME, Texts.Setup.GUARDIAN_BODY, Texts.Setup.GUARDIAN_NAME, Texts.Setup.GUARDIAN_EMAIL, Texts.Setup.GUARDIAN_PHONE)
@@ -116,11 +116,23 @@ class SetupScreensTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark, f
 
     @Test fun alertsStepOffersYesAndNoWithAnExampleOfWhatIsSent() {
         val answers = mutableListOf<Boolean>()
-        show { AlertsStep(StepPosition(picture, 4, 6)) { answers += it } }
-        reachable(Texts.Setup.ALERTS_BODY)
+        show { AlertsStep(StepPosition(picture, 4, 6), "Helen") { answers += it } }
+        reachable(Texts.Setup.alertsBody("Helen"))
         compose.onNodeWithText(Texts.Setup.ALERTS_YES).performScrollTo().performClick()
         compose.onNodeWithText(Texts.Setup.ALERTS_NO).performScrollTo().performClick()
         assertEquals(listOf(true, false), answers)
+    }
+
+    /** T1.1 and T1.6: the access step says what Aegida keeps, truthfully, readable at every size and theme. */
+    @Test fun accessStepSaysAegidaKeepsWhoSentAWarnedMessageAndItsFirstWordsOnThePhone() {
+        show { AccessStep(StepPosition(picture, 5, 6), status = AccessStatus(listenerOn = false, bannersOn = false), onOpenAccess = {},
+            onAllowBanners = {}, onContinue = {}) }
+        assertEquals(
+            "This is how Aegida spots fake warnings and scam links. It never sends what your messages say. When it warns you, it keeps who sent " +
+                "the message and its first words on this phone, so you can see what it was.",
+            Texts.Setup.ACCESS_BODY,
+        )
+        reachable(Texts.Setup.ACCESS_BODY)
     }
 
     @Test fun accessStepShowsWhatIsDoneAndOnlyContinuesFullyWhenBothAreOn() {

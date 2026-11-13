@@ -1,8 +1,5 @@
 package com.aegida.core.text
 
-import com.aegida.core.text.AddressWords.isOrdinaryWord
-import com.aegida.core.text.AddressWords.looksLikeAddress
-import com.aegida.core.url.HostMask
 import com.aegida.core.url.Links
 
 /**
@@ -84,7 +81,7 @@ object Texts {
         const val SAYS_MAX = 100
         const val SAID_LINE = "It said: %s"
         const val CALL_A_GUARDIAN = "Call a guardian"
-        const val COULDNT_CHECK = "I couldn't check today."
+        const val COULDNT_CHECK = "Aegida couldn't check today."
         const val COULDNT_CHECK_WHY = "Aegida will try again soon. If this keeps happening, call a guardian."
         const val NEVER_CHECKED = "Aegida hasn't checked your phone yet."
         const val NEVER_CHECKED_WHY = "This takes a minute. Please open Aegida again soon."
@@ -139,31 +136,9 @@ object Texts {
             return if (clean.isEmpty()) null else SAYS_LINE.format("“$clean”")
         }
 
-        /**
-         * [text] for the phone's screens. Invisible characters are removed and dot look-alikes become dots first; then a word that looks
-         * like an address at all (see [looksLikeAddress]) shows as "(link)" whole. Only an ordinary word with a dot stays (findings #99-#101).
-         */
-        fun withoutLinks(text: String): String =
-            com.aegida.core.url.LinkText.prepare(text).split(WORD_GAPS).joinToString(" ") { word ->
-                if (looksLikeAddress(word) && !isOrdinaryWord(word)) LINK_REMOVED else word
-            }
+        fun withoutLinks(text: String): String = LabelText.withoutLinks(text)
 
-        /**
-         * An app's label as it may be sent off the phone. After the same preparation, a word that looks like an address is sent as the
-         * masks of the addresses found in it, or as `*****` when none can be read; never any part of the word. Then it is cut short.
-         */
-        fun guardianLabel(raw: String): String =
-            cleanLabel(
-                cleanLabel(com.aegida.core.url.LinkText.prepare(raw), Int.MAX_VALUE).split(WORD_GAPS).joinToString(" ") { word ->
-                    if (!looksLikeAddress(word)) {
-                        word
-                    } else {
-                        Links.findThorough(word).map { HostMask.of(it.host) }.ifEmpty { listOf(HostMask.of("")) }.joinToString(" ")
-                    }
-                },
-            )
-
-        private val WORD_GAPS = Regex("""[\s\p{Z}]+""")
+        fun guardianLabel(raw: String): String = LabelText.guardianLabel(raw)
 
         /** "It said: “…” “…”" for what a website's notification said (its title, then its text), each cleaned and cut short. */
         fun saidLine(title: String?, text: String? = null): String? {
@@ -172,21 +147,7 @@ object Texts {
             return if (parts.isEmpty()) null else SAID_LINE.format(parts.joinToString(" ") { "“$it”" })
         }
 
-        fun cleanLabel(raw: String, max: Int = CONFIRM_LABEL_MAX): String {
-            val spaced = StringBuilder()
-            var i = 0
-            while (i < raw.length) {
-                val cp = raw.codePointAt(i)
-                i += Character.charCount(cp)
-                val type = Character.getType(cp)
-                val blocked = type == Character.CONTROL.toInt() || type == Character.FORMAT.toInt() ||
-                    type == Character.LINE_SEPARATOR.toInt() || type == Character.PARAGRAPH_SEPARATOR.toInt()
-                spaced.append(if (blocked) " " else String(Character.toChars(cp)))
-            }
-            val text = spaced.toString().trim().replace(Regex(" {2,}"), " ")
-            if (text.codePointCount(0, text.length) <= max) return text
-            return text.substring(0, text.offsetByCodePoints(0, max)).trimEnd() + "…"
-        }
+        fun cleanLabel(raw: String, max: Int = CONFIRM_LABEL_MAX): String = LabelText.cleanLabel(raw, max)
     }
 
     object History {
@@ -214,34 +175,42 @@ object Texts {
 
     object Setup {
         const val WELCOME_TITLE = "Welcome to Aegida"
-        const val WELCOME_BODY = "Set up Aegida in about five minutes. It quietly looks out for scams, and keeps you and a guardian you trust aware."
+        const val WELCOME_BODY = "Set up Aegida in about five minutes. It quietly looks out for scams and, if you say so, lets a guardian you trust know."
         const val WELCOME_START = "Let's go"
         const val STEP = "Step %s of %s"
 
         const val ABOUT_TITLE = "Let's set up your helper"
-        const val YOUR_NAME = "How shall I address you?"
+        const val YOUR_NAME = "Your first name"
         const val GUARDIAN_BODY = "Pick one person you trust. We'll call them your guardian."
         const val GUARDIAN_NAME = "Their name"
         const val GUARDIAN_EMAIL = "Their email"
         const val GUARDIAN_PHONE = "Their phone (one tap to call)"
 
         const val PICTURE_TITLE = "Pick your safety picture"
-        const val PICTURE_BODY = "You'll see it every time it's really me. If you don't see it, it isn't me."
+        const val PICTURE_BODY = "Aegida shows this picture on its warnings. If a warning does not show it, it did not come from Aegida."
 
         const val INVITE_TITLE = "Tell your guardian"
-        const val INVITE_BODY = "I'll write an email to %s in your own email app. You press Send."
+        const val INVITE_BODY = "Aegida will write an email to %s in your own email app. You press Send."
         const val INVITE_WRITE = "Write the email"
         const val INVITE_SENT = "I sent it"
         const val INVITE_NO_EMAIL_APP = "This phone has no email app set up. Ask a guardian to help."
 
         const val ALERTS_TITLE = "Let Aegida tell your guardian about serious problems"
-        const val ALERTS_BODY = "For example: \"A website was sending fake warnings to Ruth's phone. Aegida hid them.\" " +
+        /** %s is "Ruth's" (her first name, the possessive guardian notes use) or "your": see [alertsBody]. */
+        const val ALERTS_BODY = "For example: \"A website was sending fake warnings to %s phone. Aegida hid them.\" " +
             "It never sends your messages, calls or where you are."
+
+        /** [ALERTS_BODY] in her own name; "your phone" when the name is blank (an old database). */
+        fun alertsBody(ownerName: String): String {
+            val name = ownerName.trim()
+            return ALERTS_BODY.format(if (name.isEmpty()) "your" else "$name's")
+        }
         const val ALERTS_YES = "Yes, tell my guardian"
         const val ALERTS_NO = "No, I'll tell them myself"
 
         const val ACCESS_TITLE = "Let Aegida see your notifications"
-        const val ACCESS_BODY = "This is how Aegida spots fake warnings and scam links. It does not keep your messages."
+        const val ACCESS_BODY = "This is how Aegida spots fake warnings and scam links. It never sends what your messages say. " +
+            "When it warns you, it keeps who sent the message and its first words on this phone, so you can see what it was."
         const val ACCESS_PART_1 = "1. Let Aegida see your notifications"
         const val ACCESS_PART_2 = "2. Let Aegida warn you"
         const val ACCESS_FIRST = "Do step 1 first."
@@ -274,13 +243,35 @@ object Texts {
         const val BLOCKER_SHOW = "Show me"
         const val BLOCKER_IS_ON = "I turned it on"
 
-        const val DONE_TITLE = "All set."
-        const val DONE_BODY = "Aegida is looking out for you now. You don't need to do anything."
+        /** The last step, and the same page opened from My settings (T2). */
+        const val SEE_TITLE = "What you will see"
+        const val SEE_QUIET = "Aegida works quietly. You don't need to open it."
+        const val SEE_NOTICE = "When something needs you, you will see a notice with your picture. Tap it."
+        const val SEE_NOTICE_PLAIN = "When something needs you, you will see a notice from Aegida. Tap it."
+        const val SEE_NOTICE_OFF = "Home will show you what needs a tap."
+        const val SEE_CALM = "When Aegida finds nothing, Home says: %s"
+        const val SEE_UNSURE = "If you are ever unsure, tap %s."
+
+        /** The four lines of that page. It never promises a notice she cannot get (notices off) or a picture that cannot be drawn. */
+        fun seeLines(noticesOn: Boolean, hasPicture: Boolean): List<String> = listOf(
+            SEE_QUIET,
+            if (!noticesOn) SEE_NOTICE_OFF else if (hasPicture) SEE_NOTICE else SEE_NOTICE_PLAIN,
+            SEE_CALM.format(Home.NO_KNOWN_PROBLEMS),
+            SEE_UNSURE.format(Home.CALL_A_GUARDIAN),
+        )
     }
 
     object Settings {
         const val TITLE = "My settings"
         const val HOW_IT_WORKS = "How does this work?"
+
+        /** Only once Aegida is public on Play (PublicPages.LISTED_ON_PLAY). The share text has no link and nothing of hers (T10). */
+        const val SHARE_BUTTON = "Tell a friend about Aegida"
+        const val SHARE_CHOOSER = "Tell a friend about Aegida"
+        const val SHARE_TEXT = "I use Aegida on my phone. It looks for scam links and fake warnings and explains them in plain words. " +
+            "It's free. Look for Aegida in the Play Store."
+        const val RATE_NOTE = "Reviews on Google Play show your Google name."
+        const val RATE_BUTTON = "Rate Aegida on Google Play"
         const val GUARDIAN = "My guardian"
         const val PICTURE = "My safety picture"
         const val NAME = "My first name"
@@ -328,6 +319,7 @@ object Texts {
         const val LABEL = "%s (Aegida)"
         const val LABEL_EXAMPLE = ", such as “$LABEL”"
         const val BODY = "Hi %s,\n\n" +
+            "What Aegida is: ${com.aegida.core.net.PublicPages.HOW_IT_WORKS}\n\n" +
             "I've picked you as my guardian. If I have switched on “Tell my guardian about serious problems” in my Aegida app, " +
             "you will get a first message saying it is set up, and then a message if my phone needs help. " +
             "If it has not come within a day of adding the name, please ask me.\n\n" +

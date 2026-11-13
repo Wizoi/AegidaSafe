@@ -18,6 +18,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.aegida.core.alert.Guardians
 import com.aegida.core.model.SafetyPicture
+import com.aegida.core.net.PublicPages
 import com.aegida.core.model.Setup
 import com.aegida.core.text.Texts
 
@@ -31,6 +32,8 @@ data class SettingsContent(
     val locale: java.util.Locale,
     /** Things the owner told Aegida are fine, each with a way to take it back (Kevin, Oct 11). */
     val allowed: List<com.aegida.core.notice.AllowedItem> = emptyList(),
+    /** "Tell a friend" and "Rate" show only once Aegida is public on Play (closed testing would give a friend "not found"). */
+    val listedOnPlay: Boolean = PublicPages.LISTED_ON_PLAY,
 )
 
 /** What the buttons and the switch in My settings do. */
@@ -42,6 +45,9 @@ data class SettingsActions(
     val onFilterHelp: () -> Unit,
     val onHowItWorks: () -> Unit,
     val onStopAllowing: (com.aegida.core.notice.AllowedItem) -> Unit = {},
+    val onWhatYouSee: () -> Unit = {},
+    val onShare: () -> Unit = {},
+    val onRate: () -> Unit = {},
 )
 
 /** What the owner can see and change later. */
@@ -54,6 +60,7 @@ fun SettingsScreen(content: SettingsContent, actions: SettingsActions) {
     val picture = SafetyPicture.fromId(setup.pictureId)
     AegidaScreen(setup.pictureId) {
         Text(Texts.Settings.TITLE, style = MaterialTheme.typography.headlineMedium, modifier = Modifier.semantics { heading() })
+        QuietButton(Texts.Setup.SEE_TITLE, actions.onWhatYouSee)
         SettingCard {
             ValueRow(Texts.Settings.NAME, guardians.ownerName.ifBlank { Texts.Settings.NOT_SET })
             ValueRow(Texts.Settings.GUARDIAN, guardians.firstGuardianName.ifBlank { Texts.Settings.NOT_SET })
@@ -95,6 +102,11 @@ fun SettingsScreen(content: SettingsContent, actions: SettingsActions) {
             Text(TimeText.listsLine(content.listsUpdatedAt, content.zone, content.locale), style = MaterialTheme.typography.bodyLarge)
         }
         QuietButton(Texts.Settings.HOW_IT_WORKS, actions.onHowItWorks)
+        if (content.listedOnPlay) {
+            QuietButton(Texts.Settings.SHARE_BUTTON, actions.onShare)
+            Text(Texts.Settings.RATE_NOTE, style = MaterialTheme.typography.bodyLarge)
+            QuietButton(Texts.Settings.RATE_BUTTON, actions.onRate)
+        }
     }
 }
 
