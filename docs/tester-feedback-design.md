@@ -265,6 +265,60 @@ exists because a coached change must not be silent (GuardianChange.kt:12-15), an
 | T5.10 | hostile: blank name, look-alike letters, another alphabet | Save waits on blank (FR5 rules); others saved | Channel unchanged (FR13) | JVM |
 | T5.11 | failure: killed while saving | Either the old or the new details, never a mix | Nothing | Test on the guardian settings store (checked before naming) |
 
+### Release B scenario review (Opus 5.5 high, Nov 13)
+
+Read-only review of T4, T5 and K7 against the code. Its rows are part of the tables above; its corrections:
+
+- Every place that offers "Call a guardian" today: Home under a warning, with no known problems, and when Aegida couldn't check
+  (HomeScreen.kt:38/49/68, all to MainContent.kt:68); "Fix my phone" on GuardianUnreachable (MainContent.kt:85, an empty keypad
+  without a number); sentences only: the T2 page, `COULDNT_CHECK_WHY`, `CONFIRM_NO_HELP` (the question page has no call button),
+  "Please call them." (Problem.kt:118); the site (how-it-works.html:157/209/225/288) and product-brief.md:13.
+- "Fix a spelling" must not reuse `saveAbout`: it writes email and phone too, runs outside `AlertGate` on Dispatchers.Default
+  (races a check and can undo `welcomePendingFor`/`heartbeatCancelled`) and is not wrapped in `quietly`. New `GuardianDetails` in
+  :alerts, under the gate: `fixNames(owner, guardian)` (no email or phone parameters) and `setPhone(phone)` (owns K7). Setup's
+  About step calls both.
+- K7 needs no Room migration: an Info `Problem` like AppAllowed sent through `AlertPipeline.tellAllowed`/`sendOrHold`; kinds are
+  stored by name and an older version skips one it does not know.
+- A missing contact picker is found with `resolveActivity` (QUERY_ALL_PACKAGES is held) plus a catch around `launch`.
+  "Android asks which number" is unchecked: phone pickers usually list each number as its own row. Check on the emulator.
+- "Show the call button" is one rule in :core/:platform (the number has digits and a dialer exists), not a composable.
+- `callGuardian` keeps only digits and "+", so "555 0100,123" (a pause or extension) dials the extension glued on: finding #185.
+
+| ID | Situation | Owner sees | Guardian gets | Test |
+|---|---|---|---|---|
+| T4.15 | GuardianUnreachable with no phone | See decision K10. Never "Got it" alone: a seen finding with no quiet period is raised again next run (AlertPipeline.kt:88-91) | Nothing | Robolectric |
+| T4.16 | No phone: Home with no known problems, or couldn't check | "If you are ever unsure, ask Sam." where the button was; under a warning, only the big button | n/a | Robolectric, each state |
+| T4.17 | No phone: the "call a guardian / them" sentences | Each says "tell Sam" / "ask Sam" | n/a | JVM, one per string |
+| T4.18 | Picked contact has no usable number (blank, letters, "*86") | Field unchanged; "That contact has no phone number. You can type it below." | Nothing | Robolectric, stub resolver |
+| T4.19 | Picked row cannot be read (work-profile SecurityException, a Contacts URI, null cursor) | The same line; never a crash | Nothing | Robolectric |
+| T4.20 | SIM contact, Samsung Contacts, a number with a pause or extension | The number up to the first "," or ";" is dialed (finding #185) | n/a | JVM; emulator; Galaxy last |
+| T4.21 | No contact picker on the phone | No picker button | Nothing | Robolectric |
+| T4.22 | Aegida killed while the contact list is open | Setup: the number is filled in. My settings: the result is lost (page state is `remember`); nothing saved or sent | Nothing | Emulator, "Don't keep activities" |
+| T4.23 | Picking in My settings | Never overwrites the guardian's name | n/a | Robolectric |
+| T4.24 | A saved phone is wrong, or she clears it | My settings shows "Sam's phone" with Add or Change | K7 note | Robolectric |
+| T5.12 | Name fixed while notes wait offline | n/a | Delivered in the old spelling (rows are never rewritten; the topic is unchanged, so they are not dropped) | JVM |
+| T5.13 | Name fixed; the phone dies before the next daily re-arm | n/a | The waiting check-in note uses the old name. Accepted: T5.3 forbids a send | JVM |
+| T5.14 | Name fix while a check runs | No mix | Nothing lost (under `AlertGate`) | JVM, interleaved |
+| T5.15 | hostile: she renames herself "Aegida Support" or "bank-help.com" | Saved | Masked in notes like `guardianLabel` | JVM |
+| T5.16 | Prefilled "Pick a different guardian" saved with the same email | See decision K9 | See K9 | JVM + Robolectric |
+| T5.17 | Same guardian, email typo fixed | See K9 (the "you changed your guardian" popup would be untrue) | See K9 | Words |
+| T5.18 | Setup: Back to About after saying Yes to alerts, email or phone changed | See K9 | See K9 | JVM |
+| K7.1 | Offline | Saved | Queued, then delivered; counts toward GuardianUnreachable | JVM |
+| K7.2 | Alerts off, phone changed, then alerts on | Saved | See decision K8 | JVM |
+| K7.3 | Guardian never subscribed, or no channel yet | n/a | ntfy accepts and the note is lost / nothing | JVM |
+| K7.4 | Three changes in a minute | Saved each time | One note per save that changes the digits, none while one is still waiting | JVM |
+| K7.5 | Change, then undo | Saved | Both notes; a note is never pulled back | JVM |
+| K7.6 | Same digits, different spaces or brackets | Saved | Nothing | JVM |
+| K7.7 | Phone set inside "Pick a different guardian" | The change flow | No K7 note | JVM |
+| K7.8 | Killed between the note and the save | n/a | Note first, so it errs loud (as FindingActions.kt:115) | JVM |
+| K7.9 | must never: the number in the note | n/a | By construction: the note builder has no phone parameter | JVM + mutant |
+
+Draft words (for Kevin, K11):
+- Guardian notes: added "%1$s added a phone number for you in Aegida, so its Call button rings you. If you did not expect this, please call %1$s."; changed "%1$s changed the phone number Aegida has for you. If you did not expect this, please call %1$s."; removed "%1$s took your phone number out of Aegida. If you did not expect this, please call %1$s."
+- Owner: "Pick from my contacts"; "Their phone, if you have it"; "That contact has no phone number. You can type it below."; "If you are ever unsure, ask %s." ("ask your guardian" without a name); "Sam's phone" with Add / Change; "Aegida will let %s know you changed it. It never sends the number." (only while alerts are on); "Fix a spelling" / "Aegida will use these names from now on. Nothing is sent."; "Aegida couldn't reach Sam for a day. When you can, please tell Sam."; History: "You changed your guardian's phone number".
+
+Build order: (1) core rule and strings; (2) the no-phone screens; (3) `GuardianDetails.fixNames`; (4) the K7 note and `setPhone`; (5) the contact picker (READ_CONTACTS added to the manifest ban list); (6) "Fix a spelling" page, phone row, prefilled change flow; (7) docs, site, scenario tables, mutants, emulator at 200% in both themes, Galaxy last. Deferred: "Call Sam" sized for 200% (keep "Call a guardian").
+
 ## Kevin's decisions
 
 | | Question | Recommended | Reviewers |
