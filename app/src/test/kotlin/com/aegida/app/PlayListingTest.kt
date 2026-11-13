@@ -14,6 +14,9 @@ class PlayListingTest {
     private val play = File("src/main/play")
     private val listing = File(play, "listings/en-US")
 
+    /** "protect(s)" is out too (T6); "protection" is allowed because the site names "Website protection". */
+    private val bannedWords = Regex("""\b(safe|safely|safety|secure|secured|100%|guarantee[ds]?|protected|protects?)\b""", RegexOption.IGNORE_CASE)
+
     private fun text(name: String) = File(listing, name).readText().trim()
 
     @Test fun titleAndDescriptionsFitPlaysLimits() {
@@ -23,7 +26,7 @@ class PlayListingTest {
     }
 
     @Test fun theStorePageNeverSaysSafe() {
-        val words = Regex("""\b(safe|safely|safety|secure|secured|100%|guarantee[ds]?|protected)\b""", RegexOption.IGNORE_CASE)
+        val words = bannedWords
         for (name in listOf("title.txt", "short-description.txt", "full-description.txt")) {
             assertEquals("$name makes a claim Aegida does not make", emptyList<String>(), words.findAll(text(name)).map { it.value }.toList())
         }
@@ -61,7 +64,7 @@ class PlayListingTest {
         for (needed in listOf("ntfy.sh", "GitHub Pages", "does <strong>not</strong> send what they say", "child&rsquo;s phone", "Last updated")) {
             assertTrue("the privacy policy no longer mentions: $needed", text.contains(needed))
         }
-        val words = Regex("""\b(safe|safely|safety|secure|secured|100%|guarantee[ds]?|protected)\b""", RegexOption.IGNORE_CASE)
+        val words = bannedWords
         assertEquals("the privacy policy makes a claim Aegida does not make", emptyList<String>(), words.findAll(text).map { it.value }.toList())
     }
 
@@ -117,5 +120,38 @@ class PlayListingTest {
         val page = File("../docs/site/how-it-works.html").readText()
         assertTrue(page.contains("<b>AY-gih-dah</b>"))
         assertTrue(page.contains("How Aegida (AY-gih-dah) works"))
+    }
+
+    /** T1.2: Aegida does keep a few words, on the phone, so no public page may say it keeps none. */
+    @Test fun noPublicPageSaysAegidaDoesNotKeepWhatMessagesSay() {
+        val denial = Regex("""\b(does not|doesn't|doesn&rsquo;t|do not|don't|never) keep\b""", RegexOption.IGNORE_CASE)
+        for (file in listOf(File(listing, "full-description.txt"), File("../docs/site/how-it-works.html"), File("../docs/site/privacy.html"))) {
+            assertEquals("${file.path} says Aegida does not keep something it does keep", emptyList<String>(),
+                denial.findAll(file.readText()).map { it.value }.toList())
+        }
+    }
+
+    /** T1.3: any "N days" History claim is the real time (DailyPruning.HISTORY_KEPT), and the listing makes the claim. */
+    @Test fun theHistoryDaysOnThePublicPagesAreTheRealOnes() {
+        val real = com.aegida.alerts.DailyPruning.HISTORY_KEPT.toDays().toInt()
+        val claim = Regex("""(\d+)[ -]days? (?:of )?history|history keeps[^.]{0,60}?(\d+) days""", RegexOption.IGNORE_CASE)
+        fun days(file: File) = claim.findAll(file.readText()).map { (it.groupValues[1].ifEmpty { it.groupValues[2] }).toInt() }.toList()
+        val listed = days(File(listing, "full-description.txt"))
+        assertTrue("the listing no longer says how long History keeps its line", listed.isNotEmpty())
+        for (file in listOf(File(listing, "full-description.txt"), File("../docs/site/how-it-works.html"))) {
+            for (n in days(file)) assertEquals("${file.path} says History keeps $n days", real, n)
+        }
+    }
+
+    /** T6: the short description and the "For families" paragraph the testers asked for. */
+    @Test fun theListingSpeaksToFamiliesSettingUpForAParent() {
+        assertEquals("Spots scam links and fake virus pop-ups. Can tell one family member you choose.", text("short-description.txt"))
+        assertTrue(text("full-description.txt").contains("Setting this up for a parent or grandparent?"))
+    }
+
+    /** T7: the family-facing page gives the store contact address, from the one file that owns it. */
+    @Test fun theHowItWorksPageGivesTheStoreContactEmail() {
+        val email = File(play, "contact-email.txt").readText().trim()
+        assertTrue("how-it-works.html does not give $email", File("../docs/site/how-it-works.html").readText().contains(email))
     }
 }

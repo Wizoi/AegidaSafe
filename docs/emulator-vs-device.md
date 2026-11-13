@@ -44,3 +44,4 @@ the real-phone checks were all fine (findings #103, Oct 13); where no details we
 | Date | What | Emulator | Device |
 |---|---|---|---|
 | 2026-10-14 | Installer of a store app | No Galaxy Store; the maker's-store case is built from the Samsung capture (`GALAXY_STORE` in the test kit) | Galaxy Store (`com.sec.android.app.samsungapps`) on the S25 lab phone (#106) |
+| 2026-11-13 | Sideloaded install, then notification access | On Android 13 and newer, an APK installed by hand (adb, a file) shows Android's own "Restricted setting" screen before notification access can be turned on, with none of Aegida's words (finding #180). A tester told to sideload sees this and needs the three-dot "Allow restricted settings" step | A Play install does not show it. Note only; nothing in Aegida changes |

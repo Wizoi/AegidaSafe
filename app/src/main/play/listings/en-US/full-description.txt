@@ -4,6 +4,9 @@ Scammers do this for a living, and anyone can be fooled. You should not have to 
 
 If a family member or a friend sent you this app, it is because they care about you. Here is what it does.
 
+For families
+Setting this up for a parent or grandparent? You can sit with them for the five-minute setup. If they say yes, a family member or friend they choose gets a short note in the free ntfy app when something serious happens, never the words of their messages.
+
 What Aegida does
 - Looks out for scam links and fake warnings in the messages and alerts on your phone.
 - Tells you in plain words if something looks wrong, and what to do next.
@@ -18,7 +21,7 @@ You stay in charge
 
 What your phone will ask you to allow
 Your phone will ask you a few questions. Here is why.
-- Notification access: so Aegida can look at the alerts and messages on your screen for scam links. It does not keep or send what they say.
+- Notification access: so Aegida can look at the alerts and messages on your screen for scam links. It never sends what they say. When it warns you about one, it keeps who sent it and its first words on this phone, so you can see what it was. History keeps a short line for 90 days.
 - A list of your apps: so Aegida can notice a new app that came from outside the Play Store or, on a Samsung, the Galaxy Store, or one that lets someone else control your phone.
 - A small notice on your screen: so you can see that Aegida is running.
 - Internet: to get its list of known scams, and to send your short note if you turned that on.
