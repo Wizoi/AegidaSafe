@@ -135,6 +135,38 @@ class SetupScreensTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark, f
         reachable(Texts.Setup.ACCESS_BODY)
     }
 
+    /** T1.6: the access step has a longer sentence about what is kept; at 200% the first button and the way on must still be on the screen once scrolled to. */
+    @Test fun accessStepWithItsLongerSentenceStillLetsHerReachTheOpenButtonAndTheWayOn() {
+        show { AccessStep(StepPosition(picture, 5, 6), status = AccessStatus(listenerOn = false, bannersOn = false), onOpenAccess = {},
+            onAllowBanners = {}, onContinue = {}) }
+        reachable(Texts.Setup.ACCESS_BODY)
+        reachable(Texts.Setup.ACCESS_OPEN)
+        reachable(Texts.Common.NOT_NOW)
+    }
+
+    /** T10.7: Tell a friend and Rate belong at the bottom of My settings only; no setup screen offers either. */
+    @Test fun noSetupScreenOffersTellAFriendOrRate() {
+        val steps = listOf<@androidx.compose.runtime.Composable () -> Unit>(
+            { WelcomeScreen(onStart = {}) },
+            { AboutStep(StepPosition(null, 1, 6), Guardians.None) { _, _, _, _ -> } },
+            { PictureStep(StepPosition(null, 2, 6), null, {}, onContinue = {}) },
+            { InviteStep(StepPosition(picture, 3, 6), "Kevin", noEmailApp = false, onWrite = {}, onSent = {}) },
+            { AlertsStep(StepPosition(picture, 4, 6), "Helen") {} },
+            { AccessStep(StepPosition(picture, 5, 6), AccessStatus(listenerOn = true, bannersOn = true), {}, {}, {}) },
+            { FilterStep(StepPosition(picture, 6, 6), filterOn = false, onOpenSettings = {}, onCheck = {}, onContinue = {}) },
+            { com.aegida.app.ui.WhatYouSeePage(picture, noticesOn = true, Texts.Setup.DONE_TITLE) {} },
+        )
+        val shown = androidx.compose.runtime.mutableIntStateOf(0)
+        show { steps[shown.intValue]() }
+        for (i in steps.indices) {
+            shown.intValue = i
+            compose.waitForIdle()
+            for (text in listOf(Texts.Settings.SHARE_BUTTON, Texts.Settings.RATE_BUTTON, Texts.Settings.RATE_NOTE)) {
+                compose.onNodeWithText(text).assertDoesNotExist()
+            }
+        }
+    }
+
     @Test fun accessStepShowsWhatIsDoneAndOnlyContinuesFullyWhenBothAreOn() {
         show { AccessStep(StepPosition(picture, 5, 6), status = AccessStatus(listenerOn = true, bannersOn = false), onOpenAccess = {},
             onAllowBanners = {}, onContinue = {}) }

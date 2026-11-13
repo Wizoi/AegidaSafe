@@ -15,11 +15,14 @@ import com.aegida.app.ui.MainContent
 import com.aegida.app.ui.Tab
 import com.aegida.app.ui.WhatYouSeePage
 import com.aegida.app.ui.openPlayPage
+import com.aegida.alerts.FindingActions
+import com.aegida.core.model.HomeState
 import com.aegida.core.model.SafetyPicture
 import com.aegida.core.model.Setup
 import com.aegida.core.net.PublicPages
 import com.aegida.core.text.Texts
 import io.mockk.coVerify
+import io.mockk.confirmVerified
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
@@ -101,5 +104,39 @@ class WhatYouSeeAndRateTest(dark: Boolean, fontScale: Float) : ScreenTestBase(da
         compose.onNodeWithText(Texts.Setup.SEE_QUIET).assertDoesNotExist()
         reachable(Texts.Settings.NAME)
         coVerify(exactly = 0) { commands.finishStep(any(), any()) }
+    }
+
+    private fun mySettingsPage(state: MainState, vm: MainViewModel) {
+        show { MainContent(state, vm) }
+        compose.onNodeWithText(Tab.Settings.label).performClick()
+        compose.onNodeWithText(Texts.Setup.SEE_TITLE).performScrollTo().performClick()
+    }
+
+    private fun viewModel(actions: FindingActions, commands: SetupCommands): MainViewModel {
+        val loader = mockk<MainStateLoader>()
+        coEvery { loader.load() } returns MainState()
+        return MainViewModel(loader, mockk(relaxed = true), mockk(relaxed = true), actions, commands).also { it.work = Dispatchers.Unconfined }
+    }
+
+    @Test fun afterSheChangedHerPictureThePageShowsTheNewOneNotTheOneFromSetup() { // T2.6
+        val owl = SafetyPicture.Owl
+        val now = Setup(null, emptySet(), pictureId = owl.id).copy(stepsDone = 99)
+        mySettingsPage(MainState(loaded = true, setup = now), viewModel(mockk(relaxed = true), mockk(relaxed = true)))
+        compose.onAllNodesWithContentDescription(Texts.Common.YOUR_PICTURE.format(owl.label)).assertCountEquals(2)
+        compose.onAllNodesWithContentDescription(Texts.Common.YOUR_PICTURE.format(SafetyPicture.Sunflower.label)).assertCountEquals(0)
+    }
+
+    @Test fun openingThePageFromMySettingsWhileAWarningIsOpenResolvesNothingAndLeavesHomeAsItWas() { // T2.7
+        val actions = mockk<FindingActions>(relaxed = true)
+        val commands = mockk<SetupCommands>(relaxed = true)
+        val warned = MainState(
+            loaded = true, setup = Setup(null, emptySet(), pictureId = picture).copy(stepsDone = 99), home = HomeState.NeedsTaps(listOf(noisy())),
+        )
+        mySettingsPage(warned, viewModel(actions, commands))
+        reachable(Texts.Setup.SEE_QUIET)
+        compose.onNodeWithText(Texts.Common.DONE).performClick()
+        compose.onNodeWithText(Tab.Home.label).performClick()
+        compose.onNodeWithText(Texts.Home.NO_KNOWN_PROBLEMS).assertDoesNotExist()
+        confirmVerified(actions, commands)
     }
 }

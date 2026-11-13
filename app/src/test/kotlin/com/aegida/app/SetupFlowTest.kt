@@ -1,5 +1,9 @@
 package com.aegida.app
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -109,6 +113,24 @@ class SetupFlowTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark, font
         assertTrue(store.value.done)
         compose.onNodeWithText(Texts.Setup.DONE_TITLE).assertDoesNotExistOrFail()
         compose.onNodeWithText(Tab.Home.label).assertExists()
+    }
+
+    /** T2.9: Aegida is killed while "All set." is showing; the next time it opens on "All set." again (not the welcome, not an earlier step). */
+    @Test fun killedOnTheAllSetPageAegidaOpensOnItAgainBecauseSetupIsNotDoneUntilDone() {
+        val store = FakeSetupStore(Setup.NotDone.copy(stepsDone = SetupStep.Filter.ordinal))
+        var vm by mutableStateOf(realViewModel(store, blockerRelevant = false))
+        show { key(vm) { AppRoot(vm) } }
+        settle()
+        compose.onNodeWithText(Texts.Common.NOT_NOW).performScrollTo().performClick() // the Filter step's way on
+        settle()
+        compose.onNodeWithText(Texts.Setup.DONE_TITLE).assertExists()
+        assertFalse(store.value.done)
+
+        vm = realViewModel(store, blockerRelevant = false) // killed: a new process reads what was saved
+        settle()
+        compose.onNodeWithText(Texts.Setup.DONE_TITLE).assertExists()
+        compose.onNodeWithText(Texts.Setup.WELCOME_TITLE).assertDoesNotExist()
+        assertFalse(store.value.done)
     }
 
     @Test fun setupFromFilterToAllSetFinishesOnlyWhenSheTapsDone() = setupFromFilterToDone(blockerRelevant = false)
