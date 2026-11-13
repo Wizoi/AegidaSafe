@@ -67,6 +67,15 @@ class LinkIsFineTest {
         assertEquals(1, http.bodies.size)
     }
 
+    @Test fun sayingALinkIsFineClearsTheSenderAndWordsKeptForTheWarning() = runTest { // T1.4
+        val withWords = lookalike.copy(evidence = lookalike.evidence + mapOf(
+            Evidence.MESSAGE_TITLE to "PayPal", Evidence.MESSAGE_TEXT to "Verify now (link)", Evidence.MESSAGE_AT to "123",
+        ))
+        pipeline.handle(listOf(withWords), setOf(DetectorId.Link))
+        assertTrue(actions.allow(withWords.key))
+        assertEquals(mapOf(Evidence.HOST to "paypal-help.com", Evidence.APP_LABEL to "Messages"), findings.get(withWords.key)!!.evidence)
+    }
+
     @Test fun aLinkOnTheScamListCanNeverBeSaidToBeFine() = runTest {
         val scam = link(Problem.ScamLink, "evil.example")
         pipeline.handle(listOf(scam), setOf(DetectorId.Link))
