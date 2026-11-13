@@ -149,10 +149,18 @@ object Guards {
     val bannedWords = Rule(
         "CopyRules",
         Regex(
-            """(?i)"[^"\n]*\b(safe|safely|safest|unsafe|secure|secured|protected from)\b[^"\n]*"""" +
-                """|>[^<]*\b(safe|safely|safest|unsafe|secure|secured|protected from)\b[^<]*<""",
+            """(?i)"[^"\n]*\b(safe|safely|safest|unsafe|secure|secured|protect|protects|protected from)\b[^"\n]*"""" +
+                """|>[^<]*\b(safe|safely|safest|unsafe|secure|secured|protect|protects|protected from)\b[^<]*<""",
         ),
         "never say \"safe\" (or \"secure\", \"protected from\"); say \"no known problems found\"",
+    )
+
+    /** T1: Aegida keeps who sent a warned message and its first words on the phone, so no text may say it does not keep messages. */
+    val noKeepClaim = Rule(
+        "CopyRules: no false keep claim",
+        Regex("""(?i)"[^"\n]*\b(does not|doesn't|do not|don't|never) keep\b[^"\n]*""""),
+        "Aegida keeps the sender and first words of a warned message on the phone (T1); say what it keeps, not that it keeps nothing",
+        onlyIn = { it.path.endsWith("core/text/Texts.kt") },
     )
 
     /**

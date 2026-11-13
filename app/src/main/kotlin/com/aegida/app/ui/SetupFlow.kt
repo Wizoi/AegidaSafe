@@ -21,7 +21,6 @@ import com.aegida.app.ui.setup.AccessStep
 import com.aegida.app.ui.setup.AlertsStep
 import com.aegida.app.ui.setup.BlockerStep
 import com.aegida.app.ui.setup.FilterStep
-import com.aegida.app.ui.setup.FinishStep
 import com.aegida.app.ui.setup.InviteStep
 import com.aegida.app.ui.setup.LocalSetupBack
 import com.aegida.app.ui.setup.PictureStep
@@ -71,14 +70,14 @@ private fun SetupSteps(state: MainState, vm: MainViewModel) {
             SetupStep.About -> AboutPage(c)
             SetupStep.Picture -> PicturePage(c)
             SetupStep.Invite -> InvitePage(c)
-            SetupStep.Alerts -> AlertsStep(c.position) { yes ->
+            SetupStep.Alerts -> AlertsStep(c.position, c.state.guardians.ownerName) { yes ->
                 vm.edit { setAlerts(yes) }
                 advance()
             }
             SetupStep.Access -> AccessPage(c)
             SetupStep.Filter -> FilterPage(c)
             SetupStep.Blocker -> BlockerPage(c)
-            SetupStep.Finish -> FinishStep(state.setup.pictureId) { advance() }
+            SetupStep.Finish -> WhatYouSeePage(state.setup.pictureId, state.noticesOn) { advance() }
         }
     }
 }

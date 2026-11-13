@@ -8,6 +8,9 @@ internal sealed interface Page {
     data object FilterGuide : Page
     data object ChangePicture : Page
     data object ChangeGuardian : Page
+
+    /** The "What you will see" page from the top of My settings; Done only goes back (T2). */
+    data object WhatYouSee : Page
     data class Advice(val finding: Finding) : Page
     data class NoisyApp(val finding: Finding) : Page
     data class Confirm(val finding: Finding) : Page

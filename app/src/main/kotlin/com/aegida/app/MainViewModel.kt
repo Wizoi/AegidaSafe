@@ -47,6 +47,9 @@ data class MainState(
     val loadNumber: Long = 0,
 ) {
     val filterOn: Boolean get() = snapshot?.privateDns == PrivateDns.Hostname(WebsiteFilter.HOST)
+
+    /** Aegida can see notifications and show its own: only then does a notice with her picture reach her (T2). */
+    val noticesOn: Boolean get() = snapshot?.listenerEnabled == true && snapshot.canPostNotifications
 }
 
 /**

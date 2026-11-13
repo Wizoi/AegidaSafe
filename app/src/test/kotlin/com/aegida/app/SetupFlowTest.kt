@@ -90,12 +90,12 @@ class SetupFlowTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark, font
             settle()
         }
         assertFalse("setup is not done until she taps Done", store.value.done)
-        compose.onNodeWithText(Texts.Setup.DONE_TITLE).assertExists()
-        compose.onNodeWithText(Texts.Common.DONE).performScrollTo().performClick()
+        compose.onNodeWithText(Texts.Setup.SEE_TITLE).assertExists()
+        compose.onNodeWithText(Texts.Common.DONE).scrollIfInsideScroller().performClick()
         settle()
         assertEquals(SetupStep.entries.size, store.value.stepsDone)
         assertTrue(store.value.done)
-        compose.onNodeWithText(Texts.Setup.DONE_TITLE).assertDoesNotExistOrFail()
+        compose.onNodeWithText(Texts.Setup.SEE_TITLE).assertDoesNotExistOrFail()
         compose.onNodeWithText(Tab.Home.label).assertExists()
     }
 

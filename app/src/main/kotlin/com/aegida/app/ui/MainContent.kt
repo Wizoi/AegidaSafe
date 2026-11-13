@@ -23,6 +23,7 @@ import com.aegida.core.text.Fix
 import com.aegida.core.text.Texts
 import com.aegida.platform.invite.InviteEmail
 import com.aegida.platform.notify.FixActions
+import com.aegida.platform.notify.StoreActions
 import kotlinx.coroutines.launch
 import java.time.ZoneId
 import java.util.Locale
@@ -105,6 +106,9 @@ private fun SettingsTab(state: MainState, vm: MainViewModel, shown: ShownAt, sho
             onAlerts = { on -> vm.edit { setAlerts(on) } },
             onFilterHelp = { show(Page.FilterGuide) },
             onHowItWorks = { context.startSafely(FixActions.howItWorks()) },
+            onWhatYouSee = { show(Page.WhatYouSee) },
+            onShare = { context.startSafely(StoreActions.shareAegida()) },
+            onRate = { context.openPlayPage() },
             onStopAllowing = { item -> vm.answer { stopAllowing(item.problem, item.subject) } },
         ),
     )
@@ -123,6 +127,7 @@ private fun PageContent(page: Page, state: MainState, vm: MainViewModel, show: (
         Page.ChangeGuardian -> ChangeGuardianPage(state, vm, show)
         is Page.Confirm -> ConfirmPage(page.finding, pictureId, ShownAt(state.now, ZoneId.systemDefault(), Locale.getDefault()), vm, show)
         Page.KeptHidden -> KeptHiddenPage(pictureId) { show(Page.None) }
+        Page.WhatYouSee -> WhatYouSeePage(pictureId, state.noticesOn) { show(Page.None) }
         is Page.NoisyApp -> NoisyAppScreen(page.finding, state, vm, show)
         is Page.Advice -> AdvicePage(
             pictureId, page.finding, ShownAt(state.now, ZoneId.systemDefault(), Locale.getDefault()),
