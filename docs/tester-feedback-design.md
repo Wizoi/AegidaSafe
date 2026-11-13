@@ -53,7 +53,7 @@ ties them, and the new listing and site sentences are checked by the same test.
 | T1.3 | must never: a page says History is kept for anything but the real time | n/a | n/a | Test tying `Texts.History.KEPT`, the listing and the site to `HISTORY_KEPT` |
 | T1.4 | Taps This link is fine / This app is fine | The message words leave the warning; the History line stays | The usual note | FindingActionsTest: no message keys after allow |
 | T1.5 | Opens a History line after a warning | No more than the setup sentence promised (sender, first words, site name) | n/a | HistoryDetailTest |
-| T1.6 | 200% font, both themes | The access step fits, button pinned | n/a | SetupScreensTest variants |
+| T1.6 | 200% font, both themes | The access step scrolls; its buttons stay reachable (setup steps scroll, they do not pin) | n/a | SetupScreensTest variants |
 
 ## T2 (#173). A closing "What you will see" page, also in My settings
 
@@ -166,7 +166,7 @@ A quiet button below "How does this work?". It opens Android's share sheet (`Int
 | T10.2 | must never: the text holds her name, the guardian's name, email or phone, the channel, a warning or anything from her phone | n/a | n/a | JVM: the text equals the fixed string |
 | T10.9 | must never: the shared text holds a link or web address | n/a | n/a | JVM: no "http", "://" or "www." in the text |
 | T10.3 | must never: the text says safe, protect(s), secure or guarantee, or names a feature that is not built | n/a | n/a | The existing Texts banned-word guard (it covers every string in `Texts`; add protect/protects there if missing) |
-| T10.4 | Backs out of the share sheet | My settings as before | Nothing | Robolectric |
+| T10.4 | Backs out of the share sheet | My settings as before | Nothing | No Aegida code runs on return (the chooser is Android's); the tap itself is T10.1 |
 | T10.5 | Taps it twice | The share sheet once each time; nothing counted or remembered | Nothing | Robolectric |
 | T10.6 | No app can share text | Android's own chooser says no app can do it (`createChooser` always opens); no Aegida error | Nothing | Note only |
 | T10.10 | hostile: a scammer is in her recent chats, so the share sheet suggests them | The usual share sheet; the text holds nothing of hers (T10.2) | Nothing | Covered by T10.2 |
@@ -190,7 +190,7 @@ Uninstall". Uninstalling is reachable other ways too, and the guardian's "hasn't
 | T11.3 | Neither can open | Nothing happens; no error | Nothing | Robolectric |
 | T11.4 | must never: a dialog, timer, count of opens, or reminder asks her to rate | n/a | n/a | SettingsScreenTest (Home and setup have no rate button); a rating prompt would need the In-App Review library, a new dependency that needs Kevin's OK |
 | T11.5 | must never: the address is anything but Aegida's own store page (one owner, `PublicPages.PLAY_STORE`) | n/a | n/a | JVM |
-| T11.6 | Comes back from Play | My settings as she left it | Nothing | Robolectric |
+| T11.6 | Comes back from Play | My settings as she left it | Nothing | No Aegida code runs on return; the tap itself is T11.1 |
 | T11.8 | Offline | The Play app's own offline page; the browser fallback does not run | Nothing | Robolectric (the store intent resolves) |
 | T11.9 | Uninstalls from the store page (accepted risk) | n/a | When alerts are on: the existing "hasn't checked in" note after 2 days | Existing dead-man tests |
 | T11.10 | must never: Aegida suggests what to write, or fills in her name | The line about her Google name only | Nothing | Review |
