@@ -90,6 +90,15 @@ class FindingActionsTest {
         assertEquals(listOf(told), http.bodies)
     }
 
+    @Test fun sayingAnAppIsFineClearsTheExampleTitleKeptForItsWarning() = runTest { // T1.4
+        val e = com.aegida.core.model.Evidence
+        val withExample = noisy.copy(evidence = noisy.evidence + mapOf(e.MESSAGE_TITLE to "Big sale now", e.MESSAGE_AT to "123"))
+        val withAllow = actionsWith(allowList)
+        pipeline.handle(listOf(withExample), setOf(DetectorId.NoisyApp))
+        assertTrue(withAllow.allow(withExample.key))
+        assertEquals(noisy.evidence, findings.get(withExample.key)!!.evidence)
+    }
+
     @Test fun allowingAnAppNamedLikeAWebAddressTellsTheGuardianOnlyAMaskedAddress() = runTest { // finding #98
         val withAllow = actionsWith(allowList)
         val sly = noisy.copy(evidence = mapOf(com.aegida.core.model.Evidence.APP_LABEL to "Get evil-site.com"))

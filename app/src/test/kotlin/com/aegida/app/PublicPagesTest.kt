@@ -24,6 +24,18 @@ class PublicPagesTest {
         .replace("&amp;", "&").replace("&quot;", "\"").replace("&#39;", "'").replace("&rsquo;", "'").replace("&nbsp;", " ")
         .replace(Regex("\\s+"), " ")
 
+    /**
+     * PublicPages (in :core, which cannot see the build) repeats the application id; here it is checked against the one in
+     * build.gradle.kts. No build type adds an id suffix, so debug, release and Play all share it.
+     */
+    @Test fun theRateAndStoreAddressesCarryTheAppsRealApplicationId() {
+        val build = File("build.gradle.kts").readText()
+        val id = Regex("""applicationId\s*=\s*"([^"]+)"""").find(build)!!.groupValues[1]
+        assertTrue("a build type changes the application id, so the Play address would differ for it", !build.contains("applicationIdSuffix"))
+        assertTrue(PublicPages.PLAY_STORE, PublicPages.PLAY_STORE.endsWith("?id=$id"))
+        assertTrue(PublicPages.PLAY_MARKET, PublicPages.PLAY_MARKET.endsWith("?id=$id"))
+    }
+
     @Test fun thePageExistsAndTheAppLinksToItsFileName() {
         assertTrue("no page at ${file.path}", file.isFile)
         assertTrue(PublicPages.HOW_IT_WORKS, PublicPages.HOW_IT_WORKS.startsWith("https://") && PublicPages.HOW_IT_WORKS.endsWith("/${file.name}"))

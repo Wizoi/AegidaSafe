@@ -1,5 +1,6 @@
 package com.aegida.core
 
+import com.aegida.core.text.Problem
 import com.aegida.core.text.Texts
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -15,6 +16,12 @@ class SetupWordsTest {
     @Test fun theAlertsExampleUsesHerOwnFirstNameWithThePossessiveGuardianNotesUse() { // T3.1
         assertTrue(Texts.Setup.alertsBody("Helen").contains("fake warnings to Helen's phone. Aegida hid them."))
         assertFalse(Texts.Setup.alertsBody("Helen").contains("Ruth"))
+    }
+
+    /** The example on the Alerts step is the very sentence the guardian will read, so a rewording of one cannot leave the other behind. */
+    @Test fun theAlertsExampleIsTheSentenceTheGuardianReceives() {
+        val sent = Problem.SiteNotifications.forGuardian("Helen")!!
+        assertTrue(Texts.Setup.alertsBody("Helen").contains(sent))
     }
 
     @Test fun theAlertsExampleHoldsUpForHostileNames() { // T3.2: the same "'s" form guardian notes use, whatever she typed
