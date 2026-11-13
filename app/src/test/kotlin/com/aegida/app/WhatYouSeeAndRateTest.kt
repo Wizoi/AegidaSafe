@@ -22,6 +22,7 @@ import com.aegida.core.text.Texts
 import io.mockk.coVerify
 import io.mockk.coEvery
 import io.mockk.mockk
+import kotlinx.coroutines.Dispatchers
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -59,10 +60,12 @@ class WhatYouSeeAndRateTest(dark: Boolean, fontScale: Float) : ScreenTestBase(da
         assertTrue(opened.isEmpty())
     }
 
-    @Test fun theLastSetupStepShowsHerPictureTheFourLinesAndDoneAtTheBottom() { // T2.1, T2.11
+    // The "All set." heading on the last setup step is asserted in SetupFlowTest (setupFromFilterToDone); this page is the My settings copy.
+    @Test fun theWhatYouWillSeePageShowsHerPictureTheLinesAndDoneAtTheBottomUnderItsOwnHeading() { // T2.1, T2.11
         var done = 0
         show { WhatYouSeePage(picture, noticesOn = true) { done++ } }
         reachable(Texts.Setup.SEE_TITLE)
+        compose.onNodeWithText(Texts.Setup.DONE_TITLE).assertDoesNotExist()
         // her picture twice: the header and the big tile
         compose.onAllNodesWithContentDescription(Texts.Common.YOUR_PICTURE.format(SafetyPicture.Sunflower.label)).assertCountEquals(2)
         Texts.Setup.seeLines(true, true).forEach { reachable(it) }
@@ -89,6 +92,7 @@ class WhatYouSeeAndRateTest(dark: Boolean, fontScale: Float) : ScreenTestBase(da
         val loader = mockk<MainStateLoader>()
         coEvery { loader.load() } returns MainState()
         val vm = MainViewModel(loader, mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), commands)
+            .also { it.work = Dispatchers.Unconfined } // the tap runs its work at once, so a wrong finishStep is seen below, not raced
         show { MainContent(MainState(loaded = true, setup = Setup(null, emptySet(), pictureId = picture).copy(stepsDone = 99)), vm) }
         compose.onNodeWithText(Tab.Settings.label).performClick()
         compose.onNodeWithText(Texts.Setup.SEE_TITLE).performScrollTo().performClick()
