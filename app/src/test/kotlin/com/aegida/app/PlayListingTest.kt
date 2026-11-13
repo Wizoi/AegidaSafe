@@ -131,6 +131,22 @@ class PlayListingTest {
         }
     }
 
+    /**
+     * NoisyAppDetector keeps one example title (up to 200 characters) with the warning until she has seen it, so the
+     * pages may not say a notice's words are never kept, or that only a time and a count are kept, and must name the title.
+     */
+    @Test fun thePagesSayTheOneExampleTitleAnAdsWarningKeepsUntilItIsSeen() {
+        val privacy = File("../docs/site/privacy.html").readText()
+        val how = File("../docs/site/how-it-works.html").readText()
+        for ((page, old) in listOf(
+            privacy to "Never what the notice said.",
+            privacy to "When one looks like a scam, Aegida keeps",
+            how to "Aegida keeps only the time and a count of those signs per notice, for a week.",
+        )) assertTrue("a page still says: $old", !page.contains(old))
+        assertTrue("privacy.html does not name the example title", privacy.contains("one example title"))
+        assertTrue("how-it-works.html does not name the example title", how.contains("one example title"))
+    }
+
     /** T1.3: any "N days" History claim is the real time (DailyPruning.HISTORY_KEPT), and the listing makes the claim. */
     @Test fun theHistoryDaysOnThePublicPagesAreTheRealOnes() {
         val real = com.aegida.alerts.DailyPruning.HISTORY_KEPT.toDays().toInt()
@@ -138,7 +154,7 @@ class PlayListingTest {
         fun days(file: File) = claim.findAll(file.readText()).map { (it.groupValues[1].ifEmpty { it.groupValues[2] }).toInt() }.toList()
         val listed = days(File(listing, "full-description.txt"))
         assertTrue("the listing no longer says how long History keeps its line", listed.isNotEmpty())
-        for (file in listOf(File(listing, "full-description.txt"), File("../docs/site/how-it-works.html"))) {
+        for (file in listOf(File(listing, "full-description.txt"), File("../docs/site/how-it-works.html"), File("../docs/site/privacy.html"))) {
             for (n in days(file)) assertEquals("${file.path} says History keeps $n days", real, n)
         }
     }
@@ -149,9 +165,12 @@ class PlayListingTest {
         assertTrue(text("full-description.txt").contains("Setting this up for a parent or grandparent?"))
     }
 
-    /** T7: the family-facing page gives the store contact address, from the one file that owns it. */
+    /** T7: the family-facing page gives the store contact address in its own sentence (the footer has it too), and asks for a review. */
     @Test fun theHowItWorksPageGivesTheStoreContactEmail() {
         val email = File(play, "contact-email.txt").readText().trim()
-        assertTrue("how-it-works.html does not give $email", File("../docs/site/how-it-works.html").readText().contains(email))
+        val page = File("../docs/site/how-it-works.html").readText()
+        assertTrue("how-it-works.html has no \"Questions or a problem? Email\" sentence for $email",
+            page.contains("Questions or a problem? Email <a href=\"mailto:$email\">$email</a>."))
+        assertTrue("how-it-works.html no longer asks for a short review on Google Play", page.contains("a short review on Google Play"))
     }
 }
