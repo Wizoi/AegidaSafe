@@ -29,6 +29,7 @@ import com.aegida.app.ui.setup.WelcomeScreen
 import com.aegida.core.model.AutoBlockerAnswer
 import com.aegida.core.model.SafetyPicture
 import com.aegida.core.model.SetupStep
+import com.aegida.core.text.Texts
 import com.aegida.platform.invite.InviteEmail
 import com.aegida.platform.notify.FixActions
 import kotlinx.coroutines.launch
@@ -77,7 +78,7 @@ private fun SetupSteps(state: MainState, vm: MainViewModel) {
             SetupStep.Access -> AccessPage(c)
             SetupStep.Filter -> FilterPage(c)
             SetupStep.Blocker -> BlockerPage(c)
-            SetupStep.Finish -> WhatYouSeePage(state.setup.pictureId, state.noticesOn) { advance() }
+            SetupStep.Finish -> WhatYouSeePage(state.setup.pictureId, state.noticesOn, Texts.Setup.DONE_TITLE) { advance() }
         }
     }
 }

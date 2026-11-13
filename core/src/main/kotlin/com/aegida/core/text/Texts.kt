@@ -245,6 +245,8 @@ object Texts {
 
         /** The last step, and the same page opened from My settings (T2). */
         const val SEE_TITLE = "What you will see"
+        /** The same page's heading when it ends setup: she has just finished, so it says so first. */
+        const val DONE_TITLE = "All set."
         const val SEE_QUIET = "Aegida works quietly. You don't need to open it."
         const val SEE_NOTICE = "When something needs you, you will see a notice with your picture. Tap it."
         const val SEE_NOTICE_PLAIN = "When something needs you, you will see a notice from Aegida. Tap it."

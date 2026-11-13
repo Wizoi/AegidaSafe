@@ -63,6 +63,17 @@ class SetupFlowTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark, font
         assertEquals(listOf(SetupStep.About, SetupStep.Picture), finished)
     }
 
+    @Test fun openingAegidaAgainBeforeTheFirstStepIsFinishedShowsTheWelcomeAgain() { // first-run FR17
+        show { SetupFlow(MainState(), viewModel()) }
+        compose.onNodeWithText(Texts.Setup.WELCOME_TITLE).assertExists()
+    }
+
+    @Test fun openingAegidaAgainAfterAStepIsFinishedCarriesOnWithoutTheWelcome() { // first-run FR17
+        show { SetupFlow(MainState(setup = Setup.NotDone.copy(stepsDone = SetupStep.Picture.ordinal)), viewModel()) }
+        compose.onNodeWithText(Texts.Setup.WELCOME_TITLE).assertDoesNotExist()
+        compose.onNodeWithText(Texts.Setup.PICTURE_TITLE).assertExists()
+    }
+
     /** The real SetupCommands over a store that behaves like the real one; the loader reads that store like MainStateLoader does. */
     private fun realViewModel(store: FakeSetupStore, blockerRelevant: Boolean): MainViewModel {
         val commands = SetupCommands(store, mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true))
@@ -90,12 +101,13 @@ class SetupFlowTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark, font
             settle()
         }
         assertFalse("setup is not done until she taps Done", store.value.done)
-        compose.onNodeWithText(Texts.Setup.SEE_TITLE).assertExists()
+        compose.onNodeWithText(Texts.Setup.DONE_TITLE).assertExists() // setup ends with "All set.", then what she will see
+        compose.onNodeWithText(Texts.Setup.SEE_QUIET).assertExists()
         compose.onNodeWithText(Texts.Common.DONE).scrollIfInsideScroller().performClick()
         settle()
         assertEquals(SetupStep.entries.size, store.value.stepsDone)
         assertTrue(store.value.done)
-        compose.onNodeWithText(Texts.Setup.SEE_TITLE).assertDoesNotExistOrFail()
+        compose.onNodeWithText(Texts.Setup.DONE_TITLE).assertDoesNotExistOrFail()
         compose.onNodeWithText(Tab.Home.label).assertExists()
     }
 
