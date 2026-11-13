@@ -8,7 +8,8 @@ Written for someone auditing the code. Each statement is backed by a test or a g
   looked at for links, fake-warning patterns and ads, and are **never sent**. For a scam message or a website pop-up the
   sender, the first 200 characters and the time are kept with the warning until she taps Got it; History keeps a short line
   (app, sender, a few words with links taken out, the address) for 90 days, on the phone only. For apps that send ads as
-  notices, only the time and a count of ad signs per notice are kept, for a week.
+  notices, the time and a count of ad signs per notice are kept for a week, and one example title (up to 200 characters)
+  is kept until the owner has seen it.
 - Which app opens web links, texts and calls; which apps have notification access, screen control or device-admin rights;
   Private DNS; every installed app with its name, the store that installed it, the app that asked for the install (both stay on the phone) and (for apps that did not ship with the phone)
   its signing-certificate fingerprint. No app data, no contacts, no messages, no location, no microphone, no camera.
