@@ -1,0 +1,5 @@
+What's new:
+• Setup now ends with a short page showing what Aegida's notices look like and what to tap. It's also in My settings
+• Plainer words in setup: "Your first name", and the example uses your own name
+• The privacy wording now says exactly what stays on this phone: who sent a message Aegida warned about, and its first words. Nothing is sent
+• The invitation email now links to a page that explains Aegida
