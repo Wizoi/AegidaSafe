@@ -151,25 +151,37 @@ A quiet button below "How does this work?". It opens Android's share sheet (`Int
 `Intent.createChooser`) with fixed text and nothing else: no permission, no library, nothing fetched.
 
 - Button: "Tell a friend about Aegida"
-- Text: "I use Aegida on my phone. It looks for scam links and fake warnings and explains them in plain words. It's free: " and the store page.
-- The store page address gets one owner, `PublicPages.PLAY_STORE` ("https://play.google.com/store/apps/details?id=com.aegida.app"), used by T10 and T11.
+- Text, with no link (a link from a friend saying "it's free" is the pattern Aegida teaches people not to tap; Opus round 3):
+  "I use Aegida on my phone. It looks for scam links and fake warnings and explains them in plain words. It's free. Look for Aegida in the Play Store."
+- The chooser title comes from `Texts`.
+- **Shown only once Aegida is public on Play.** While it is in closed testing, a friend who is not a tester would get "not found".
+  Both T10 and T11 hide behind one switch, `PublicPages.LISTED_ON_PLAY` (false now), turned on in the first production release.
+- The store page gets one owner, `PublicPages.PLAY_STORE` ("https://play.google.com/store/apps/details?id=com.aegida.app"), and the
+  `market://` form is built from the same id. T11 uses both; T10 uses neither.
 
 | ID | Situation | Owner sees | Guardian gets | Test |
 |---|---|---|---|---|
-| T10.1 | Taps it | The phone's share sheet with the fixed text; she picks an app and sends | Nothing | Robolectric: the intent's type, text and no extras besides the text |
+| T10.1 | Taps it (switch on) | The phone's share sheet with the fixed text; she picks an app and sends | Nothing | Robolectric: the intent's type, text and no extras besides the text |
+| T10.0 | Switch off (closed testing, today) | No share button and no rate button | Nothing | Robolectric with `LISTED_ON_PLAY` false |
 | T10.2 | must never: the text holds her name, the guardian's name, email or phone, the channel, a warning or anything from her phone | n/a | n/a | JVM: the text equals the fixed string |
-| T10.3 | must never: the text says safe, protect(s), secure or guarantee, or names a feature that is not built | n/a | n/a | The listing word test run over this text |
+| T10.9 | must never: the shared text holds a link or web address | n/a | n/a | JVM: no "http", "://" or "www." in the text |
+| T10.3 | must never: the text says safe, protect(s), secure or guarantee, or names a feature that is not built | n/a | n/a | The existing Texts banned-word guard (it covers every string in `Texts`; add protect/protects there if missing) |
 | T10.4 | Backs out of the share sheet | My settings as before | Nothing | Robolectric |
 | T10.5 | Taps it twice | The share sheet once each time; nothing counted or remembered | Nothing | Robolectric |
-| T10.6 | No app can share text (`startSafely` false) | Nothing happens; no error | Nothing | Robolectric |
+| T10.6 | No app can share text | Android's own chooser says no app can do it (`createChooser` always opens); no Aegida error | Nothing | Note only |
+| T10.10 | hostile: a scammer is in her recent chats, so the share sheet suggests them | The usual share sheet; the text holds nothing of hers (T10.2) | Nothing | Covered by T10.2 |
 | T10.7 | must never: shown anywhere but the bottom of My settings, or as a pop-up, banner or reminder | n/a | n/a | Robolectric: Home and setup have no share button |
 | T10.8 | 200% font, both themes | The button wraps and stays readable | n/a | SettingsScreen variants |
 
 ## T11 (#182). "Rate Aegida on Google Play" at the bottom of My settings (Kevin, K8)
 
-A quiet button below T10. It opens Aegida's own page in the Play Store app (`ACTION_VIEW` on `market://details?id=com.aegida.app`
-with the package `com.android.vending`); when the Play Store app cannot open it, the same page in the browser (`PublicPages.PLAY_STORE`).
-No In-App Review library (no new dependency), no stars drawn by Aegida, never a prompt that appears by itself.
+A quiet button below T10, shown only when `PublicPages.LISTED_ON_PLAY` is on (T10). Above it, one plain line: "Reviews on Google
+Play show your Google name." It opens Aegida's own page in the Play Store app (`ACTION_VIEW` on `market://details?id=com.aegida.app`,
+package `com.android.vending`, `FLAG_ACTIVITY_NEW_TASK`): `startSafely(market) || startSafely(web)`, where the fallback is the same
+page in the browser (`PublicPages.PLAY_STORE`). No In-App Review library, no stars drawn by Aegida, never a prompt that appears by itself.
+
+Accepted risk (Opus round 3): the store page has an Uninstall button, so a scammer could script "tap the bottom button, then
+Uninstall". Uninstalling is reachable other ways too, and the guardian's "hasn't checked in" note after 2 days catches it when alerts are on.
 
 | ID | Situation | Owner sees | Guardian gets | Test |
 |---|---|---|---|---|
@@ -179,6 +191,9 @@ No In-App Review library (no new dependency), no stars drawn by Aegida, never a 
 | T11.4 | must never: a dialog, timer, count of opens, or reminder asks her to rate | n/a | n/a | Test: nothing schedules or remembers a rating ask; Home has no rate button |
 | T11.5 | must never: the address is anything but Aegida's own store page (one owner, `PublicPages.PLAY_STORE`) | n/a | n/a | JVM |
 | T11.6 | Comes back from Play | My settings as she left it | Nothing | Robolectric |
+| T11.8 | Offline | The Play app's own offline page; the browser fallback does not run | Nothing | Robolectric (the store intent resolves) |
+| T11.9 | Uninstalls from the store page (accepted risk) | n/a | When alerts are on: the existing "hasn't checked in" note after 2 days | Existing dead-man tests |
+| T11.10 | must never: Aegida suggests what to write, or fills in her name | The line about her Google name only | Nothing | Review |
 | T11.7 | 200% font, both themes | Readable, wraps | n/a | SettingsScreen variants |
 
 ## Release B
