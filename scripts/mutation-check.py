@@ -1,4 +1,4 @@
-"""Mutation checks: break one thing on purpose, run the tests, and require a test to go red.
+r"""Mutation checks: break one thing on purpose, run the tests, and require a test to go red.
 
     python scripts/mutation-check.py --list                  # the standing checks in scripts/mutants.json
     python scripts/mutation-check.py                         # run all of them
