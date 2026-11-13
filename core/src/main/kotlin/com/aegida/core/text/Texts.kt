@@ -1,7 +1,5 @@
 package com.aegida.core.text
 
-import com.aegida.core.url.Links
-
 /**
  * Every sentence the owner or a guardian can see (UserTextTest, CopyRulesTest). Plain words, one idea per line,
  * never red, never "safe": say "no known problems found". Kept in :core so the notification owner in
@@ -128,7 +126,7 @@ object Texts {
 
         /**
          * "It says: “...”" with the first words of the message. Every link in it is replaced by "(link)", found by the same code that
-         * finds links ([Links]), so a look-alike in another alphabet or a second link is taken out too (findings #94); the rest is
+         * finds links ([com.aegida.core.url.Links]), so a look-alike in another alphabet or a second link is taken out too (findings #94); the rest is
          * cleaned and cut short.
          */
         fun saysLine(text: String?): String? {
