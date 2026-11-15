@@ -92,12 +92,8 @@ class GuardianDetails @Inject constructor(
         val held = settings.current()
         val heldKind = held.phoneNotePending ?: return
         if (!held.alertsOn || held.firstTopic == null) return
-        // What is true now: the number as it was when the note was first held against the number now. Changed and changed back is nothing to tell (K7.6).
-        val from = held.phoneNoteFrom
-        val change = if (from == null) heldKind else PhoneChange.of(from, held.firstGuardianPhone)
-        if (change != null) {
-            pipeline.tellAllowed(Problem.GuardianPhoneChanged, null, clock.now()) { GuardianPhoneWords.phoneNote(change, it) }
-        }
+        // setPhoneLocked keeps the held kind true against the number it was first held from: changed and changed back is already no note (K7.6).
+        pipeline.tellAllowed(Problem.GuardianPhoneChanged, null, clock.now()) { GuardianPhoneWords.phoneNote(heldKind, it) }
         settings.save(settings.current().copy(phoneNotePending = null, phoneNoteFrom = null))
     }
 
