@@ -45,14 +45,12 @@ class SetupCommands @Inject constructor(
         }
     }
 
-    /** "Fix a spelling": her first name and the guardian's name. Sends nothing; the channel keeps its spelling (T5). */
-    suspend fun fixNames(owner: String, guardian: String) {
-        quietly { guardianDetails.fixNames(owner, guardian) }
-    }
-
-    /** "Sam's phone" in My settings: saved, and the guardian is told it changed, never the number (K7). */
-    suspend fun setPhone(phone: String) {
-        quietly { guardianDetails.setPhone(phone) }
+    /**
+     * "Fix a spelling" ([GuardianDetails.fixNames]: sends nothing, the channel keeps its spelling, T5) and "Sam's phone"
+     * ([GuardianDetails.setPhone]: the guardian is told it changed, never the number, K7). A failure leaves the screen as stored.
+     */
+    suspend fun details(block: suspend GuardianDetails.() -> Unit) {
+        quietly { guardianDetails.block() }
     }
 
     suspend fun savePicture(picture: SafetyPicture) {

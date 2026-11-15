@@ -22,20 +22,18 @@ object ContactPicker {
      * The row [picked] points at. Null means she backed out. A row that cannot be read for any reason (another app's address, a work
      * profile, no row, a failing provider) is [ContactPick.NoNumber]: she is told and can type it, and nothing crashes (T4.19).
      */
-    fun read(context: Context, picked: Uri?): ContactPick {
-        if (picked == null) return ContactPick.Cancelled
-        if (picked.authority != ContactsContract.AUTHORITY) return ContactPick.NoNumber
-        return try {
-            context.contentResolver.query(picked, columns, null, null, null)?.use { cursor ->
-                if (cursor.moveToFirst()) {
-                    ContactPick.fromRow(cursor.getString(0), cursor.getString(1))
-                } else {
-                    ContactPick.NoNumber
-                }
-            } ?: ContactPick.NoNumber
-        } catch (ignored: RuntimeException) {
-            // SecurityException, IllegalArgumentException, a dead provider: no reason shown, only "type it below".
-            ContactPick.NoNumber
-        }
+    fun read(context: Context, picked: Uri?): ContactPick = when {
+        picked == null -> ContactPick.Cancelled
+        picked.authority != ContactsContract.AUTHORITY -> ContactPick.NoNumber
+        else -> readRow(context, picked)
+    }
+
+    private fun readRow(context: Context, row: Uri): ContactPick = try {
+        context.contentResolver.query(row, columns, null, null, null)?.use { cursor ->
+            if (cursor.moveToFirst()) ContactPick.fromRow(cursor.getString(0), cursor.getString(1)) else ContactPick.NoNumber
+        } ?: ContactPick.NoNumber
+    } catch (ignored: RuntimeException) {
+        // SecurityException, IllegalArgumentException, a dead provider: no reason shown, only "type it below".
+        ContactPick.NoNumber
     }
 }

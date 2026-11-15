@@ -131,13 +131,13 @@ private fun PageContent(page: Page, state: MainState, vm: MainViewModel, show: (
         )
         Page.ChangeGuardian -> ChangeGuardianPage(state, vm, show)
         Page.FixNames -> FixNamesScreen(pictureId, state.guardians.ownerName, state.guardians.firstGuardianName) { owner, guardian ->
-            vm.edit { fixNames(owner, guardian) }
+            vm.edit { details { fixNames(owner, guardian) } }
             show(Page.None)
         }
         Page.GuardianPhone -> GuardianPhoneScreen(
             pictureId, state.guardians.firstGuardianName, state.guardians.firstGuardianPhone, state.guardians.alertsOn,
         ) { phone ->
-            vm.edit { setPhone(phone) }
+            vm.edit { details { setPhone(phone) } }
             show(Page.None)
         }
         is Page.Confirm -> ConfirmPage(page.finding, state, vm, show)

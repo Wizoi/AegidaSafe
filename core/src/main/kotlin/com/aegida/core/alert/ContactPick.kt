@@ -21,7 +21,7 @@ sealed interface ContactPick {
         /** A row's number and name; no number when it is blank, has no digit, or starts with * or # (a phone code such as "*86", not a number). */
         fun fromRow(number: String?, name: String?): ContactPick {
             val phone = number?.trim().orEmpty()
-            if (phone.isEmpty() || phone.first() == '*' || phone.first() == '#' || phone.none { it.isDigit() }) return NoNumber
+            if (phone.none { it.isDigit() } || phone.first() == '*' || phone.first() == '#') return NoNumber
             return Picked(PickedContact(phone, name?.trim().orEmpty()))
         }
     }
