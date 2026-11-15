@@ -6,8 +6,10 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import com.aegida.app.ui.GuardianReach
 import com.aegida.app.ui.HomeScreen
 import com.aegida.app.ui.ShownAt
+import com.aegida.core.alert.Guardians
 import com.aegida.core.model.DetectorId
 import com.aegida.core.model.Finding
 import com.aegida.core.model.FindingKey
@@ -33,7 +35,12 @@ class HomeScreenTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark, fon
 
     @Test fun homeWithNoKnownProblemsSaysSoAndOffersACall() {
         var called = 0
-        show { HomeScreen(HomeState.NoKnownProblems(now.minus(Duration.ofHours(3))), picture, ShownAt(now, zone, locale), {}, { called++ }) }
+        show {
+            HomeScreen(
+                HomeState.NoKnownProblems(now.minus(Duration.ofHours(3))), picture, ShownAt(now, zone, locale), {},
+                GuardianReach("Sam", "555 0100", dialerExists = true, onCall = { called++ }),
+            )
+        }
         reachable(Texts.Home.ALL_GOOD)
         reachable(Texts.Home.NO_KNOWN_PROBLEMS)
         compose.onNodeWithText(Texts.Home.CALL_A_GUARDIAN).scrollIfInsideScroller().performClick()
@@ -43,7 +50,7 @@ class HomeScreenTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark, fon
     @Test fun homeWithOneProblemShowsItsSentenceAndABigFixButton() {
         val dns = finding(Problem.WebsiteFilterOff)
         var fixed: Finding? = null
-        show { HomeScreen(HomeState.NeedsTaps(listOf(dns)), picture, ShownAt(now, zone, locale), { fixed = it }, {}) }
+        show { HomeScreen(HomeState.NeedsTaps(listOf(dns)), picture, ShownAt(now, zone, locale), { fixed = it }, withNumber) }
         reachable(Texts.Home.NEEDS_ONE)
         reachable(Problem.WebsiteFilterOff.forMom)
         compose.onNodeWithText(Texts.Home.FIX_MY_PHONE).scrollIfInsideScroller().performClick()
@@ -57,7 +64,7 @@ class HomeScreenTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark, fon
             FindingKey(DetectorId.PopupSpam, Problem.NewWebsiteNotifications, "https://news.example"),
             mapOf(com.aegida.core.model.Evidence.SITE to "https://news.example"), now, now,
         )
-        show { HomeScreen(HomeState.NeedsTaps(listOf(site)), picture, ShownAt(now, zone, locale), {}, {}) }
+        show { HomeScreen(HomeState.NeedsTaps(listOf(site)), picture, ShownAt(now, zone, locale), {}) }
         reachable(Problem.NewWebsiteNotifications.forMom)
         reachable("The website: news.example")
     }
@@ -73,7 +80,7 @@ class HomeScreenTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark, fon
             FindingKey(DetectorId.Drift, Problem.ListenerAdded, "org.helper"),
             mapOf(e.APP_LABEL to "W".repeat(60), e.APP_SOURCE to "outside", e.APP_ADDED to now.toEpochMilli().toString()), now, now,
         )
-        show { HomeScreen(HomeState.NeedsTaps(listOf(listener)), picture, ShownAt(now, zone, locale), {}, {}) }
+        show { HomeScreen(HomeState.NeedsTaps(listOf(listener)), picture, ShownAt(now, zone, locale), {}) }
         compose.onNodeWithText(Texts.Home.FIX_MY_PHONE).assertIsDisplayed()
         reachable("The app calls itself: “${"W".repeat(40)}…”")
         reachable("It came from outside the Play Store.")
@@ -82,7 +89,7 @@ class HomeScreenTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark, fon
 
     /** WN14: a setting warning has no extra line. */
     @Test fun homeShowsNoExtraLineForASettingWarning() {
-        show { HomeScreen(HomeState.NeedsTaps(listOf(finding(Problem.WebsiteFilterOff))), picture, ShownAt(now, zone, locale), {}, {}) }
+        show { HomeScreen(HomeState.NeedsTaps(listOf(finding(Problem.WebsiteFilterOff))), picture, ShownAt(now, zone, locale), {}) }
         compose.onNodeWithText("The website", substring = true).assertDoesNotExistOrFail()
         compose.onNodeWithText("The app", substring = true).assertDoesNotExistOrFail()
     }
@@ -152,23 +159,38 @@ class HomeScreenTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark, fon
         compose.onNodeWithText(Texts.Home.CONFIRM_YES).assertDoesNotExistOrFail()
     }
 
-    private fun appViewModel(work: kotlinx.coroutines.CoroutineDispatcher = Dispatchers.Unconfined, home: () -> HomeState): MainViewModel {
+    private fun appViewModel(
+        work: kotlinx.coroutines.CoroutineDispatcher = Dispatchers.Unconfined,
+        guardians: Guardians = samWithAPhone,
+        home: () -> HomeState,
+    ): MainViewModel {
+        withADialer()
         val loader = mockk<MainStateLoader>()
         val done = Setup("x", emptySet(), stepsDone = SetupStep.entries.size)
-        coEvery { loader.load() } answers { MainState(loaded = true, now = now, setup = done, home = home()) }
+        coEvery { loader.load() } answers { MainState(loaded = true, now = now, setup = done, home = home(), guardians = guardians) }
         return MainViewModel(loader, mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true))
             .also { it.work = work }
     }
 
-    private fun showApp(home: HomeState, asked: FindingKey?) {
-        val vm = appViewModel { home }
+    /** A phone with a dialer app: Robolectric has none unless told, and the call button is offered only where a call can be made (T4.10). */
+    private fun withADialer() {
+        val dial = android.content.Intent(android.content.Intent.ACTION_DIAL, android.net.Uri.fromParts("tel", "0", null))
+        val info = android.content.pm.ResolveInfo().apply {
+            activityInfo = android.content.pm.ActivityInfo().apply { packageName = "com.example.dialer"; name = "Dialer" }
+        }
+        org.robolectric.Shadows.shadowOf(androidx.test.core.app.ApplicationProvider.getApplicationContext<android.app.Application>().packageManager)
+            .addResolveInfoForIntent(dial, info)
+    }
+
+    private fun showApp(home: HomeState, asked: FindingKey?, guardians: Guardians = samWithAPhone) {
+        val vm = appViewModel(guardians = guardians) { home }
         show { com.aegida.app.ui.AppRoot(vm, asked = asked) }
     }
 
     @Test fun homeOffersShowMeNotFixMyPhoneForAWarningThatFixesNothing() { // Kevin, Oct 10
         val link = finding(Problem.LookalikeLink)
         var shown: Finding? = null
-        show { HomeScreen(HomeState.NeedsTaps(listOf(link)), picture, ShownAt(now, zone, locale), { shown = it }, {}) }
+        show { HomeScreen(HomeState.NeedsTaps(listOf(link)), picture, ShownAt(now, zone, locale), { shown = it }) }
         compose.onNodeWithText(Texts.Home.FIX_MY_PHONE).assertDoesNotExistOrFail()
         compose.onNodeWithText(Texts.Home.SHOW_ME).scrollIfInsideScroller().performClick()
         assertEquals(link, shown)
@@ -176,7 +198,7 @@ class HomeScreenTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark, fon
 
     @Test fun homeOffersShowMeForANoisyAppToo() {
         var shown: Finding? = null
-        show { HomeScreen(HomeState.NeedsTaps(listOf(noisy())), picture, ShownAt(now, zone, locale), { shown = it }, {}) }
+        show { HomeScreen(HomeState.NeedsTaps(listOf(noisy())), picture, ShownAt(now, zone, locale), { shown = it }) }
         compose.onNodeWithText(Texts.Home.SHOW_ME).scrollIfInsideScroller().performClick()
         assertEquals(noisy().key, shown!!.key)
     }
@@ -184,26 +206,26 @@ class HomeScreenTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark, fon
     @Test fun homeWithSeveralProblemsCountsThemAndStartsWithTheFirst() {
         val first = finding(Problem.ListenerOff, minutesOld = 60)
         var fixed: Finding? = null
-        show { HomeScreen(HomeState.NeedsTaps(listOf(first, finding(Problem.WebsiteFilterOff))), picture, ShownAt(now, zone, locale), { fixed = it }, {}) }
+        show { HomeScreen(HomeState.NeedsTaps(listOf(first, finding(Problem.WebsiteFilterOff))), picture, ShownAt(now, zone, locale), { fixed = it }) }
         reachable(Texts.Home.NEEDS_MANY.format(2))
         compose.onNodeWithText(Texts.Home.FIX_MY_PHONE).scrollIfInsideScroller().performClick()
         assertEquals(first, fixed)
     }
 
     @Test fun homeThatCouldNotCheckNeverSaysAllGood() {
-        show { HomeScreen(HomeState.CouldntCheck(now.minus(Duration.ofDays(2))), picture, ShownAt(now, zone, locale), {}, {}) }
+        show { HomeScreen(HomeState.CouldntCheck(now.minus(Duration.ofDays(2))), picture, ShownAt(now, zone, locale), {}, withNumber) }
         reachable(Texts.Home.COULDNT_CHECK)
         reachable(Texts.Home.CALL_A_GUARDIAN)
         compose.onNodeWithText(Texts.Home.ALL_GOOD).assertDoesNotExistOrFail()
     }
 
     @Test fun homeThatNeverCheckedSaysSo() {
-        show { HomeScreen(HomeState.CouldntCheck(null), picture, ShownAt(now, zone, locale), {}, {}) }
+        show { HomeScreen(HomeState.CouldntCheck(null), picture, ShownAt(now, zone, locale), {}) }
         reachable(Texts.Home.NEVER_CHECKED)
     }
 
     @Test fun herPictureIsOnTheScreenAndNamedForAScreenReader() {
-        show { HomeScreen(HomeState.NoKnownProblems(now), picture, ShownAt(now, zone, locale), {}, {}) }
+        show { HomeScreen(HomeState.NoKnownProblems(now), picture, ShownAt(now, zone, locale), {}) }
         compose.onNodeWithContentDescription(Texts.Common.YOUR_PICTURE.format("Sunflower")).assertExists()
         compose.onNodeWithText(Texts.APP_NAME).assertExists()
     }
@@ -320,5 +342,79 @@ class HomeScreenTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark, fon
         val line = compose.onNodeWithText("Added today.").fetchSemanticsNode().boundsInRoot
         val rootWidth = compose.onAllNodes(androidx.compose.ui.test.isRoot())[0].fetchSemanticsNode().boundsInRoot.width
         org.junit.Assert.assertEquals("centre of the line", rootWidth / 2, (line.left + line.right) / 2, 2f)
+    }
+
+    // ---- Release B, T4: nothing is offered that cannot ring ----
+
+    private val samWithAPhone = Guardians.None.copy(firstGuardianName = "Sam", firstGuardianPhone = "555 0100")
+    private val withNumber = GuardianReach("Sam", "555 0100", dialerExists = true)
+    private val noNumber = GuardianReach("Sam", "", dialerExists = true)
+
+    @Test fun t4_7_noPhoneNoKnownProblemsSaysAskSamWhereTheButtonWas() {
+        show { HomeScreen(HomeState.NoKnownProblems(now), picture, ShownAt(now, zone, locale), {}, noNumber) }
+        reachable(Texts.Home.NO_KNOWN_PROBLEMS)
+        reachable("If you are ever unsure, ask Sam.")
+        compose.onNodeWithText(Texts.Home.CALL_A_GUARDIAN).assertDoesNotExistOrFail()
+    }
+
+    @Test fun t4_16_noPhoneUnderAWarningOnlyTheBigButtonIsOffered() {
+        show { HomeScreen(HomeState.NeedsTaps(listOf(finding(Problem.WebsiteFilterOff))), picture, ShownAt(now, zone, locale), {}, noNumber) }
+        reachable(Texts.Home.FIX_MY_PHONE)
+        compose.onNodeWithText(Texts.Home.CALL_A_GUARDIAN).assertDoesNotExistOrFail()
+        compose.onNodeWithText("If you are ever unsure, ask Sam.").assertDoesNotExistOrFail()
+    }
+
+    @Test fun t4_8_noPhoneCouldntCheckSaysAskSamAndOffersNoButton() {
+        show { HomeScreen(HomeState.CouldntCheck(now.minus(Duration.ofDays(2))), picture, ShownAt(now, zone, locale), {}, noNumber) }
+        reachable("Aegida will try again soon. If this keeps happening, ask Sam.")
+        compose.onNodeWithText(Texts.Home.CALL_A_GUARDIAN).assertDoesNotExistOrFail()
+        compose.onNodeWithText(Texts.Home.COULDNT_CHECK_WHY).assertDoesNotExistOrFail()
+    }
+
+    @Test fun t4_8_noPhoneNeverCheckedSaysAskSamToo() {
+        show { HomeScreen(HomeState.CouldntCheck(null), picture, ShownAt(now, zone, locale), {}, noNumber) }
+        reachable(Texts.Home.NEVER_CHECKED)
+        reachable("If you are ever unsure, ask Sam.")
+    }
+
+    @Test fun t4_15_anUnreachableGuardianWithNoPhoneShowsTheTellLineAndNoButtonAtAll() {
+        show { HomeScreen(HomeState.NeedsTaps(listOf(finding(Problem.GuardianUnreachable))), picture, ShownAt(now, zone, locale), {}, noNumber) }
+        reachable("Aegida couldn't reach Sam for a day. When you can, please tell Sam.")
+        compose.onNodeWithText(Texts.Home.FIX_MY_PHONE).assertDoesNotExistOrFail()
+        compose.onNodeWithText(Texts.Home.GOT_IT).assertDoesNotExistOrFail()
+        compose.onNodeWithText(Texts.Home.CALL_A_GUARDIAN).assertDoesNotExistOrFail()
+    }
+
+    @Test fun t4_15_anUnreachableGuardianWithAPhoneStillOffersFixMyPhoneToCall() {
+        show {
+            HomeScreen(HomeState.NeedsTaps(listOf(finding(Problem.GuardianUnreachable))), picture, ShownAt(now, zone, locale), {}, withNumber)
+        }
+        reachable(Problem.GuardianUnreachable.forMom)
+        reachable(Texts.Home.FIX_MY_PHONE)
+    }
+
+    @Test fun t4_10_aPhoneWithNoDialerShowsTheNumberAsWordsNeverAButton() {
+        show { HomeScreen(HomeState.NoKnownProblems(now), picture, ShownAt(now, zone, locale), {}, withNumber.copy(dialerExists = false)) }
+        reachable("Your guardian's phone number: 555 0100")
+        compose.onNodeWithText(Texts.Home.CALL_A_GUARDIAN).assertDoesNotExistOrFail()
+    }
+
+    @Test fun t4_11_aGuardianNameShapedLikeAWebAddressIsNotShownAsOneOnHome() {
+        show { HomeScreen(HomeState.NoKnownProblems(now), picture, ShownAt(now, zone, locale), {}, GuardianReach("pay-now.example.com", "", true)) }
+        compose.onNodeWithText("pay-now.example.com", substring = true).assertDoesNotExistOrFail()
+    }
+
+    @Test fun t4_16_theAppWithNoPhoneSavedShowsNoCallButtonOnHomeOrTheQuestionPage() {
+        val none = Guardians.None.copy(firstGuardianName = "Sam")
+        showApp(HomeState.NeedsTaps(listOf(appWarning())), asked = null, guardians = none)
+        compose.onNodeWithText(Texts.Home.CALL_A_GUARDIAN).assertDoesNotExistOrFail()
+    }
+
+    @Test fun t4_17_theQuestionPageWithNoPhoneSaysAskSamNotCall() {
+        val none = Guardians.None.copy(firstGuardianName = "Sam")
+        val app = appWarning()
+        showApp(HomeState.NeedsTaps(listOf(app)), asked = app.key, guardians = none)
+        reachable("If you did not do this, change it back, or ask Sam.")
+        compose.onNodeWithText(Texts.Home.CONFIRM_NO_HELP).assertDoesNotExistOrFail()
     }
 }

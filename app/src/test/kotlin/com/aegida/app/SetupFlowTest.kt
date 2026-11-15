@@ -80,7 +80,7 @@ class SetupFlowTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark, font
 
     /** The real SetupCommands over a store that behaves like the real one; the loader reads that store like MainStateLoader does. */
     private fun realViewModel(store: FakeSetupStore, blockerRelevant: Boolean): MainViewModel {
-        val commands = SetupCommands(store, mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true))
+        val commands = SetupCommands(store, mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true))
         val loader = mockk<MainStateLoader>()
         coEvery { loader.load() } coAnswers { MainState(loaded = true, setup = store.value, blockerRelevant = blockerRelevant) }
         return MainViewModel(loader, mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), commands)

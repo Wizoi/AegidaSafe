@@ -115,7 +115,7 @@ class SettingsScreenTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark,
 
     /** T10.7 and T11.4: Home never offers either one. */
     @Test fun homeHasNoTellAFriendAndNoRateButton() {
-        show { HomeScreen(HomeState.NoKnownProblems(now.minus(Duration.ofHours(3))), picture, ShownAt(now, zone, locale), {}, {}) }
+        show { HomeScreen(HomeState.NoKnownProblems(now.minus(Duration.ofHours(3))), picture, ShownAt(now, zone, locale), {}) }
         reachable(Texts.Home.NO_KNOWN_PROBLEMS)
         noShareOrRate()
     }

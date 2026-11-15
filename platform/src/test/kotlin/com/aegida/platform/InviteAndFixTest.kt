@@ -140,12 +140,27 @@ class InviteAndFixTest {
     }
 
     @Test fun callingAGuardianOpensTheDialerWithTheNumberAndNeedsNoPermission() {
-        val intent = FixActions.callGuardian("(555) 010-0199")
+        val intent = FixActions.callGuardian("(555) 010-0199")!!
         assertEquals(Intent.ACTION_DIAL, intent.action)
         assertEquals("tel", intent.data!!.scheme)
         assertEquals("5550100199", intent.data!!.schemeSpecificPart)
-        assertEquals("+15550100199", FixActions.callGuardian("+1 555 010 0199").data!!.schemeSpecificPart)
-        assertNull("no number: the plain dialer", FixActions.callGuardian("  ").data)
+        assertEquals("+15550100199", FixActions.callGuardian("+1 555 010 0199")!!.data!!.schemeSpecificPart)
+    }
+
+    /** T4.20, finding #185: a pause or an extension after the number is not dialed (it used to be glued on: 555 0100,123 became 5550100123). */
+    @Test fun aNumberWithAPauseOrExtensionDialsOnlyWhatComesBeforeIt() {
+        assertEquals("5550100", FixActions.callGuardian("555 0100,123")!!.data!!.schemeSpecificPart)
+        assertEquals("5550100", FixActions.callGuardian("555 0100;123")!!.data!!.schemeSpecificPart)
+        assertEquals("+15550100", FixActions.callGuardian("+1 555 0100,,9;8")!!.data!!.schemeSpecificPart)
+    }
+
+    /** T4.13: an old database with letters in the phone still dials its digits; no digits means no intent, never an empty keypad (T4). */
+    @Test fun noDigitsMeansNoCallAtAllNeverAnEmptyKeypad() {
+        assertEquals("5550100", FixActions.callGuardian("call me 555 0100 anytime")!!.data!!.schemeSpecificPart)
+        assertNull(FixActions.callGuardian("  "))
+        assertNull(FixActions.callGuardian(""))
+        assertNull(FixActions.callGuardian(",123"))
+        assertNull(FixActions.callGuardian("n/a"))
     }
 
     // "Fix my phone" and the banner both use these.

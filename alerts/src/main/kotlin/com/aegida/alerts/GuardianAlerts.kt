@@ -39,7 +39,7 @@ class GuardianAlerts @Inject constructor(
     /** Tells the current guardian Aegida is set up and starts the "hasn't checked in" message. Used when alerts go on and when the guardian changes; the caller holds the [AlertGate]. */
     suspend fun startTelling(): AlertsSwitched {
         val current = settings.current()
-        val owner = current.ownerName.ifBlank { Texts.APP_NAME }
+        val owner = guardianName(current)
         val welcome = current.firstTopic?.let { sendWelcome(it, owner) }
         return AlertsSwitched(welcome, switch.arm())
     }
@@ -50,7 +50,7 @@ class GuardianAlerts @Inject constructor(
         val pending = current.welcomePendingFor ?: return null
         val topic = current.firstTopic?.takeIf { current.alertsOn && it.value == pending }
         if (topic == null) settings.save(current.copy(welcomePendingFor = null)) // alerts off, or a different guardian now
-        return topic?.let { sendWelcome(it, current.ownerName.ifBlank { Texts.APP_NAME }) }
+        return topic?.let { sendWelcome(it, guardianName(current)) }
     }
 
     /**
@@ -60,7 +60,7 @@ class GuardianAlerts @Inject constructor(
     suspend fun resendWelcome(): SendResult? = gate.run {
         val current = settings.current()
         val topic = current.firstTopic?.takeIf { current.alertsOn } ?: return@run null
-        sendWelcome(topic, current.ownerName.ifBlank { Texts.APP_NAME })
+        sendWelcome(topic, guardianName(current))
     }
 
     /**
@@ -70,7 +70,7 @@ class GuardianAlerts @Inject constructor(
      */
     suspend fun tellReplaced(previous: Guardians): SendResult? {
         val topic = previous.firstTopic?.takeIf { previous.alertsOn && previous.firstGuardianName.isNotBlank() } ?: return null
-        val owner = previous.ownerName.ifBlank { Texts.APP_NAME }
+        val owner = guardianName(previous)
         return ntfy.send(topic, GuardianMessage(title = owner, body = Texts.Guardian.CHANGED.format(owner), urgent = false))
     }
 

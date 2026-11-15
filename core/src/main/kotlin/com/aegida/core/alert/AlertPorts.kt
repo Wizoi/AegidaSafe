@@ -77,6 +77,8 @@ data class Guardians(
     val welcomePendingFor: String? = null,
     /** While alerts are off: the waiting "hasn't checked in" message was cancelled, so nothing more is sent (findings #95). */
     val heartbeatCancelled: Boolean = false,
+    /** A change of the guardian's phone made while alerts were off: its note is sent when alerts go on (K8b). Null when none waits. */
+    val phoneNotePending: PhoneChange? = null,
 ) {
     companion object {
         val None = Guardians(alertsOn = false, ownerName = "", firstTopic = null)

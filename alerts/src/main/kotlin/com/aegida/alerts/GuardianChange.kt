@@ -6,23 +6,36 @@ import com.aegida.core.net.NtfyTopic
 import javax.inject.Inject
 
 /** [previousName] is who the owner should also tell herself; [oldGuardianTold] is Aegida's own short message to them (null when none was due). */
-data class GuardianChanged(val previousName: String, val cancelled: SendResult?, val oldGuardianTold: SendResult? = null)
+data class GuardianChanged(
+    val previousName: String,
+    val cancelled: SendResult?,
+    val oldGuardianTold: SendResult? = null,
+    /** The email was the same as before (K9): only names and phone were fixed, the channel is the same, and no invitation is due. */
+    val samePerson: Boolean = false,
+)
 
 /**
  * The one place the guardian is changed. The person holding the phone decides (Kevin's decision), so this does
  * not ask anyone. The guardian being replaced is sent one short message first (Kevin, Oct 8: a coached change must not
  * be silent). The new guardian gets a new private topic: the topic is the password, so the old guardian's link stops
  * working, and their waiting "hasn't checked in" message is cancelled so they are not alarmed later.
+ * The same email is the same person (K9): the channel stays, nothing is sent about a change of guardian, and names and phone are
+ * fixed through [GuardianDetails].
  */
 class GuardianChange @Inject constructor(
     private val settings: GuardianSettings,
     private val alerts: GuardianAlerts,
     private val switch: DeadMansSwitch,
     private val gate: AlertGate,
+    private val details: GuardianDetails,
     private val clock: Clock,
 ) {
     suspend fun change(name: String, email: String, phone: String): GuardianChanged = gate.run {
         val before = settings.current()
+        if (before.firstTopic != null && GuardianDetails.sameEmail(before.firstGuardianEmail, email)) {
+            details.sameGuardianLocked(name, phone)
+            return@run GuardianChanged(before.firstGuardianName, null, null, samePerson = true)
+        }
         val told = alerts.tellReplaced(before)
         // While alerts are off and the cancel already went through, nothing is sent (the pages promise it, findings #98).
         val cancelled = if (before.alertsOn || !before.heartbeatCancelled) switch.disarm() else null
@@ -34,6 +47,7 @@ class GuardianChange @Inject constructor(
                 firstGuardianPhone = phone.trim(),
                 pairedAt = clock.now(),
                 welcomePendingFor = null,
+                phoneNotePending = null, // the new guardian never hears about the old one's number
                 heartbeatCancelled = !before.alertsOn, // the new topic has nothing waiting; startTelling arms it when alerts are on
             ),
         )

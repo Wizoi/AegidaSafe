@@ -21,7 +21,13 @@ import com.aegida.core.text.Texts
  * when notices are off, no picture when none can be drawn) and sends or posts nothing.
  */
 @Composable
-internal fun WhatYouSeePage(pictureId: String?, noticesOn: Boolean, title: String = Texts.Setup.SEE_TITLE, onDone: () -> Unit) {
+internal fun WhatYouSeePage(
+    pictureId: String?,
+    noticesOn: Boolean,
+    title: String = Texts.Setup.SEE_TITLE,
+    guardian: GuardianReach = GuardianReach(),
+    onDone: () -> Unit,
+) {
     val picture = SafetyPicture.fromId(pictureId)
     AegidaScreen(pictureId, pinned = { BigButton(Texts.Common.DONE, onDone) }) {
         Text(title, style = MaterialTheme.typography.headlineMedium, modifier = Modifier.semantics { heading() })
@@ -30,6 +36,6 @@ internal fun WhatYouSeePage(pictureId: String?, noticesOn: Boolean, title: Strin
                 PictureTile(picture, 96.dp, Modifier.semantics { contentDescription = Texts.Common.YOUR_PICTURE.format(picture.label) })
             }
         }
-        Texts.Setup.seeLines(noticesOn, picture != null).forEach { Body(it, centered = false) }
+        Texts.Setup.seeLines(noticesOn, picture != null, guardian.name, guardian.callable).forEach { Body(it, centered = false) }
     }
 }

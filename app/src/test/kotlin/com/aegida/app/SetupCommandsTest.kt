@@ -1,5 +1,7 @@
 package com.aegida.app
 
+import com.aegida.alerts.AlertGate
+import com.aegida.alerts.GuardianDetails
 import com.aegida.core.alert.GuardianSettings
 import com.aegida.core.alert.Guardians
 import com.aegida.testkit.FakeSetupStore
@@ -17,7 +19,11 @@ class SetupCommandsTest {
         coEvery { it.current() } coAnswers { stored }
         coEvery { it.save(any()) } coAnswers { stored = firstArg() }
     }
-    private val commands = SetupCommands(FakeSetupStore(), settings, mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true))
+    private val commands = SetupCommands(
+        FakeSetupStore(), settings, mockk(relaxed = true), mockk(relaxed = true),
+        GuardianDetails(settings, mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), AlertGate(), mockk(relaxed = true)),
+        mockk(relaxed = true),
+    )
 
     @Test fun theInvitationsChannelStartsWithTheNameSheTypedInAbout() = runTest {
         commands.saveAbout(" José María ", "Kevin", "kevin@example.com", "")

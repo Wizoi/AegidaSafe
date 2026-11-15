@@ -21,7 +21,12 @@ class GuardianChangeTest {
     private val sender = NtfySender(http)
     private val switch = DeadMansSwitch(guardians, sender) { java.time.Instant.EPOCH }
     private val changedAt = java.time.Instant.now()
-    private val change = GuardianChange(guardians, GuardianAlerts(guardians, sender, switch, AlertGate()), switch, AlertGate()) { changedAt }
+    private val gate = AlertGate()
+    private val line = GuardianLine(guardians, sender, com.aegida.testkit.FakeOutbox())
+    private val details = GuardianDetails(
+        guardians, AlertPipeline(Findings(), Owner(), History(), line) { changedAt }, line, History(), gate,
+    ) { changedAt }
+    private val change = GuardianChange(guardians, GuardianAlerts(guardians, sender, switch, gate), switch, gate, details) { changedAt }
 
     @Test fun theNewGuardianGetsTheirOwnPrivateTopicAndTheOldGuardiansWaitingMessageIsCancelled() = runTest {
         val result = change.change("Ann", "ann@example.com", "777")

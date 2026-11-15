@@ -74,7 +74,7 @@ class OffMainThreadTest {
 
     @Test fun savingThePictureTellsTheSharedBannerSoPostersNeedNoDatabaseRead() = runBlocking {
         val banner = mockk<PictureBanner>(relaxed = true)
-        val commands = SetupCommands(FakeSetupStore(), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), banner)
+        val commands = SetupCommands(FakeSetupStore(), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), banner)
         commands.savePicture(SafetyPicture.Owl)
         verify { banner.set(SafetyPicture.Owl.id) }
     }

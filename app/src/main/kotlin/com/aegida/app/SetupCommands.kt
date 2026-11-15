@@ -1,7 +1,9 @@
 package com.aegida.app
 
 import com.aegida.alerts.GuardianAlerts
+import com.aegida.alerts.AboutSaved
 import com.aegida.alerts.GuardianChange
+import com.aegida.alerts.GuardianDetails
 import com.aegida.app.ui.PictureBanner
 import com.aegida.core.alert.GuardianSettings
 import com.aegida.core.alert.Guardians
@@ -30,18 +32,17 @@ class SetupCommands @Inject constructor(
     private val guardianSettings: GuardianSettings,
     private val guardianAlerts: GuardianAlerts,
     private val guardianChange: GuardianChange,
+    private val guardianDetails: GuardianDetails,
     private val banner: PictureBanner,
 ) {
+    /**
+     * The About step. Names and phone go through [GuardianDetails] (nothing is written here); a new email for a guardian who already has a
+     * channel makes a new guardian, as "Pick a different guardian" does (K9, T5.18).
+     */
     suspend fun saveAbout(name: String, guardianName: String, email: String, phone: String) {
-        val current = guardianSettings.current()
-        guardianSettings.save(
-            current.copy(
-                ownerName = name.trim(),
-                firstGuardianName = guardianName.trim(),
-                firstGuardianEmail = email.trim(),
-                firstGuardianPhone = phone.trim(),
-            ),
-        )
+        if (guardianDetails.saveAbout(name, guardianName, email, phone) == AboutSaved.NewGuardian) {
+            quietly { guardianChange.change(guardianName, email, phone) }
+        }
     }
 
     suspend fun savePicture(picture: SafetyPicture) {
@@ -58,14 +59,20 @@ class SetupCommands @Inject constructor(
         return made
     }
 
-    /** Changes the guardian (the owner decides; nothing is sent to the old one). Returns the new settings to build the invite from. */
-    suspend fun changeGuardian(name: String, email: String, phone: String): Guardians {
-        quietly { guardianChange.change(name, email, phone) }
-        return guardianSettings.current()
+    /**
+     * Changes the guardian (the owner decides). Returns the new settings to build the invite from, or null when the email is the same
+     * as before: the same person, so names and phone were fixed and there is no invitation to send (K9).
+     */
+    suspend fun changeGuardian(name: String, email: String, phone: String): Guardians? {
+        val changed = quietly { guardianChange.change(name, email, phone) }
+        return if (changed?.samePerson == true) null else guardianSettings.current()
     }
 
     suspend fun setAlerts(on: Boolean) {
-        quietly { guardianAlerts.setAlertsOn(on) }
+        quietly {
+            guardianAlerts.setAlertsOn(on)
+            if (on) guardianDetails.sendHeldPhoneNote() // a phone change made while alerts were off is told now (K8b)
+        }
     }
 
     /** With "Send the invitation again": tell the guardian once more that Aegida is set up (findings #95). */

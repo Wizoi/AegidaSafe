@@ -119,6 +119,7 @@ internal class RoomSettings(private val dao: SettingDao) : SetupStore, GuardianS
             pairedAt = v[GUARDIAN_PAIRED_AT]?.toLongOrNull()?.let(java.time.Instant::ofEpochMilli),
             welcomePendingFor = v[WELCOME_PENDING]?.takeIf { it.isNotEmpty() },
             heartbeatCancelled = v[HEARTBEAT_CANCELLED] == "true",
+            phoneNotePending = com.aegida.core.alert.PhoneChange.entries.firstOrNull { it.name == v[PHONE_NOTE_PENDING] },
         )
     }
 
@@ -133,6 +134,7 @@ internal class RoomSettings(private val dao: SettingDao) : SetupStore, GuardianS
             SettingEntity(GUARDIAN_PAIRED_AT, guardians.pairedAt?.toEpochMilli()?.toString().orEmpty()),
             SettingEntity(WELCOME_PENDING, guardians.welcomePendingFor.orEmpty()),
             SettingEntity(HEARTBEAT_CANCELLED, guardians.heartbeatCancelled.toString()),
+            SettingEntity(PHONE_NOTE_PENDING, guardians.phoneNotePending?.name.orEmpty()),
         ),
     )
 
@@ -197,6 +199,7 @@ internal class RoomSettings(private val dao: SettingDao) : SetupStore, GuardianS
         const val GUARDIAN_PAIRED_AT = "guardians.pairedAt"
         const val WELCOME_PENDING = "guardians.welcomePending"
         const val HEARTBEAT_CANCELLED = "guardians.heartbeatCancelled"
+        const val PHONE_NOTE_PENDING = "guardians.phoneNotePending"
         const val PICTURE = "setup.pictureId"
         const val AUTO_BLOCKER = "setup.autoBlocker"
         const val STEPS_DONE = "setup.stepsDone"
