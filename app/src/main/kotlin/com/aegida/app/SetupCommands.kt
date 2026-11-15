@@ -45,6 +45,16 @@ class SetupCommands @Inject constructor(
         }
     }
 
+    /** "Fix a spelling": her first name and the guardian's name. Sends nothing; the channel keeps its spelling (T5). */
+    suspend fun fixNames(owner: String, guardian: String) {
+        quietly { guardianDetails.fixNames(owner, guardian) }
+    }
+
+    /** "Sam's phone" in My settings: saved, and the guardian is told it changed, never the number (K7). */
+    suspend fun setPhone(phone: String) {
+        quietly { guardianDetails.setPhone(phone) }
+    }
+
     suspend fun savePicture(picture: SafetyPicture) {
         setupStore.save(setupStore.setup().copy(pictureId = picture.id))
         banner.set(picture.id) // banners posted from now on carry the new picture, without reading the database

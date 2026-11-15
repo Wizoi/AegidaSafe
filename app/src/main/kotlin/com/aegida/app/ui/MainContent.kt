@@ -14,6 +14,8 @@ import com.aegida.app.MainState
 import com.aegida.app.MainViewModel
 import com.aegida.app.ui.setup.ChangeGuardianScreen
 import com.aegida.app.ui.setup.FilterGuideBody
+import com.aegida.app.ui.setup.FixNamesScreen
+import com.aegida.app.ui.setup.GuardianPhoneScreen
 import com.aegida.app.ui.setup.PictureStep
 import com.aegida.app.ui.setup.StepPosition
 import com.aegida.core.model.Finding
@@ -97,6 +99,8 @@ private fun SettingsTab(state: MainState, vm: MainViewModel, shown: ShownAt, sho
         SettingsActions(
             onChangePicture = { show(Page.ChangePicture) },
             onChangeGuardian = { show(Page.ChangeGuardian) },
+            onFixSpelling = { show(Page.FixNames) },
+            onChangePhone = { show(Page.GuardianPhone) },
             onResendInvite = {
                 scope.launch {
                     // The same email as in setup, to the same guardian, for when the first one never arrived.
@@ -126,6 +130,16 @@ private fun PageContent(page: Page, state: MainState, vm: MainViewModel, show: (
             onContinue = { show(Page.None) }, buttonText = Texts.Common.SAVE,
         )
         Page.ChangeGuardian -> ChangeGuardianPage(state, vm, show)
+        Page.FixNames -> FixNamesScreen(pictureId, state.guardians.ownerName, state.guardians.firstGuardianName) { owner, guardian ->
+            vm.edit { fixNames(owner, guardian) }
+            show(Page.None)
+        }
+        Page.GuardianPhone -> GuardianPhoneScreen(
+            pictureId, state.guardians.firstGuardianName, state.guardians.firstGuardianPhone, state.guardians.alertsOn,
+        ) { phone ->
+            vm.edit { setPhone(phone) }
+            show(Page.None)
+        }
         is Page.Confirm -> ConfirmPage(page.finding, state, vm, show)
         Page.KeptHidden -> KeptHiddenPage(pictureId) { show(Page.None) }
         Page.WhatYouSee ->
@@ -158,7 +172,7 @@ private fun FilterGuidePage(state: MainState, vm: MainViewModel, show: (Page) ->
 private fun ChangeGuardianPage(state: MainState, vm: MainViewModel, show: (Page) -> Unit) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    ChangeGuardianScreen(state.setup.pictureId, state.guardians.firstGuardianName) { name, email, phone ->
+    ChangeGuardianScreen(state.setup.pictureId, state.guardians.firstGuardianName, state.guardians) { name, email, phone ->
         scope.launch {
             // The new guardian gets the same email as in setup, with their own new private link.
             val changed = vm.editNow { changeGuardian(name, email, phone) }

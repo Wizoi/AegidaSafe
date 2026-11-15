@@ -8,6 +8,8 @@ internal sealed interface Page {
     data object FilterGuide : Page
     data object ChangePicture : Page
     data object ChangeGuardian : Page
+    data object FixNames : Page
+    data object GuardianPhone : Page
 
     /** The "What you will see" page from the top of My settings; Done only goes back (T2). */
     data object WhatYouSee : Page
