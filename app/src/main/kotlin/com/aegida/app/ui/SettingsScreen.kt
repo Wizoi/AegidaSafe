@@ -20,6 +20,7 @@ import com.aegida.core.alert.Guardians
 import com.aegida.core.model.SafetyPicture
 import com.aegida.core.net.PublicPages
 import com.aegida.core.model.Setup
+import com.aegida.core.text.AllowedLine
 import com.aegida.core.text.GuardianPhoneWords
 import com.aegida.core.text.Texts
 
@@ -98,7 +99,7 @@ fun SettingsScreen(content: SettingsContent, actions: SettingsActions) {
             SettingCard {
                 Text(Texts.Settings.ALLOWED_TITLE, style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
                 allowed.forEach { item ->
-                    Text(Texts.Settings.allowedLine(item.problem, item.label, item.subject), style = MaterialTheme.typography.bodyLarge)
+                    Text(AllowedLine.of(item.problem, item.label, item.subject), style = MaterialTheme.typography.bodyLarge)
                     QuietButton(Texts.Settings.ALLOWED_REMOVE, { actions.onStopAllowing(item) })
                 }
             }

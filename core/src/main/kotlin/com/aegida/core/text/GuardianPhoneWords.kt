@@ -12,7 +12,8 @@ object GuardianPhoneWords {
     fun guardianWho(guardianName: String): String? = Texts.Home.guardianLabel(guardianName).ifEmpty { null }
 
     /** The row in My settings: "Sam's phone". */
-    fun phoneTitle(guardianName: String): String = guardianWho(guardianName)?.let { Texts.Settings.PHONE_TITLE.format(it) } ?: Texts.Settings.PHONE_TITLE_NO_NAME
+    fun phoneTitle(guardianName: String): String =
+        Texts.Settings.PHONE_TITLE.format(guardianWho(guardianName) ?: Texts.Home.YOUR_GUARDIAN).replaceFirstChar { it.uppercase() }
 
     /** Shown only while alerts are on: only then does the guardian hear of the change (K7). Never says the number is sent. */
     fun phoneTold(guardianName: String): String = guardianWho(guardianName)?.let { Texts.Settings.PHONE_TOLD.format(it) } ?: Texts.Settings.PHONE_TOLD_NO_NAME

@@ -294,15 +294,6 @@ object Texts {
         const val ALLOWED_TITLE = "Things you told Aegida are fine"
         const val ALLOWED_REMOVE = "Warn me again"
         const val ALLOWED_SITE = "Links to %s"
-
-        /**
-         * One line of that list: an app by its cleaned name (it picks its own label, R17), a website by its name as History shows it
-         * (whole on her own phone, plain text, never a link; findings #155).
-         */
-        fun allowedLine(problem: Problem, label: String, subject: String): String {
-            val clean = Home.cleanLabel(label).ifEmpty { subject }
-            return if (problem == Problem.LookalikeLink) ALLOWED_SITE.format(clean) else clean
-        }
         const val ON = "On"
         const val OFF = "Off"
         const val CHANGE = "Change"
@@ -315,7 +306,6 @@ object Texts {
         const val CHANGE_GUARDIAN = "Pick a different guardian"
         const val ADD = "Add"
         const val PHONE_TITLE = "%s's phone"
-        const val PHONE_TITLE_NO_NAME = "Your guardian's phone"
         const val PHONE_TOLD = "Aegida will let %s know you changed it. It never sends the number."
         const val PHONE_TOLD_NO_NAME = "Aegida will let your guardian know you changed it. It never sends the number."
         const val FIX_SPELLING = "Fix a spelling"
