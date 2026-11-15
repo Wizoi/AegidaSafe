@@ -25,6 +25,7 @@ import java.time.Instant
 class NotificationPosterTest {
     private val context = ApplicationProvider.getApplicationContext<Context>()
     private val manager = context.getSystemService(NotificationManager::class.java)
+    private fun NotificationPoster.show(finding: com.aegida.core.model.Finding) = show(finding, finding.key.problem.forMom)
     private val poster = NotificationPoster(context).also { it.ensureChannels() }
     private val now = Instant.now()
 

@@ -7,7 +7,9 @@ import com.aegida.core.alert.Covered
 import com.aegida.core.alert.HistoryDetail
 import com.aegida.core.alert.HistoryEntry
 import com.aegida.core.alert.HistoryLog
+import com.aegida.core.alert.GuardianPhone
 import com.aegida.core.alert.OwnerNotifier
+import com.aegida.core.text.GuardianPhoneWords
 import com.aegida.core.alert.Outbox
 import com.aegida.core.alert.QueuedMessage
 import com.aegida.core.alert.Outcome
@@ -108,7 +110,8 @@ class AlertPipeline @Inject constructor(
         tally.alerted++
         val detail = HistoryDetail.of(finding) // what it was, kept in History
         if (finding.severity >= Severity.NeedsTap) {
-            owner.show(finding)
+            val who = line.current()
+            owner.show(finding, GuardianPhoneWords.forMom(finding.key.problem, who.firstGuardianName, GuardianPhone.callable(who.firstGuardianPhone)))
             history.add(HistoryEntry(now, finding.key.problem, Outcome.OwnerWarned, detail))
         }
         val result = telling.tell(finding, now)

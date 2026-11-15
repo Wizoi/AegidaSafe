@@ -33,7 +33,8 @@ class Findings : FindingStore {
 class Owner : OwnerNotifier {
     val shown = mutableListOf<FindingKey>()
     val cleared = mutableListOf<FindingKey>()
-    override fun show(finding: Finding) { shown += finding.key }
+    val texts = mutableListOf<String>()
+    override fun show(finding: Finding, text: String) { shown += finding.key; texts += text }
     override fun clear(key: FindingKey) { cleared += key }
 }
 

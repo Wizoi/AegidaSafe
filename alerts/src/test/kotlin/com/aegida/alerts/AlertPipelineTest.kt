@@ -53,6 +53,20 @@ class AlertPipelineTest {
         assertEquals(listOf(Outcome.OwnerWarned, Outcome.GuardianTold), history.entries.map { it.outcome })
     }
 
+    private val unreachable = finding(Problem.GuardianUnreachable, "", DetectorId.Health)
+
+    @Test fun t4_15_theBannerForAnUnreachableGuardianWithNoPhoneSaysTellSamNotCall() = runTest {
+        settings.value = settings.value.copy(firstGuardianName = "Sam", firstGuardianPhone = "")
+        pipeline.handle(listOf(unreachable), setOf(DetectorId.Health))
+        assertEquals(listOf("Aegida couldn't reach Sam for a day. When you can, please tell Sam."), owner.texts)
+    }
+
+    @Test fun t4_15_theBannerForAnUnreachableGuardianWithAPhoneStillSaysPleaseCall() = runTest {
+        settings.value = settings.value.copy(firstGuardianName = "Sam", firstGuardianPhone = "555 0100")
+        pipeline.handle(listOf(unreachable), setOf(DetectorId.Health))
+        assertEquals(listOf(Problem.GuardianUnreachable.forMom), owner.texts)
+    }
+
     @Test fun theGuardianIsToldWhichAppAScamMessageCameFromWhenItIsKnown() = runTest { // Kevin, Oct 10
         val e = com.aegida.core.model.Evidence
         val named = scamLink.copy(evidence = mapOf(e.APP_LABEL to "Messages", e.HOST to "evil.example"))

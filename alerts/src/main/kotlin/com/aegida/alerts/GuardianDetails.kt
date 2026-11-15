@@ -110,7 +110,7 @@ class GuardianDetails @Inject constructor(
                 }
                 pending = null
             } else {
-                pending = if (pending != null) PhoneChange.Changed else change // one held note, however many changes
+                pending = if (pending != null) PhoneChange.merged(pending, typed) else change // one held note, true for the number as it is when alerts go on (K8b)
             }
         }
         settings.save(settings.current().copy(firstGuardianPhone = typed, phoneNotePending = pending))
