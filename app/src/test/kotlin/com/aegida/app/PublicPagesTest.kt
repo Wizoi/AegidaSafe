@@ -89,6 +89,7 @@ class PublicPagesTest {
         val notes = Problem.entries.mapNotNull { it.forGuardian("Ruth") } + listOf(
             Texts.Guardian.SET_UP, Texts.Guardian.STILL_OPEN, Texts.Guardian.STILL_OPEN_URGENT, Texts.Guardian.CONFIRMED,
             Texts.Guardian.CONFIRMED_URGENT, Texts.Guardian.CHANGED, Texts.Guardian.NOT_CHECKED_IN,
+            Texts.Guardian.PHONE_ADDED, Texts.Guardian.PHONE_CHANGED, Texts.Guardian.PHONE_REMOVED,
         ).map { it.format("Ruth") } +
             listOf(Problem.NoisyApp.forGuardian("Ruth", "Image to PDF")!!, Texts.Guardian.ALLOWED.format("Ruth", "Image to PDF")) +
             listOf(Texts.Guardian.SITE_ALLOWED.format("Ruth", com.aegida.core.url.HostMask.of("paypa1-help.example"))) +

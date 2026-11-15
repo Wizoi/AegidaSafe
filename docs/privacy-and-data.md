@@ -12,7 +12,7 @@ Written for someone auditing the code. Each statement is backed by a test or a g
   is kept until the owner has seen it.
 - Which app opens web links, texts and calls; which apps have notification access, screen control or device-admin rights;
   Private DNS; every installed app with its name, the store that installed it, the app that asked for the install (both stay on the phone) and (for apps that did not ship with the phone)
-  its signing-certificate fingerprint. No app data, no contacts (if the owner chooses "Pick from my contacts" for the guardian's phone, Android lets Aegida read only that one number and name; Aegida keeps the one number on the phone and never sends it), no messages, no location, no microphone, no camera.
+  its signing-certificate fingerprint. No app data, no contacts (if the owner chooses "Pick from my contacts" for the guardian's phone, Android lets Aegida read only that one number and name; Aegida keeps the number, and the name if it is used as the guardian's name, on the phone and never sends the number), no messages, no location, no microphone, no camera.
 
 ## Stores on the phone
 In Aegida's private storage only (excluded from backup and phone-to-phone transfer): the owner's first name, the chosen safety
@@ -48,7 +48,7 @@ request; ntfy.sh only delivers it). Encrypted in transit: **yes** (HTTPS only, c
 |---|---|
 | Personal info → Name | her first name is the title of every note |
 | App activity → Installed apps | a note can name an app (a scam message's app, an app sending ads, an app she said is fine) |
-| App activity → Other actions | notes report what she did ("confirmed the change", "hasn't dealt with a warning", "said an app is fine", "said a link is fine" (findings #155; the address masked), "picked a different guardian") |
+| App activity → Other actions | notes report what she did ("confirmed the change", "hasn't dealt with a warning", "said an app is fine", "said a link is fine" (findings #155; the address masked), "picked a different guardian", and that the guardian's phone number was added, changed or taken out, never the number) |
 | Web browsing → Web browsing history | declared to be cautious: a note can carry a masked address (`pa*****.example`) |
 
 Fingerprint of what is sent: `f830ea815053d672` (`DataSafetyFormTest`). When the test fails, what a guardian can receive or the
