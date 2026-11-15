@@ -140,6 +140,7 @@ object Guards {
         Regex(
             """AccessibilityService|VpnService|TYPE_APPLICATION_OVERLAY|setFullScreenIntent|ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS|""" +
                 """MediaRecorder|AudioRecord|Telephony\.Sms|SmsManager|BIND_ACCESSIBILITY_SERVICE|BIND_VPN_SERVICE|READ_SMS|RECEIVE_SMS|""" +
+                """READ_CONTACTS|WRITE_CONTACTS|""" +
                 """RECORD_AUDIO|SYSTEM_ALERT_WINDOW|USE_FULL_SCREEN_INTENT|REQUEST_IGNORE_BATTERY_OPTIMIZATIONS""",
         ),
         "no accessibility service, SMS, call recording, VPN, overlays, full-screen intents or direct battery-exemption request",

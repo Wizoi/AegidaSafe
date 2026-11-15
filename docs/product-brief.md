@@ -10,7 +10,7 @@ An Android app for an older person's phone (designed first for a Samsung Galaxy 
 
 ## Principles
 - **Normal app, no factory reset, no Device Owner mode.** Android requires the owner's tap for changes; the app opens the exact screen and checks the result where it can read it.
-- **Built for an older user.** One action per screen, big text, plain sentences, no red, the owner's safety picture and "Aegida" on every real screen, "Call a guardian" always in reach. It never asks for money, passwords or codes.
+- **Built for an older user.** One action per screen, big text, plain sentences, no red, the owner's safety picture and "Aegida" on every real screen, "Call a guardian" always in reach when she has saved a phone (without one Aegida says "ask Sam" instead of showing a button that cannot call). It never asks for money, passwords or codes.
 - **Strict where it counts, quiet elsewhere.** Default apps, special access, remote-control apps and scam-list matches are problems. Ordinary new apps from Play pass without a question. No manual approval by anyone.
 - **Alerts on the owner's phone are heads-up banners.** No full-screen takeover and no overlays (Play restricts full-screen to alarm and calling apps; overlays are what scam apps do).
 - **Guardians are informed, not asked.** Nothing can be approved or removed from a guardian's phone.

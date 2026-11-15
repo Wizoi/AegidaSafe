@@ -21,7 +21,8 @@ interface FindingStore {
 
 /** Heads-up banners on the owner's phone. Implemented by NotificationPoster (the only notification owner). */
 interface OwnerNotifier {
-    fun show(finding: Finding)
+    /** [text] is what the banner says: chosen by the caller ([com.aegida.core.text.GuardianPhoneWords.forMom]), the one owner of those words. */
+    fun show(finding: Finding, text: String)
     fun clear(key: FindingKey)
 }
 

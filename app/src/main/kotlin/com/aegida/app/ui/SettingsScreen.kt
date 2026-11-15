@@ -20,6 +20,8 @@ import com.aegida.core.alert.Guardians
 import com.aegida.core.model.SafetyPicture
 import com.aegida.core.net.PublicPages
 import com.aegida.core.model.Setup
+import com.aegida.core.text.AllowedLine
+import com.aegida.core.text.GuardianPhoneWords
 import com.aegida.core.text.Texts
 
 /** What My settings shows. */
@@ -48,6 +50,8 @@ data class SettingsActions(
     val onWhatYouSee: () -> Unit = {},
     val onShare: () -> Unit = {},
     val onRate: () -> Unit = {},
+    val onChangePhone: () -> Unit = {},
+    val onFixSpelling: () -> Unit = {},
 )
 
 /** What the owner can see and change later. */
@@ -64,6 +68,9 @@ fun SettingsScreen(content: SettingsContent, actions: SettingsActions) {
         SettingCard {
             ValueRow(Texts.Settings.NAME, guardians.ownerName.ifBlank { Texts.Settings.NOT_SET })
             ValueRow(Texts.Settings.GUARDIAN, guardians.firstGuardianName.ifBlank { Texts.Settings.NOT_SET })
+            QuietButton(Texts.Settings.FIX_SPELLING, actions.onFixSpelling)
+            ValueRow(GuardianPhoneWords.phoneTitle(guardians.firstGuardianName), guardians.firstGuardianPhone.ifBlank { Texts.Settings.NOT_SET })
+            QuietButton(if (guardians.firstGuardianPhone.isBlank()) Texts.Settings.ADD else Texts.Settings.CHANGE, actions.onChangePhone)
             QuietButton(Texts.Settings.RESEND_INVITE, actions.onResendInvite)
             QuietButton(Texts.Settings.CHANGE_GUARDIAN, actions.onChangeGuardian)
         }
@@ -92,7 +99,7 @@ fun SettingsScreen(content: SettingsContent, actions: SettingsActions) {
             SettingCard {
                 Text(Texts.Settings.ALLOWED_TITLE, style = MaterialTheme.typography.titleMedium, modifier = Modifier.semantics { heading() })
                 allowed.forEach { item ->
-                    Text(Texts.Settings.allowedLine(item.problem, item.label, item.subject), style = MaterialTheme.typography.bodyLarge)
+                    Text(AllowedLine.of(item.problem, item.label, item.subject), style = MaterialTheme.typography.bodyLarge)
                     QuietButton(Texts.Settings.ALLOWED_REMOVE, { actions.onStopAllowing(item) })
                 }
             }

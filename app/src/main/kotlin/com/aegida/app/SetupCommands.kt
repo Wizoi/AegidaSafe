@@ -45,6 +45,14 @@ class SetupCommands @Inject constructor(
         }
     }
 
+    /**
+     * "Fix a spelling" ([GuardianDetails.fixNames]: sends nothing, the channel keeps its spelling, T5) and "Sam's phone"
+     * ([GuardianDetails.setPhone]: the guardian is told it changed, never the number, K7). A failure leaves the screen as stored.
+     */
+    suspend fun details(block: suspend GuardianDetails.() -> Unit) {
+        quietly { guardianDetails.block() }
+    }
+
     suspend fun savePicture(picture: SafetyPicture) {
         setupStore.save(setupStore.setup().copy(pictureId = picture.id))
         banner.set(picture.id) // banners posted from now on carry the new picture, without reading the database

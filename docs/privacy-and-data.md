@@ -12,7 +12,7 @@ Written for someone auditing the code. Each statement is backed by a test or a g
   is kept until the owner has seen it.
 - Which app opens web links, texts and calls; which apps have notification access, screen control or device-admin rights;
   Private DNS; every installed app with its name, the store that installed it, the app that asked for the install (both stay on the phone) and (for apps that did not ship with the phone)
-  its signing-certificate fingerprint. No app data, no contacts, no messages, no location, no microphone, no camera.
+  its signing-certificate fingerprint. No app data, no contacts (if the owner chooses "Pick from my contacts" for the guardian's phone, Android lets Aegida read only that one number and name; Aegida keeps the one number on the phone and never sends it), no messages, no location, no microphone, no camera.
 
 ## Stores on the phone
 In Aegida's private storage only (excluded from backup and phone-to-phone transfer): the owner's first name, the chosen safety
@@ -20,6 +20,7 @@ picture, the guardian's name, email and phone number, a private topic name for g
 phone at setup, the findings, a 90-day history, queued guardian messages, and the downloaded scam list.
 
 ## Sends
+- When the owner adds, changes or removes the guardian's phone, one short fixed note to the current guardian saying so (held while alerts are off). **Never the number.**
 - To the public ntfy.sh service, only when the owner turned guardian alerts on: short fixed sentences written with the owner's first name
   ("A message with a scam link arrived on Ruth's phone. Aegida warned Ruth."). **No message text and no whole web address. It may name the app a scam message came from and a masked address (`pa*****.example`).**
   The topic name is the only access control, so its last 40 characters are random (about 233 bits) and it is given to the guardian by email from the

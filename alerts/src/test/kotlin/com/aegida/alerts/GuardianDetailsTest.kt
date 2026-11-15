@@ -147,6 +147,35 @@ class GuardianDetailsTest {
         assertEquals(1, phoneNotes().size)
     }
 
+    @Test fun k8b_aNumberAddedThenChangedWhileAlertsAreOffIsHeldAsAdded() = runTest {
+        guardians.value = guardians.value.copy(alertsOn = false, firstGuardianPhone = "")
+        details.setPhone("555 0111")
+        details.setPhone("555 0222")
+        assertEquals(PhoneChange.Added, guardians.value.phoneNotePending)
+        alerts.setAlertsOn(true)
+        details.sendHeldPhoneNote()
+        assertEquals(1, http.bodies.count { it.contains("added a phone number") })
+        assertEquals(0, http.bodies.count { it.contains("changed the phone number") })
+    }
+
+    @Test fun k8b_aNumberAddedThenTakenOutAgainWhileAlertsAreOffHoldsNothing() = runTest {
+        guardians.value = guardians.value.copy(alertsOn = false, firstGuardianPhone = "")
+        details.setPhone("555 0111")
+        details.setPhone("")
+        assertNull(guardians.value.phoneNotePending)
+        alerts.setAlertsOn(true)
+        details.sendHeldPhoneNote()
+        assertEquals(emptyList<String>(), phoneNotes())
+    }
+
+    @Test fun k8b_aNumberTakenOutThenPutBackWhileAlertsAreOffIsHeldAsChanged() = runTest {
+        guardians.value = guardians.value.copy(alertsOn = false)
+        details.setPhone("")
+        assertEquals(PhoneChange.Removed, guardians.value.phoneNotePending)
+        details.setPhone("555 0999")
+        assertEquals(PhoneChange.Changed, guardians.value.phoneNotePending)
+    }
+
     @Test fun k7_3_noChannelYetMeansNoNoteAndNothingHeld() = runTest {
         guardians.value = guardians.value.copy(firstTopic = null)
         details.setPhone("555 0111")

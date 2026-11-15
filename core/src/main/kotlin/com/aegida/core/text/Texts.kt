@@ -192,7 +192,9 @@ object Texts {
         const val GUARDIAN_BODY = "Pick one person you trust. We'll call them your guardian."
         const val GUARDIAN_NAME = "Their name"
         const val GUARDIAN_EMAIL = "Their email"
-        const val GUARDIAN_PHONE = "Their phone (one tap to call)"
+        const val GUARDIAN_PHONE = "Their phone, if you have it"
+        const val PICK_CONTACT = "Pick from my contacts"
+        const val NO_CONTACT_NUMBER = "That contact has no phone number. You can type it below."
 
         const val PICTURE_TITLE = "Pick your safety picture"
         const val PICTURE_BODY = "Aegida shows this picture on its warnings. If a warning does not show it, it did not come from Aegida."
@@ -292,15 +294,6 @@ object Texts {
         const val ALLOWED_TITLE = "Things you told Aegida are fine"
         const val ALLOWED_REMOVE = "Warn me again"
         const val ALLOWED_SITE = "Links to %s"
-
-        /**
-         * One line of that list: an app by its cleaned name (it picks its own label, R17), a website by its name as History shows it
-         * (whole on her own phone, plain text, never a link; findings #155).
-         */
-        fun allowedLine(problem: Problem, label: String, subject: String): String {
-            val clean = Home.cleanLabel(label).ifEmpty { subject }
-            return if (problem == Problem.LookalikeLink) ALLOWED_SITE.format(clean) else clean
-        }
         const val ON = "On"
         const val OFF = "Off"
         const val CHANGE = "Change"
@@ -311,6 +304,12 @@ object Texts {
             "Both are stored in a shortened, scrambled form."
         const val RESEND_INVITE = "Send the invitation again"
         const val CHANGE_GUARDIAN = "Pick a different guardian"
+        const val ADD = "Add"
+        const val PHONE_TITLE = "%s's phone"
+        const val PHONE_TOLD = "Aegida will let %s know you changed it. It never sends the number."
+        const val PHONE_TOLD_NO_NAME = "Aegida will let your guardian know you changed it. It never sends the number."
+        const val FIX_SPELLING = "Fix a spelling"
+        const val FIX_SPELLING_NOTE = "Aegida will use these names from now on. Nothing is sent."
         const val CHANGE_GUARDIAN_TITLE = "Pick a new guardian"
         const val CHANGE_GUARDIAN_POPUP_TITLE = "Please tell %s"
         const val CHANGE_GUARDIAN_POPUP_BODY = "If the email address is new, Aegida will send %s a short message that you changed your guardian. " +

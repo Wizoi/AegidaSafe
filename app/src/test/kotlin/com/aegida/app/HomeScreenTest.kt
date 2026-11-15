@@ -375,6 +375,7 @@ class HomeScreenTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark, fon
         show { HomeScreen(HomeState.CouldntCheck(null), picture, ShownAt(now, zone, locale), {}, noNumber) }
         reachable(Texts.Home.NEVER_CHECKED)
         reachable("If you are ever unsure, ask Sam.")
+        compose.onNodeWithText(Texts.Home.CALL_A_GUARDIAN).assertDoesNotExistOrFail()
     }
 
     @Test fun t4_15_anUnreachableGuardianWithNoPhoneShowsTheTellLineAndNoButtonAtAll() {

@@ -33,8 +33,7 @@ class NotificationPoster(private val context: Context, private val art: BannerAr
         )
     }
 
-    override fun show(finding: Finding) {
-        val text = finding.key.problem.forMom
+    override fun show(finding: Finding, text: String) {
         val notification = Notification.Builder(context, CHANNEL_NEEDS_TAP)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(Texts.APP_NAME)

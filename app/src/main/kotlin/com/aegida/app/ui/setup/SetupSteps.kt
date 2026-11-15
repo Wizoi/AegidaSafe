@@ -29,7 +29,11 @@ import com.aegida.app.ui.AegidaScreen
 import com.aegida.app.ui.AegidaShield
 import com.aegida.app.ui.BigButton
 import com.aegida.app.ui.Body
+import com.aegida.app.ui.PickFromContacts
 import com.aegida.app.ui.QuietButton
+import com.aegida.alerts.GuardianDetails
+import com.aegida.core.alert.ContactPick
+import com.aegida.core.alert.PickedContact
 import com.aegida.core.alert.Guardians
 import com.aegida.core.text.Texts
 
@@ -87,7 +91,7 @@ fun AboutStep(
         Body(Texts.Setup.GUARDIAN_BODY, centered = false)
         Field(guardian, { guardian = it }, Texts.Setup.GUARDIAN_NAME, KeyboardType.Text)
         Field(email, { email = it }, Texts.Setup.GUARDIAN_EMAIL, KeyboardType.Email)
-        Field(phone, { phone = it }, Texts.Setup.GUARDIAN_PHONE, KeyboardType.Phone, last = true)
+        PhoneInput(phone, { phone = it }) { contact -> contact.nameToFill(guardian, inSetup = true)?.let { guardian = it } }
         BigButton(Texts.Common.CONTINUE, { onContinue(name, guardian, email, phone) }, enabled = valid)
     }
 }
@@ -97,11 +101,13 @@ fun AboutStep(
 fun ChangeGuardianScreen(
     pictureId: String?,
     previousName: String,
+    /** Opens with the current details (T5.4): fixing a typo is a small change, not typing it all again. */
+    initial: Guardians = Guardians.None,
     onSave: (name: String, email: String, phone: String) -> Unit,
 ) {
-    var guardian by rememberSaveable { mutableStateOf("") }
-    var email by rememberSaveable { mutableStateOf("") }
-    var phone by rememberSaveable { mutableStateOf("") }
+    var guardian by rememberSaveable { mutableStateOf(initial.firstGuardianName) }
+    var email by rememberSaveable { mutableStateOf(initial.firstGuardianEmail) }
+    var phone by rememberSaveable { mutableStateOf(initial.firstGuardianPhone) }
     var asking by rememberSaveable { mutableStateOf(false) }
     val valid = guardian.isNotBlank() && email.contains('@') && email.substringAfter('@').contains('.')
     AegidaScreen(pictureId) {
@@ -109,9 +115,10 @@ fun ChangeGuardianScreen(
         Body(Texts.Setup.GUARDIAN_BODY, centered = false)
         Field(guardian, { guardian = it }, Texts.Setup.GUARDIAN_NAME, KeyboardType.Text)
         Field(email, { email = it }, Texts.Setup.GUARDIAN_EMAIL, KeyboardType.Email)
-        Field(phone, { phone = it }, Texts.Setup.GUARDIAN_PHONE, KeyboardType.Phone, last = true)
-        // With no previous guardian there is nobody to let know.
-        BigButton(Texts.Common.SAVE, { if (previousName.isBlank()) onSave(guardian, email, phone) else asking = true }, enabled = valid)
+        PhoneInput(phone, { phone = it }) { contact -> contact.nameToFill(guardian, inSetup = true)?.let { guardian = it } }
+        // With no previous guardian, or the same email (the same person, K9), there is nobody to let know.
+        val nobodyToTell = previousName.isBlank() || GuardianDetails.sameEmail(initial.firstGuardianEmail, email)
+        BigButton(Texts.Common.SAVE, { if (nobodyToTell) onSave(guardian, email, phone) else asking = true }, enabled = valid)
     }
     if (asking) {
         AlertDialog(
@@ -130,8 +137,23 @@ fun ChangeGuardianScreen(
     }
 }
 
+/** The phone box with "Pick from my contacts" above it. A picked number fills the box; a contact with none says so and leaves it (T4.18). */
 @Composable
-private fun Field(value: String, onChange: (String) -> Unit, label: String, type: KeyboardType, last: Boolean = false) {
+internal fun PhoneInput(phone: String, onPhone: (String) -> Unit, onContact: (PickedContact) -> Unit = {}) {
+    var noNumber by rememberSaveable { mutableStateOf(false) }
+    PickFromContacts { pick ->
+        when (pick) {
+            is ContactPick.Picked -> { noNumber = false; onPhone(pick.contact.phone); onContact(pick.contact) }
+            ContactPick.NoNumber -> noNumber = true
+            ContactPick.Cancelled -> Unit
+        }
+    }
+    if (noNumber) Body(Texts.Setup.NO_CONTACT_NUMBER, centered = false)
+    Field(phone, { noNumber = false; onPhone(it) }, Texts.Setup.GUARDIAN_PHONE, KeyboardType.Phone, last = true)
+}
+
+@Composable
+internal fun Field(value: String, onChange: (String) -> Unit, label: String, type: KeyboardType, last: Boolean = false) {
     // The keyboard's Next button moves to the box below; on the last box it closes the keyboard (Kevin, Oct 9).
     val focus = LocalFocusManager.current
     OutlinedTextField(
