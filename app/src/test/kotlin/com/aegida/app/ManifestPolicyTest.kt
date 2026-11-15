@@ -90,6 +90,8 @@ class ManifestPolicyTest {
 
         val BANNED_PERMISSIONS = setOf(
             "android.permission.READ_SMS",
+            "android.permission.READ_CONTACTS",
+            "android.permission.WRITE_CONTACTS",
             "android.permission.RECEIVE_SMS",
             "android.permission.SEND_SMS",
             "android.permission.RECEIVE_MMS",
