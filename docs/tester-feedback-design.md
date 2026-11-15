@@ -286,7 +286,7 @@ Read-only review of T4, T5 and K7 against the code. Its rows are part of the tab
 
 | ID | Situation | Owner sees | Guardian gets | Test |
 |---|---|---|---|---|
-| T4.15 | GuardianUnreachable with no phone | See decision K10. Never "Got it" alone: a seen finding with no quiet period is raised again next run (AlertPipeline.kt:88-91) | Nothing | Robolectric |
+| T4.15 | GuardianUnreachable with no phone | K10: "Aegida couldn't reach Sam for a day. When you can, please tell Sam.", no button. Never "Got it" alone: a seen finding with no quiet period is raised again next run (AlertPipeline.kt:88-91) | Nothing | Robolectric |
 | T4.16 | No phone: Home with no known problems, or couldn't check | "If you are ever unsure, ask Sam." where the button was; under a warning, only the big button | n/a | Robolectric, each state |
 | T4.17 | No phone: the "call a guardian / them" sentences | Each says "tell Sam" / "ask Sam" | n/a | JVM, one per string |
 | T4.18 | Picked contact has no usable number (blank, letters, "*86") | Field unchanged; "That contact has no phone number. You can type it below." | Nothing | Robolectric, stub resolver |
@@ -304,7 +304,7 @@ Read-only review of T4, T5 and K7 against the code. Its rows are part of the tab
 | T5.17 | Same guardian, email typo fixed | See K9 (the "you changed your guardian" popup would be untrue) | See K9 | Words |
 | T5.18 | Setup: Back to About after saying Yes to alerts, email or phone changed | See K9 | See K9 | JVM |
 | K7.1 | Offline | Saved | Queued, then delivered; counts toward GuardianUnreachable | JVM |
-| K7.2 | Alerts off, phone changed, then alerts on | Saved | See decision K8 | JVM |
+| K7.2 | Alerts off, phone changed, then alerts on | Saved | K8b: the held phone note, when alerts go on | JVM |
 | K7.3 | Guardian never subscribed, or no channel yet | n/a | ntfy accepts and the note is lost / nothing | JVM |
 | K7.4 | Three changes in a minute | Saved each time | One note per save that changes the digits, none while one is still waiting | JVM |
 | K7.5 | Change, then undo | Saved | Both notes; a note is never pulled back | JVM |
@@ -331,6 +331,10 @@ Build order: (1) core rule and strings; (2) the no-phone screens; (3) `GuardianD
 | K6 | Version | **Decided (Kevin, Nov 13): as recommended.** 0.4.3 for release A; release B gets its own number | Both |
 | K7 | Adding or changing the guardian's phone tells the current guardian (without the number) | **Decided (Kevin, Nov 13): as recommended.** Yes | Opus raised it; Fable's T5 concern is the same risk |
 | K8 | Rate button | **Decided (Kevin, Nov 13): yes, a quiet button at the bottom of My settings, never a prompt (T11)** | Both rejected a prompt |
+| K9 (rate is K8 above; numbering kept) | Email fix | **Decided (Kevin, Nov 14):** saving the same email keeps the channel and sends nothing; any new email always makes a new private channel, cancels the old one's waiting message and sends the invitation to the new address; the change popup is reworded to be true when it is the same person (T5.16-T5.18) | Opus |
+| K8b | Phone changed while alerts are off, then alerts on | **Decided (Kevin, Nov 14): the held phone note is sent when alerts go on** (K7.2) | Opus |
+| K10 | Guardian unreachable for a day with no phone saved | **Decided (Kevin, Nov 14): a plain line, no button:** "Aegida couldn't reach Sam for a day. When you can, please tell Sam." It clears once a message gets through (T4.15) | Opus |
+| K11 | Words of the three phone notes and the owner's new lines | **Decided (Kevin, Nov 14): approved as drafted** (Release B scenario review section) | Opus |
 
 ## For the production-access form (only what ships)
 
