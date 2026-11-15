@@ -14,6 +14,11 @@ import org.junit.Test
 
 /** Release B T4/T2: the one rule for "the guardian has a number to ring" and the words that depend on it. */
 class GuardianPhoneTest {
+    @Test fun theGuardiansNameIsWrittenAsTypedInThePhoneRowOnlyTheFallbackIsCapitalized() { // T4.24
+        assertEquals("iPhone Dad's phone", GuardianPhoneWords.phoneTitle("iPhone Dad"))
+        assertEquals("Your guardian's phone", GuardianPhoneWords.phoneTitle(""))
+    }
+
     @Test fun t4_20_theNumberIsCutAtTheFirstCommaOrSemicolon() { // finding #185
         assertEquals("5550100", GuardianPhone.dialable("555 0100,123"))
         assertEquals("5550100", GuardianPhone.dialable("(555) 0100;123"))
