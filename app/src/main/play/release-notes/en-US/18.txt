@@ -1,0 +1,4 @@
+What's new:
+• Setup can pick your guardian's phone number from your contacts. Aegida reads only that one contact
+• No phone number for your guardian? Aegida no longer shows a Call button that cannot call; it says to ask them instead
+• In My settings you can fix a spelling in your name or your guardian's, and add or change their phone. Your guardian gets a short note when their number changes, never the number itself
