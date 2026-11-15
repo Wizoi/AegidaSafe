@@ -23,10 +23,11 @@ class GuardianChangeTest {
     private val changedAt = java.time.Instant.now()
     private val gate = AlertGate()
     private val line = GuardianLine(guardians, sender, com.aegida.testkit.FakeOutbox())
+    private val alerts = GuardianAlerts(guardians, sender, switch, gate)
     private val details = GuardianDetails(
-        guardians, AlertPipeline(Findings(), Owner(), History(), line) { changedAt }, line, History(), gate,
+        guardians, AlertPipeline(Findings(), Owner(), History(), line) { changedAt }, line, History(), gate, alerts,
     ) { changedAt }
-    private val change = GuardianChange(guardians, GuardianAlerts(guardians, sender, switch, gate), switch, gate, details) { changedAt }
+    private val change = GuardianChange(guardians, alerts, switch, gate, details) { changedAt }
 
     @Test fun theNewGuardianGetsTheirOwnPrivateTopicAndTheOldGuardiansWaitingMessageIsCancelled() = runTest {
         val result = change.change("Ann", "ann@example.com", "777")

@@ -24,7 +24,20 @@ class GuardianAlerts @Inject constructor(
 ) {
     suspend fun setAlertsOn(on: Boolean): AlertsSwitched = gate.run { switchAlerts(on) }
 
-    private suspend fun switchAlerts(on: Boolean): AlertsSwitched {
+    /**
+     * Makes her private alert topic the first time it is needed and returns the guardian settings to build the invitation from. Under the
+     * [AlertGate]: a check running at the same time cannot have its welcome or heartbeat flags undone by this read-modify-write (findings #195).
+     */
+    suspend fun prepareInvite(): Guardians = gate.run {
+        val current = settings.current()
+        if (current.firstTopic != null) return@run current
+        val made = current.copy(firstTopic = NtfyTopic.generate(current.ownerName))
+        settings.save(made)
+        made
+    }
+
+    /** The caller holds the [AlertGate] ([GuardianDetails.setAlertsOn], which also sends the phone note held while alerts were off). */
+    internal suspend fun switchAlerts(on: Boolean): AlertsSwitched {
         val current = settings.current()
         if (current.alertsOn == on) return AlertsSwitched(null, null)
         settings.save(current.copy(alertsOn = on))

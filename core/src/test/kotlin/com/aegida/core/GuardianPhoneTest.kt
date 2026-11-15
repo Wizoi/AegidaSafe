@@ -47,11 +47,11 @@ class GuardianPhoneTest {
     }
 
     @Test fun t2_10_andT4_7_theUnsureLineSaysTapCallWithANumberAndAskSamWithout() {
-        val withNumber = Texts.Setup.seeLines(true, true, "Sam", callable = true)
-        val without = Texts.Setup.seeLines(true, true, "Sam", callable = false)
+        val withNumber = Texts.Setup.seeLines(true, true, "Sam", callButton = true)
+        val without = Texts.Setup.seeLines(true, true, "Sam", callButton = false)
         assertEquals("If you are ever unsure, tap Call a guardian.", withNumber.last())
         assertEquals("If you are ever unsure, ask Sam.", without.last())
-        assertEquals("If you are ever unsure, ask your guardian.", Texts.Setup.seeLines(true, true, "  ", callable = false).last())
+        assertEquals("If you are ever unsure, ask your guardian.", Texts.Setup.seeLines(true, true, "  ", callButton = false).last())
         assertEquals(withNumber.dropLast(1), without.dropLast(1))
     }
 

@@ -18,6 +18,12 @@ class ContactPickTest {
         }
     }
 
+    @Test fun t4_18_aNumberWithLettersIsNoNumberBecauseTheCallButtonWouldDialTheDigitsOnly() {
+        for (vanity in listOf("1-800-FLOWERS", "555 0100 ext", "x123")) {
+            assertEquals(vanity, ContactPick.NoNumber, ContactPick.fromRow(vanity, "Shop"))
+        }
+    }
+
     @Test fun t4_12_aNameShapedLikeAWebAddressIsKeptAsPlainTextAndABlankNameIsEmpty() {
         assertEquals("pay-now.example.com", (ContactPick.fromRow("555 0100", " pay-now.example.com ") as ContactPick.Picked).contact.name)
         assertEquals("", (ContactPick.fromRow("555 0100", null) as ContactPick.Picked).contact.name)

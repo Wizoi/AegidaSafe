@@ -30,6 +30,7 @@ class GuardianDetails @Inject constructor(
     private val line: GuardianLine,
     private val history: HistoryLog,
     private val gate: AlertGate,
+    private val alerts: GuardianAlerts,
     private val clock: Clock,
 ) {
     /** Her first name and the guardian's name. False (nothing saved) when either is blank. Sends nothing; the channel keeps its spelling (T5.1, T5.3). */
@@ -54,11 +55,14 @@ class GuardianDetails @Inject constructor(
             )
             return@run AboutSaved.Saved
         }
-        fixNamesLocked(owner, guardian)
         if (sameEmail(before.firstGuardianEmail, email)) {
+            fixNamesLocked(owner, guardian)
             setPhoneLocked(phone)
             AboutSaved.Saved
         } else {
+            // A new person: only her own name is fixed now. The guardian's name, email and phone are saved together with the new channel by
+            // [GuardianChange], never the new name onto the old channel, so a failure there leaves the old guardian complete (T5.11, findings #190).
+            fixOwnerNameLocked(owner)
             AboutSaved.NewGuardian
         }
     }
@@ -70,13 +74,37 @@ class GuardianDetails @Inject constructor(
         setPhoneLocked(phone)
     }
 
-    /** Alerts have just gone on: the phone note held while they were off is sent now, and only then forgotten (K8b, K7.8). */
-    suspend fun sendHeldPhoneNote() = gate.run {
+    /**
+     * Turns alerts on or off in one [AlertGate] hold. Going on also sends the phone note held while they were off (K8b, K7.8), in the same
+     * hold, so no check can run between, and the note is forgotten only after it was sent or queued in the outbox: a kill in between leaves it
+     * held, and [sendHeldPhoneNote] (the daily check) sends it (findings #187).
+     */
+    suspend fun setAlertsOn(on: Boolean): AlertsSwitched = gate.run {
+        val switched = alerts.switchAlerts(on)
+        if (on) sendHeldPhoneNoteLocked()
+        switched
+    }
+
+    /** The phone note held while alerts were off, if alerts are on now and one still waits; the daily check calls this too. */
+    suspend fun sendHeldPhoneNote() = gate.run { sendHeldPhoneNoteLocked() }
+
+    internal suspend fun sendHeldPhoneNoteLocked() {
         val held = settings.current()
-        val change = held.phoneNotePending ?: return@run
-        if (!held.alertsOn || held.firstTopic == null) return@run
-        pipeline.tellAllowed(Problem.GuardianPhoneChanged, null, clock.now()) { GuardianPhoneWords.phoneNote(change, it) }
-        settings.save(settings.current().copy(phoneNotePending = null))
+        val heldKind = held.phoneNotePending ?: return
+        if (!held.alertsOn || held.firstTopic == null) return
+        // What is true now: the number as it was when the note was first held against the number now. Changed and changed back is nothing to tell (K7.6).
+        val from = held.phoneNoteFrom
+        val change = if (from == null) heldKind else PhoneChange.of(from, held.firstGuardianPhone)
+        if (change != null) {
+            pipeline.tellAllowed(Problem.GuardianPhoneChanged, null, clock.now()) { GuardianPhoneWords.phoneNote(change, it) }
+        }
+        settings.save(settings.current().copy(phoneNotePending = null, phoneNoteFrom = null))
+    }
+
+    private suspend fun fixOwnerNameLocked(owner: String) {
+        val name = owner.trim()
+        val current = settings.current()
+        if (name.isNotEmpty() && current.ownerName != name) settings.save(current.copy(ownerName = name))
     }
 
     private suspend fun fixNamesLocked(owner: String, guardian: String): Boolean {
@@ -102,6 +130,7 @@ class GuardianDetails @Inject constructor(
         val now = clock.now()
         history.add(HistoryEntry(now, Problem.GuardianPhoneChanged, Outcome.Acknowledged))
         var pending = current.phoneNotePending
+        var from = current.phoneNoteFrom
         if (current.firstTopic != null) {
             if (current.alertsOn) {
                 // Told first, saved after: a note is never lost to a kill in between (K7.8). One still waiting is enough (K7.4).
@@ -109,12 +138,16 @@ class GuardianDetails @Inject constructor(
                     pipeline.tellAllowed(Problem.GuardianPhoneChanged, null, now) { GuardianPhoneWords.phoneNote(change, it) }
                 }
                 pending = null
+                from = null
             } else {
-                // One held note, however many changes; true for the number as it is when alerts go on (K8b).
-                pending = if (pending != null) PhoneChange.merged(pending, typed) else change
+                // One held note, however many changes; true for the number as it is when alerts go on, against the number from when it was
+                // first held: changed and changed back is no note (K8b, K7.6).
+                from = from ?: current.firstGuardianPhone
+                pending = PhoneChange.of(from, typed)
+                if (pending == null) from = null
             }
         }
-        settings.save(settings.current().copy(firstGuardianPhone = typed, phoneNotePending = pending))
+        settings.save(settings.current().copy(firstGuardianPhone = typed, phoneNotePending = pending, phoneNoteFrom = from))
     }
 
     companion object {

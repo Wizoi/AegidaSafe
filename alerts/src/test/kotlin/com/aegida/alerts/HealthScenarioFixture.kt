@@ -106,9 +106,10 @@ abstract class HealthScenarioFixture {
         val keys = KeyPairGenerator.getInstance("EC").apply { initialize(ECGenParameterSpec("secp256r1")) }.generateKeyPair()
         val sender = NtfySender(http)
         val switch = DeadMansSwitch(guardians, sender) { now }
+        val alerts = GuardianAlerts(guardians, sender, switch, AlertGate())
         DailyCheck(
             DailyFeed(FeedUpdater(http, FeedVerifier(keys.public.encoded), feedStore) { now }, feedStore) { now }, runner,
-            DailyPruning(history, findings, checkLog) { now }, DailyHeartbeat(switch, GuardianAlerts(guardians, sender, switch, AlertGate()), AlertGate()),
+            DailyPruning(history, findings, checkLog) { now }, DailyHeartbeat(switch, alerts, AlertGate(), GuardianDetails(guardians, pipeline, GuardianLine(guardians, sender, outbox), history, AlertGate(), alerts) { now }),
             checkLog, ListenerRepair(binding, setupStore, clock),
         )
     }

@@ -35,12 +35,14 @@ class ContactPickerTest {
             asked += (projection ?: emptyArray()).toList()
             return when (mode) {
                 "null" -> null
+                "badcolumn" -> if (uri.pathSegments.contains("phones")) rowCursor() else throw IllegalArgumentException("Invalid column data1")
                 "denied" -> throw SecurityException("work profile")
                 "empty" -> MatrixCursor(arrayOf(ContactsContract.CommonDataKinds.Phone.NUMBER, ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME))
-                else -> MatrixCursor(arrayOf(ContactsContract.CommonDataKinds.Phone.NUMBER, ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME))
-                    .also { it.addRow(arrayOf(number, "Sam")) }
+                else -> rowCursor()
             }
         }
+        private fun rowCursor() = MatrixCursor(arrayOf(ContactsContract.CommonDataKinds.Phone.NUMBER, ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME))
+            .also { it.addRow(arrayOf(number, "Sam")) }
         override fun getType(uri: Uri): String? = null
         override fun insert(uri: Uri, values: ContentValues?): Uri? = null
         override fun delete(uri: Uri, selection: String?, args: Array<out String>?) = 0
@@ -92,6 +94,12 @@ class ContactPickerTest {
     @Test fun t4_19_aUriThatIsNotAContactsRowIsNoNumber() {
         provide("row")
         assertEquals(ContactPick.NoNumber, ContactPicker.read(context, Uri.parse("content://elsewhere/anything")))
+    }
+
+    @Test fun t4_19_aRealContactsContactsRowNotAPhoneRowIsNoNumberNeverACrash() {
+        provide("badcolumn")
+        val contactRow = android.content.ContentUris.withAppendedId(ContactsContract.Contacts.CONTENT_URI, 7)
+        assertEquals(ContactPick.NoNumber, ContactPicker.read(context, contactRow))
     }
 
     @Test fun t4_2_theIntentPicksAPhoneNumberRowAndNeedsNoPermission() {

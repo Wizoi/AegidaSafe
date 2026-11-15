@@ -11,7 +11,6 @@ import com.aegida.core.model.AutoBlockerAnswer
 import com.aegida.core.model.SafetyPicture
 import com.aegida.core.model.SetupStep
 import com.aegida.core.model.WebsiteFilter
-import com.aegida.core.net.NtfyTopic
 import com.aegida.core.store.SetupStore
 import kotlinx.coroutines.CancellationException
 import javax.inject.Inject
@@ -60,11 +59,7 @@ class SetupCommands @Inject constructor(
 
     /** Makes her private alert topic the first time it is needed and returns the guardian settings to build the email from. */
     suspend fun prepareInvite(): Guardians {
-        val current = guardianSettings.current()
-        if (current.firstTopic != null) return current
-        val made = current.copy(firstTopic = NtfyTopic.generate(current.ownerName))
-        guardianSettings.save(made)
-        return made
+        return guardianAlerts.prepareInvite() // under the AlertGate, so a check running now keeps its saved flags (findings #195)
     }
 
     /**
@@ -77,10 +72,7 @@ class SetupCommands @Inject constructor(
     }
 
     suspend fun setAlerts(on: Boolean) {
-        quietly {
-            guardianAlerts.setAlertsOn(on)
-            if (on) guardianDetails.sendHeldPhoneNote() // a phone change made while alerts were off is told now (K8b)
-        }
+        quietly { guardianDetails.setAlertsOn(on) } // going on also tells a phone change made while alerts were off, in the same hold (K8b, #187)
     }
 
     /** With "Send the invitation again": tell the guardian once more that Aegida is set up (findings #95). */

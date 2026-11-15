@@ -78,7 +78,10 @@ class DailyCheckTest {
         OutboxFlusher(outbox, NtfySender(http), history, guardians, { now }), CheckGate(AlertGate()),
     )
     private val feed = DailyFeed(FeedUpdater(http, FeedVerifier(keys.public.encoded), feedStore) { now }, feedStore) { now }
-    private val heartbeat = DailyHeartbeat(switch, guardianAlerts, AlertGate())
+    private val heartbeat = DailyHeartbeat(
+        switch, guardianAlerts, AlertGate(),
+        GuardianDetails(guardians, pipeline, GuardianLine(guardians, sender, outbox), history, AlertGate(), guardianAlerts) { now },
+    )
     private val binding = FakeListenerBinding(boundNow = true)
     private val daily = DailyCheck(
         feed, runner, DailyPruning(history, findings, checkLog) { now }, heartbeat, checkLog, ListenerRepair(binding, FakeSetupStore()) { now },

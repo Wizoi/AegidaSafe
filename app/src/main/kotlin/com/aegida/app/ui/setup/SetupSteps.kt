@@ -115,7 +115,7 @@ fun ChangeGuardianScreen(
         Body(Texts.Setup.GUARDIAN_BODY, centered = false)
         Field(guardian, { guardian = it }, Texts.Setup.GUARDIAN_NAME, KeyboardType.Text)
         Field(email, { email = it }, Texts.Setup.GUARDIAN_EMAIL, KeyboardType.Email)
-        PhoneInput(phone, { phone = it }) { contact -> contact.nameToFill(guardian, inSetup = true)?.let { guardian = it } }
+        PhoneInput(phone, { phone = it }) { contact -> contact.nameToFill(guardian, inSetup = false)?.let { guardian = it } }
         // With no previous guardian, or the same email (the same person, K9), there is nobody to let know.
         val nobodyToTell = previousName.isBlank() || GuardianDetails.sameEmail(initial.firstGuardianEmail, email)
         BigButton(Texts.Common.SAVE, { if (nobodyToTell) onSave(guardian, email, phone) else asking = true }, enabled = valid)

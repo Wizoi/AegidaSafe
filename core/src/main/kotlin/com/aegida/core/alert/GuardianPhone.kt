@@ -27,22 +27,6 @@ enum class PhoneChange {
     Added, Changed, Removed;
 
     companion object {
-        /**
-         * The note that is true now when [held] was the first change made while alerts were off and the number is [now] (K8b). Only whether
-         * the number before it existed is known (Added: none; Changed and Removed: one), so: none then and none now is no note; some before and
-         * none now is Removed; none before and some now is Added; some before and some now is Changed.
-         */
-        fun merged(held: PhoneChange, now: String): PhoneChange? {
-            val hadNumber = held != Added
-            val hasNumber = GuardianPhone.callable(now)
-            return when {
-                !hadNumber && !hasNumber -> null
-                !hadNumber -> Added
-                !hasNumber -> Removed
-                else -> Changed
-            }
-        }
-
         /** Null when the number that would be dialed is the same (spaces, brackets or an extension changed), or neither has one (K7.6). */
         fun of(before: String, after: String): PhoneChange? {
             val was = GuardianPhone.dialable(before)

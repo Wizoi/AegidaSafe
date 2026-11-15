@@ -265,11 +265,11 @@ object Texts {
         const val SEE_UNSURE = "If you are ever unsure, tap %s."
 
         /** The four lines of that page. It never promises a notice she cannot get (notices off) or a picture that cannot be drawn. */
-        fun seeLines(noticesOn: Boolean, hasPicture: Boolean, guardianName: String, callable: Boolean): List<String> = listOf(
+        fun seeLines(noticesOn: Boolean, hasPicture: Boolean, guardianName: String, callButton: Boolean): List<String> = listOf(
             SEE_QUIET,
             if (!noticesOn) SEE_NOTICE_OFF else if (hasPicture) SEE_NOTICE else SEE_NOTICE_PLAIN,
             SEE_CALM.format(Home.NO_KNOWN_PROBLEMS),
-            if (callable) SEE_UNSURE.format(Home.CALL_A_GUARDIAN) else GuardianPhoneWords.unsureAsk(guardianName),
+            if (callButton) SEE_UNSURE.format(Home.CALL_A_GUARDIAN) else GuardianPhoneWords.unsureAsk(guardianName),
         )
     }
 

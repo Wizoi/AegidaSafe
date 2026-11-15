@@ -254,6 +254,37 @@ class RoomStoresTest {
         assertEquals(guardians, settings.current())
     }
 
+    @Test fun aHeldPhoneNoteAndTheNumberItWasHeldFromRoundTripForEachKindAndAnUnknownStoredKindReadsAsNone() = runTest { // findings #191, #193
+        val settings = RoomSettings(db.settings())
+        val base = Guardians(alertsOn = false, ownerName = "Ruth", firstTopic = NtfyTopic("aegida_" + "r5T6y7U8".repeat(4)))
+        for (kind in com.aegida.core.alert.PhoneChange.entries) {
+            settings.save(base.copy(phoneNotePending = kind, phoneNoteFrom = "555 0100"))
+            assertEquals(kind, settings.current().phoneNotePending)
+            assertEquals("555 0100", settings.current().phoneNoteFrom)
+        }
+        settings.save(base)
+        assertNull(settings.current().phoneNotePending)
+        assertNull(settings.current().phoneNoteFrom)
+        db.settings().put(listOf(SettingEntity("guardians.phoneNotePending", "FromAFutureVersion")))
+        assertNull("a kind this version does not know is no note, not a crash", settings.current().phoneNotePending)
+    }
+
+    @Test fun t4_9_aGuardianSavedByVersion042WithABlankPhoneReadsAsNoNumberNoButtonAndNoHeldNote() = runTest {
+        // exactly the rows 0.4.2 wrote: no phoneNotePending and no phoneNoteFrom keys at all
+        db.settings().put(
+            listOf(
+                SettingEntity("guardians.alertsOn", "true"), SettingEntity("guardians.ownerName", "Ruth"),
+                SettingEntity("guardians.firstTopic", "aegida_" + "r5T6y7U8".repeat(4)), SettingEntity("guardians.firstName", "Kevin"),
+                SettingEntity("guardians.firstEmail", "kevin@example.org"), SettingEntity("guardians.firstPhone", ""),
+            ),
+        )
+        val read = RoomSettings(db.settings()).current()
+        assertEquals("", read.firstGuardianPhone)
+        assertNull(read.phoneNotePending)
+        assertNull(read.phoneNoteFrom)
+        assertEquals(com.aegida.core.alert.Reach.None, com.aegida.core.alert.GuardianPhone.reach(read.firstGuardianPhone, dialerExists = true))
+    }
+
     @Test fun baselineStartsAsNoneAndRoundTripsIncludingUnsetDefaults() = runTest {
         val settings = RoomSettings(db.settings())
         assertNull(settings.baseline())

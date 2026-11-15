@@ -9,7 +9,9 @@ import com.aegida.core.net.NtfyTopic
 import com.aegida.core.text.GuardianPhoneWords
 import com.aegida.core.text.Problem
 import com.aegida.testkit.FakeOutbox
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.yield
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -34,9 +36,9 @@ class GuardianDetailsTest {
     private val line = GuardianLine(guardians, sender, outbox)
     private val gate = AlertGate()
     private val pipeline = AlertPipeline(Findings(), Owner(), history, line) { now }
-    private val details = GuardianDetails(guardians, pipeline, line, history, gate) { now }
     private val switch = DeadMansSwitch(guardians, sender) { now }
     private val alerts = GuardianAlerts(guardians, sender, switch, gate)
+    private val details = GuardianDetails(guardians, pipeline, line, history, gate, alerts) { now }
 
     private val noteWords = Regex("added a phone number|changed the phone number|took your phone number")
     private fun phoneNotes() = http.bodies.filter { noteWords.containsMatchIn(it) }
@@ -264,5 +266,130 @@ class GuardianDetailsTest {
         val typed = Guardians.None.copy(ownerName = "Ruth", firstGuardianName = "Sam", firstGuardianEmail = "sam@example.org", firstGuardianPhone = "555 0100")
         assertEquals(typed, guardians.value)
         assertEquals(emptyList<Any>(), http.posts)
+    }
+
+    // Findings #187, #190, #193 and the T5 rows without a test (#196).
+
+    @Test fun k8b_187_aHeldNoteIsSentExactlyOnceByTheSameStepThatSwitchesAlertsOn() = runTest {
+        guardians.value = guardians.value.copy(alertsOn = false)
+        details.setPhone("555 0111")
+        details.setAlertsOn(true)
+        assertEquals(1, phoneNotes().size)
+        assertNull(guardians.value.phoneNotePending)
+        assertNull(guardians.value.phoneNoteFrom)
+        details.setAlertsOn(true)
+        assertEquals("sent once", 1, phoneNotes().size)
+    }
+
+    @Test fun k8b_187_killedBetweenSwitchingOnAndSendingTheNoteStaysHeldAndTheDailyCheckSendsItOnce() = runTest {
+        guardians.value = guardians.value.copy(alertsOn = false)
+        details.setPhone("555 0111")
+        alerts.setAlertsOn(true) // the switch alone: the process died before the note was sent
+        assertEquals(PhoneChange.Changed, guardians.value.phoneNotePending)
+        val daily = DailyHeartbeat(switch, alerts, gate, details)
+        daily.keepInStep()
+        assertEquals(1, phoneNotes().size)
+        daily.keepInStep()
+        assertEquals("not again", 1, phoneNotes().size)
+    }
+
+    @Test fun k8b_187_offlineWhenAlertsGoOnTheNoteIsInTheOutboxBeforeItIsForgotten() = runTest {
+        guardians.value = guardians.value.copy(alertsOn = false)
+        details.setPhone("555 0111")
+        http.result = HttpResult.Failed(null, FailureReason.Offline)
+        details.setAlertsOn(true)
+        assertEquals(listOf(Problem.GuardianPhoneChanged), outbox.all().map { it.problem })
+        assertNull(guardians.value.phoneNotePending)
+    }
+
+    @Test fun k7_6_193_aNumberChangedAndChangedBackWhileAlertsAreOffSendsNothing() = runTest {
+        guardians.value = guardians.value.copy(alertsOn = false)
+        details.setPhone("555 0111")
+        details.setPhone("555 0100")
+        assertNull("nothing changed in the end", guardians.value.phoneNotePending)
+        details.setAlertsOn(true)
+        assertEquals(emptyList<String>(), phoneNotes())
+    }
+
+    @Test fun k7_6_193_aNumberChangedTwiceAndBackAfterAnOtherChangeStillSaysChangedOnlyForTheEnd() = runTest {
+        guardians.value = guardians.value.copy(alertsOn = false)
+        details.setPhone("555 0111")
+        details.setPhone("555 0222")
+        details.setPhone("555 0100")
+        details.setPhone("555 0333")
+        details.setAlertsOn(true)
+        assertEquals(1, phoneNotes().size)
+    }
+
+    @Test fun t5_18_190_aNewEmailInSetupNeverPutsTheNewGuardiansNameOnTheOldChannel() = runTest {
+        assertEquals(AboutSaved.NewGuardian, details.saveAbout("Ruthie", "Ann", "ann@example.org", "555 0999"))
+        assertEquals("Ruthie", guardians.value.ownerName)
+        assertEquals("Sam", guardians.value.firstGuardianName)
+        assertEquals("sam@example.org", guardians.value.firstGuardianEmail)
+        assertEquals("555 0100", guardians.value.firstGuardianPhone)
+        assertEquals(topic, guardians.value.firstTopic)
+    }
+
+    @Test fun t5_6_andT5_7_afterANameFixTheCheckInMessageAndTheDayReminderUseTheNewName() = runTest {
+        details.fixNames("Ruthie", "Samuel")
+        switch.arm()
+        assertEquals(1, http.bodies.count { it.contains("Ruthie") && !it.contains("Ruth ") })
+        var later = now
+        val findings = Findings()
+        val reminding = AlertPipeline(findings, Owner(), history, line) { later }
+        val warning = com.aegida.core.model.Finding(
+            com.aegida.core.model.FindingKey(com.aegida.core.model.DetectorId.Link, Problem.ScamLink, "h.example"), emptyMap(), now, now,
+        )
+        reminding.handle(listOf(warning), setOf(com.aegida.core.model.DetectorId.Link))
+        later = now.plus(java.time.Duration.ofHours(25))
+        http.bodies.clear()
+        reminding.handle(listOf(warning.copy(lastSeen = later)), setOf(com.aegida.core.model.DetectorId.Link))
+        assertEquals(listOf(com.aegida.core.text.Texts.Guardian.STILL_OPEN.format("Ruthie")), http.bodies)
+    }
+
+    @Test fun t5_13_aNoteAlreadyWaitingInTheOutboxKeepsTheNameItWasWrittenWith() = runTest {
+        http.result = HttpResult.Failed(null, FailureReason.Offline)
+        details.setPhone("555 0111")
+        val waiting = outbox.all().single()
+        details.fixNames("Ruthie", "Samuel")
+        assertEquals("accepted: a note already written is not rewritten", waiting.body, outbox.all().single().body)
+        assertTrue(waiting.body, waiting.body.contains("Ruth ") && !waiting.body.contains("Ruthie"))
+    }
+
+    @Test fun t5_11_killedWhileSavingNamesLeavesTheOldOnesOrTheNewOnesNeverAMix() = runTest {
+        var dies = true
+        val store = object : com.aegida.core.alert.GuardianSettings {
+            override suspend fun current() = guardians.value
+            override suspend fun save(guardians: Guardians) {
+                if (dies) throw IllegalStateException("killed")
+                this@GuardianDetailsTest.guardians.value = guardians
+            }
+        }
+        val fragile = GuardianDetails(store, pipeline, line, history, gate, alerts) { now }
+        try { fragile.fixNames("Ruthie", "Samuel") } catch (ignored: IllegalStateException) { /* the kill */ }
+        assertEquals("Ruth" to "Sam", guardians.value.ownerName to guardians.value.firstGuardianName)
+        dies = false
+        fragile.fixNames("Ruthie", "Samuel")
+        assertEquals("Ruthie" to "Samuel", guardians.value.ownerName to guardians.value.firstGuardianName)
+    }
+
+    @Test fun t5_14_aNameFixWhileACheckHoldsTheGateWaitsAndLosesNothingEitherWay() = runTest {
+        val checkStarted = kotlinx.coroutines.CompletableDeferred<Unit>()
+        val fixDone = kotlinx.coroutines.CompletableDeferred<Unit>()
+        val check = launch {
+            gate.run { // what a check does: read, wait, write back what it read plus its own change
+                val read = guardians.value
+                checkStarted.complete(Unit)
+                yield()
+                yield()
+                guardians.value = read.copy(welcomePendingFor = "waiting")
+            }
+        }
+        checkStarted.await()
+        val fix = launch { details.fixNames("Ruthie", "Samuel"); fixDone.complete(Unit) }
+        check.join()
+        fix.join()
+        assertEquals("waiting", guardians.value.welcomePendingFor)
+        assertEquals("Ruthie" to "Samuel", guardians.value.ownerName to guardians.value.firstGuardianName)
     }
 }
