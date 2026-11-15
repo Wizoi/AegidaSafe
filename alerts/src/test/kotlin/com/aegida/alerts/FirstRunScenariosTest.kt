@@ -74,7 +74,7 @@ internal class WholePhone(network: (Http) -> com.aegida.core.net.HttpClient = { 
         evaluator, pipeline, BaselineKeeper(setupStore, baselines), OutboxFlusher(outbox, sender, history, guardians, { now }), CheckGate(gate),
     )
     val guardianAlerts = GuardianAlerts(guardians, sender, switch, gate)
-    val details = GuardianDetails(guardians, pipeline, GuardianLine(guardians, sender, outbox), history, gate, guardianAlerts) { now }
+    val details = GuardianDetails(guardians, pipeline, history, gate, guardianAlerts) { now }
     val daily = DailyCheck(
         DailyFeed(FeedUpdater(net, FeedVerifier(keys.public.encoded), feedStore) { now }, feedStore) { now },
         runner,

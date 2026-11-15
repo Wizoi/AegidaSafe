@@ -18,10 +18,14 @@ sealed interface ContactPick {
     data object Cancelled : ContactPick
 
     companion object {
+        /** Digits, with a leading + and the usual spaces and brackets; never letters (a vanity number would be dialed as its digits only), never a star or hash code. */
+        private fun ringable(phone: String) =
+            phone.any { it.isDigit() } && phone.none { it.isLetter() } && phone.first() != '*' && phone.first() != '#'
+
         /** A row's number and name; no number when it is blank, has no digit, or starts with * or # (a phone code such as "*86", not a number). */
         fun fromRow(number: String?, name: String?): ContactPick {
             val phone = number?.trim().orEmpty()
-            if (phone.none { it.isDigit() } || phone.any { it.isLetter() } || phone.first() == '*' || phone.first() == '#') return NoNumber
+            if (!ringable(phone)) return NoNumber
             return Picked(PickedContact(phone, name?.trim().orEmpty()))
         }
     }

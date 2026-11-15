@@ -109,7 +109,8 @@ abstract class HealthScenarioFixture {
         val alerts = GuardianAlerts(guardians, sender, switch, AlertGate())
         DailyCheck(
             DailyFeed(FeedUpdater(http, FeedVerifier(keys.public.encoded), feedStore) { now }, feedStore) { now }, runner,
-            DailyPruning(history, findings, checkLog) { now }, DailyHeartbeat(switch, alerts, AlertGate(), GuardianDetails(guardians, pipeline, GuardianLine(guardians, sender, outbox), history, AlertGate(), alerts) { now }),
+            DailyPruning(history, findings, checkLog) { now },
+            DailyHeartbeat(switch, alerts, AlertGate(), GuardianDetails(guardians, pipeline, history, AlertGate(), alerts) { now }),
             checkLog, ListenerRepair(binding, setupStore, clock),
         )
     }

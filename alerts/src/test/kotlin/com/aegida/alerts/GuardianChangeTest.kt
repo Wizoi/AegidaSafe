@@ -25,7 +25,7 @@ class GuardianChangeTest {
     private val line = GuardianLine(guardians, sender, com.aegida.testkit.FakeOutbox())
     private val alerts = GuardianAlerts(guardians, sender, switch, gate)
     private val details = GuardianDetails(
-        guardians, AlertPipeline(Findings(), Owner(), History(), line) { changedAt }, line, History(), gate, alerts,
+        guardians, AlertPipeline(Findings(), Owner(), History(), line) { changedAt }, History(), gate, alerts,
     ) { changedAt }
     private val change = GuardianChange(guardians, alerts, switch, gate, details) { changedAt }
 

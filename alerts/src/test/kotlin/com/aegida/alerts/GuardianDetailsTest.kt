@@ -38,7 +38,7 @@ class GuardianDetailsTest {
     private val pipeline = AlertPipeline(Findings(), Owner(), history, line) { now }
     private val switch = DeadMansSwitch(guardians, sender) { now }
     private val alerts = GuardianAlerts(guardians, sender, switch, gate)
-    private val details = GuardianDetails(guardians, pipeline, line, history, gate, alerts) { now }
+    private val details = GuardianDetails(guardians, pipeline, history, gate, alerts) { now }
 
     private val noteWords = Regex("added a phone number|changed the phone number|took your phone number")
     private fun phoneNotes() = http.bodies.filter { noteWords.containsMatchIn(it) }
@@ -361,11 +361,11 @@ class GuardianDetailsTest {
         val store = object : com.aegida.core.alert.GuardianSettings {
             override suspend fun current() = guardians.value
             override suspend fun save(guardians: Guardians) {
-                if (dies) throw IllegalStateException("killed")
+                if (dies) error("killed")
                 this@GuardianDetailsTest.guardians.value = guardians
             }
         }
-        val fragile = GuardianDetails(store, pipeline, line, history, gate, alerts) { now }
+        val fragile = GuardianDetails(store, pipeline, history, gate, alerts) { now }
         try { fragile.fixNames("Ruthie", "Samuel") } catch (ignored: IllegalStateException) { /* the kill */ }
         assertEquals("Ruth" to "Sam", guardians.value.ownerName to guardians.value.firstGuardianName)
         dies = false

@@ -35,7 +35,7 @@ class ContactPickerTest {
             asked += (projection ?: emptyArray()).toList()
             return when (mode) {
                 "null" -> null
-                "badcolumn" -> if (uri.pathSegments.contains("phones")) rowCursor() else throw IllegalArgumentException("Invalid column data1")
+                "badcolumn" -> { require(uri.pathSegments.contains("phones")) { "Invalid column data1" }; rowCursor() }
                 "denied" -> throw SecurityException("work profile")
                 "empty" -> MatrixCursor(arrayOf(ContactsContract.CommonDataKinds.Phone.NUMBER, ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME))
                 else -> rowCursor()

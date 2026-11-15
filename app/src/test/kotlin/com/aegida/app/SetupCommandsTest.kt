@@ -30,7 +30,7 @@ class SetupCommandsTest {
     }
     private val commands = SetupCommands(
         FakeSetupStore(), settings, alerts, change,
-        GuardianDetails(settings, mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), gate, alerts, mockk(relaxed = true)),
+        GuardianDetails(settings, mockk(relaxed = true), mockk(relaxed = true), gate, alerts, mockk(relaxed = true)),
         mockk(relaxed = true),
     )
 

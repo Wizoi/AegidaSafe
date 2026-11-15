@@ -27,7 +27,6 @@ enum class AboutSaved {
 class GuardianDetails @Inject constructor(
     private val settings: GuardianSettings,
     private val pipeline: AlertPipeline,
-    private val line: GuardianLine,
     private val history: HistoryLog,
     private val gate: AlertGate,
     private val alerts: GuardianAlerts,
@@ -130,9 +129,7 @@ class GuardianDetails @Inject constructor(
         if (current.firstTopic != null) {
             if (current.alertsOn) {
                 // Told first, saved after: a note is never lost to a kill in between (K7.8). One still waiting is enough (K7.4).
-                if (!line.isWaiting(Problem.GuardianPhoneChanged)) {
-                    pipeline.tellAllowed(Problem.GuardianPhoneChanged, null, now) { GuardianPhoneWords.phoneNote(change, it) }
-                }
+                pipeline.tellAllowed(Problem.GuardianPhoneChanged, null, now, unlessWaiting = true) { GuardianPhoneWords.phoneNote(change, it) }
                 pending = null
                 from = null
             } else {
