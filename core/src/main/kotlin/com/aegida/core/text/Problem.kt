@@ -37,6 +37,8 @@ enum class Problem(
     AppAllowed(Severity.Info, "You told Aegida an app is fine.", null, whatHappened = "You said an app is fine"),
     /** The same for a website she said is fine on a look-alike link warning ("This link is fine", findings #155). */
     SiteAllowed(Severity.Info, "You told Aegida a link is fine.", null, whatHappened = "You said a link is fine"),
+    /** She added, changed or removed the guardian's phone number (K7): her History line and the short note to the guardian, never the number. */
+    GuardianPhoneChanged(Severity.Info, "You changed your guardian's phone number.", null, whatHappened = "You changed your guardian's phone number"),
     ScamLink(
         Severity.NeedsTap,
         "A message has a link that looks like a scam. Please don't tap it.",

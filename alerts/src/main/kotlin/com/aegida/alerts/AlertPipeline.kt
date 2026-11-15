@@ -141,10 +141,10 @@ class AlertPipeline @Inject constructor(
 
     /**
      * Tells the guardian the owner said an app (Kevin, Oct 11) or a website (findings #155) is fine, so the list in My settings is never a
-     * secret. Sent, or queued when offline, as its own kind ([kind]: [Problem.AppAllowed] or [Problem.SiteAllowed]) with [detail], her
+     * secret. Sent, or queued when offline, as its own kind ([kind]: [Problem.AppAllowed], [Problem.SiteAllowed] or [Problem.GuardianPhoneChanged]) with [detail], her
      * History line, so a queued note's line names it too. [note] makes the words from her name. Nothing is sent while alerts are off.
      */
-    suspend fun tellAllowed(kind: Problem, detail: String, now: Instant, note: (owner: String) -> String) {
+    suspend fun tellAllowed(kind: Problem, detail: String?, now: Instant, note: (owner: String) -> String) {
         val settings = line.current()
         val topic = settings.firstTopic?.takeIf { settings.alertsOn } ?: return
         val owner = guardianName(settings)
@@ -249,8 +249,8 @@ data class PipelineResult(
     val openLong: Set<FindingKey> = emptySet(),
 )
 
-/** The name the guardian sees; blank falls back to the app name, as [DeadMansSwitch] does. */
-internal fun guardianName(settings: Guardians) = settings.ownerName.ifBlank { Texts.APP_NAME }
+/** The name the guardian sees, in every note: masked if it looks like a web address (T5.15, as an app label is); blank falls back to the app name. */
+internal fun guardianName(settings: Guardians) = Texts.Home.guardianLabel(settings.ownerName).ifBlank { Texts.APP_NAME }
 
 /** A first-seen time from a clock that was ahead is taken as now: the one rule for both the open check and the reminder (findings #99). */
 internal fun withFirstSeenPutRight(finding: Finding, now: Instant): Finding =

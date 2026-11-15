@@ -78,7 +78,9 @@ private fun SetupSteps(state: MainState, vm: MainViewModel) {
             SetupStep.Access -> AccessPage(c)
             SetupStep.Filter -> FilterPage(c)
             SetupStep.Blocker -> BlockerPage(c)
-            SetupStep.Finish -> WhatYouSeePage(state.setup.pictureId, state.noticesOn, Texts.Setup.DONE_TITLE) { advance() }
+            SetupStep.Finish -> WhatYouSeePage(
+                state.setup.pictureId, state.noticesOn, Texts.Setup.DONE_TITLE, GuardianReach.of(LocalContext.current, state.guardians),
+            ) { advance() }
         }
     }
 }

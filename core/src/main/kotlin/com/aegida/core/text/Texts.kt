@@ -43,6 +43,9 @@ object Texts {
          */
         const val SITE_ALLOWED = "%1\$s told Aegida that a link to a website (%2\$s) is fine, so Aegida will stop warning that it pretends to be " +
             "a company. If that surprises you, it may be a good time to ask %1\$s."
+        const val PHONE_ADDED = "%1\$s added a phone number for you in Aegida, so its Call button rings you. If you did not expect this, please call %1\$s."
+        const val PHONE_CHANGED = "%1\$s changed the phone number Aegida has for you. If you did not expect this, please call %1\$s."
+        const val PHONE_REMOVED = "%1\$s took your phone number out of Aegida. If you did not expect this, please call %1\$s."
         const val NOT_CHECKED_IN = "Aegida hasn't checked in on %1\$s's phone for 2 days. The phone may be off or asleep. It may be a good time to call %1\$s."
     }
 
@@ -81,6 +84,12 @@ object Texts {
         const val CALL_A_GUARDIAN = "Call a guardian"
         const val COULDNT_CHECK = "Aegida couldn't check today."
         const val COULDNT_CHECK_WHY = "Aegida will try again soon. If this keeps happening, call a guardian."
+        const val COULDNT_CHECK_WHY_ASK = "Aegida will try again soon. If this keeps happening, ask %s."
+        const val UNSURE_ASK = "If you are ever unsure, ask %s."
+        const val YOUR_GUARDIAN = "your guardian"
+        const val GUARDIAN_NUMBER = "Your guardian's phone number: %s"
+        const val UNREACHABLE_TELL = "Aegida couldn't reach %1\$s for a day. When you can, please tell %1\$s."
+        const val UNREACHABLE_TELL_NO_NAME = "Aegida couldn't reach your guardian for a day. When you can, please tell them."
         const val NEVER_CHECKED = "Aegida hasn't checked your phone yet."
         const val NEVER_CHECKED_WHY = "This takes a minute. Please open Aegida again soon."
         const val LAST_CHECKED = "Last checked %s."
@@ -104,6 +113,7 @@ object Texts {
         /** She said Yes to a website that sent fake warnings: it is not allowed (findings #149, WP17 A13). */
         const val SITE_KEPT_HIDDEN = "This website sent fake warnings before, so Aegida keeps hiding it."
         const val CONFIRM_NO_HELP = "If you did not do this, change it back, or call your guardian."
+        const val CONFIRM_NO_HELP_ASK = "If you did not do this, change it back, or ask %s."
 
         const val CONFIRM_LABEL_MAX = 40
 
@@ -253,11 +263,11 @@ object Texts {
         const val SEE_UNSURE = "If you are ever unsure, tap %s."
 
         /** The four lines of that page. It never promises a notice she cannot get (notices off) or a picture that cannot be drawn. */
-        fun seeLines(noticesOn: Boolean, hasPicture: Boolean): List<String> = listOf(
+        fun seeLines(noticesOn: Boolean, hasPicture: Boolean, guardianName: String, callable: Boolean): List<String> = listOf(
             SEE_QUIET,
             if (!noticesOn) SEE_NOTICE_OFF else if (hasPicture) SEE_NOTICE else SEE_NOTICE_PLAIN,
             SEE_CALM.format(Home.NO_KNOWN_PROBLEMS),
-            SEE_UNSURE.format(Home.CALL_A_GUARDIAN),
+            if (callable) SEE_UNSURE.format(Home.CALL_A_GUARDIAN) else GuardianPhoneWords.unsureAsk(guardianName),
         )
     }
 
@@ -303,8 +313,8 @@ object Texts {
         const val CHANGE_GUARDIAN = "Pick a different guardian"
         const val CHANGE_GUARDIAN_TITLE = "Pick a new guardian"
         const val CHANGE_GUARDIAN_POPUP_TITLE = "Please tell %s"
-        const val CHANGE_GUARDIAN_POPUP_BODY = "Aegida will send %s a short message that you changed your guardian. " +
-            "Please tell them yourself too, so they aren't left wondering."
+        const val CHANGE_GUARDIAN_POPUP_BODY = "If the email address is new, Aegida will send %s a short message that you changed your guardian. " +
+            "Please tell them yourself too, so they aren't left wondering. If the address is the same, nothing is sent."
         const val CHANGE_GUARDIAN_POPUP_OK = "I will"
         const val CHANGE_GUARDIAN_POPUP_BACK = "Go back"
     }

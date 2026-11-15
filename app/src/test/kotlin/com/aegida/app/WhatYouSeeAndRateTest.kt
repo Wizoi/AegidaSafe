@@ -13,6 +13,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.test.core.app.ApplicationProvider
 import com.aegida.app.ui.MainContent
 import com.aegida.app.ui.Tab
+import com.aegida.app.ui.GuardianReach
 import com.aegida.app.ui.WhatYouSeePage
 import com.aegida.app.ui.openPlayPage
 import com.aegida.alerts.FindingActions
@@ -66,14 +67,20 @@ class WhatYouSeeAndRateTest(dark: Boolean, fontScale: Float) : ScreenTestBase(da
     // The "All set." heading on the last setup step is asserted in SetupFlowTest (setupFromFilterToDone); this page is the My settings copy.
     @Test fun theWhatYouWillSeePageShowsHerPictureTheLinesAndDoneAtTheBottomUnderItsOwnHeading() { // T2.1, T2.11
         var done = 0
-        show { WhatYouSeePage(picture, noticesOn = true) { done++ } }
+        show { WhatYouSeePage(picture, noticesOn = true, guardian = GuardianReach("Sam", "555 0100", true)) { done++ } }
         reachable(Texts.Setup.SEE_TITLE)
         compose.onNodeWithText(Texts.Setup.DONE_TITLE).assertDoesNotExist()
         // her picture twice: the header and the big tile
         compose.onAllNodesWithContentDescription(Texts.Common.YOUR_PICTURE.format(SafetyPicture.Sunflower.label)).assertCountEquals(2)
-        Texts.Setup.seeLines(true, true).forEach { reachable(it) }
+        Texts.Setup.seeLines(true, true, "Sam", callable = true).forEach { reachable(it) }
         compose.onNodeWithText(Texts.Common.DONE).performClick()
         assertEquals(1, done)
+    }
+
+    @Test fun t2_10_withNoPhoneTheLastLineSaysAskSamNeverTapAButtonThatIsNotThere() {
+        show { WhatYouSeePage(picture, noticesOn = true, guardian = GuardianReach("Sam", "", true)) {} }
+        reachable("If you are ever unsure, ask Sam.")
+        compose.onNodeWithText(Texts.Home.CALL_A_GUARDIAN, substring = true).assertDoesNotExist()
     }
 
     @Test fun withNoticesOffThePageNeverPromisesANotice() { // T2.4

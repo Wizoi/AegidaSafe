@@ -7,6 +7,7 @@ import android.content.Intent
 import android.net.Uri
 import androidx.core.net.toUri
 import android.provider.Settings
+import com.aegida.core.alert.GuardianPhone
 import com.aegida.core.model.Evidence
 import com.aegida.core.model.Finding
 import com.aegida.core.text.Problem
@@ -69,10 +70,16 @@ object FixActions {
     /** Security settings, the closest standard place to Samsung's Auto Blocker (findings #12). */
     fun securitySettings(): Intent = Intent(Settings.ACTION_SECURITY_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
-    /** Opens the dialer with the number filled in, or the empty dialer. Dialing needs no permission, and the owner presses Call. */
-    fun callGuardian(phone: String): Intent {
-        val number = phone.filter { it.isDigit() || it == '+' }
-        val dial = if (number.isEmpty()) Intent(Intent.ACTION_DIAL) else Intent(Intent.ACTION_DIAL, Uri.fromParts("tel", number, null))
-        return dial.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    /**
+     * Opens the dialer with the number filled in; the owner presses Call (no permission needed). The number is cut at the first "," or ";"
+     * ([GuardianPhone], finding #185). Null when there is no number to dial: never an empty keypad (T4).
+     */
+    fun callGuardian(phone: String): Intent? {
+        val number = GuardianPhone.dialable(phone).ifEmpty { return null }
+        return Intent(Intent.ACTION_DIAL, Uri.fromParts("tel", number, null)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
     }
+
+    /** Whether the phone has an app that can show the dialer (a tablet may not); Home shows the number as words when not. */
+    fun dialerExists(context: Context): Boolean =
+        Intent(Intent.ACTION_DIAL, Uri.fromParts("tel", "0", null)).resolveActivity(context.packageManager) != null
 }

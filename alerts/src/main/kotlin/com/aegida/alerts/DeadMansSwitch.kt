@@ -53,7 +53,7 @@ class DeadMansSwitch @Inject constructor(
         val settings = guardians.current()
         val topic = settings.firstTopic
         if (topic == null || !settings.alertsOn) return null
-        val owner = settings.ownerName.ifBlank { Texts.APP_NAME }
+        val owner = guardianName(settings)
         spaceFromLastRequest()
         if (settings.heartbeatCancelled) guardians.save(settings.copy(heartbeatCancelled = false))
         return ntfy.send(

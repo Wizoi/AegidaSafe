@@ -50,5 +50,5 @@ request; ntfy.sh only delivers it). Encrypted in transit: **yes** (HTTPS only, c
 | App activity → Other actions | notes report what she did ("confirmed the change", "hasn't dealt with a warning", "said an app is fine", "said a link is fine" (findings #155; the address masked), "picked a different guardian") |
 | Web browsing → Web browsing history | declared to be cautious: a note can carry a masked address (`pa*****.example`) |
 
-Fingerprint of what is sent: `1c965bc12a3f5e55` (`DataSafetyFormTest`). When the test fails, what a guardian can receive or the
+Fingerprint of what is sent: `f830ea815053d672` (`DataSafetyFormTest`). When the test fails, what a guardian can receive or the
 hosts Aegida contacts changed: re-check the form in Play Console, update this section, then record the new fingerprint.
