@@ -394,7 +394,7 @@
   <table>
     <thead><tr><th scope="col">What</th><th scope="col">To whom</th><th scope="col">When</th><th scope="col">Contents</th></tr></thead>
     <tbody>
-      <tr><td data-label="What">Note to the guardian</td><td data-label="To whom"><code>ntfy.sh</code></td><td data-label="When">Only if the owner turned it on, and only when a warning needs it</td><td data-label="Contents">One HTTPS POST of a fixed sentence, titled with the owner's first name; "urgent" priority for urgent kinds. For scam messages and website pop-ups the sentence can also name the app and show the web address as its first two letters, stars and its ending (<code>pa*****.example</code>). Never links, message text or sender names. Timeouts of 15 seconds, redirects off.</td></tr>
+      <tr><td data-label="What">Note to the guardian</td><td data-label="To whom"><code>ntfy.sh</code></td><td data-label="When">Only if the owner turned it on, when a warning needs it, and when the guardian's phone number is added, changed or taken out</td><td data-label="Contents">One HTTPS POST of a fixed sentence (a phone number change says only that it was added, changed or taken out, never the number), titled with the owner's first name; "urgent" priority for urgent kinds. For scam messages and website pop-ups the sentence can also name the app and show the web address as its first two letters, stars and its ending (<code>pa*****.example</code>). Never links, message text or sender names. Timeouts of 15 seconds, redirects off.</td></tr>
       <tr><td data-label="What">Invitation email</td><td data-label="To whom">The owner's own email app</td><td data-label="When">Once in setup, when the guardian is changed, or when the owner taps "Send the invitation again"</td><td data-label="Contents">The ntfy install links, the topic name to copy into ntfy, the Android <code>ntfy://</code> shortcut (it also names the channel “Your name (Aegida)” in ntfy, written into the link; the topic in it is the same), a line saying the guardian can give the topic a label in ntfy on Android or on the ntfy website, and an optional web page for a computer. The owner presses Send; Aegida cannot tell whether it was sent. Sending it again also sends the guardian the "set up" message again when messages are on.</td></tr>
     </tbody>
   </table>
@@ -449,6 +449,9 @@
       <li>Ruth confirmed the change Aegida asked about. Nothing more to do.</li>
       <li>Ruth confirmed the change Aegida asked about. If you were not expecting it, please call Ruth.</li>
       <li>Ruth picked a different guardian in Aegida. You will not get messages about Ruth's phone from now on. If you did not expect this, please call Ruth.</li>
+      <li>Ruth added a phone number for you in Aegida, so its Call button rings you. If you did not expect this, please call Ruth.</li>
+      <li>Ruth changed the phone number Aegida has for you. If you did not expect this, please call Ruth.</li>
+      <li>Ruth took your phone number out of Aegida. If you did not expect this, please call Ruth.</li>
       <li>Aegida hasn't checked in on Ruth's phone for 2 days. The phone may be off or asleep. It may be a good time to call Ruth.</li>
     </ul>
   </details>

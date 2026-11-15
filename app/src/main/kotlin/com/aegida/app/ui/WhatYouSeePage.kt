@@ -12,6 +12,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.aegida.core.alert.Reach
 import com.aegida.core.model.SafetyPicture
 import com.aegida.core.text.Texts
 
@@ -36,6 +37,6 @@ internal fun WhatYouSeePage(
                 PictureTile(picture, 96.dp, Modifier.semantics { contentDescription = Texts.Common.YOUR_PICTURE.format(picture.label) })
             }
         }
-        Texts.Setup.seeLines(noticesOn, picture != null, guardian.name, guardian.callable).forEach { Body(it, centered = false) }
+        Texts.Setup.seeLines(noticesOn, picture != null, guardian.name, guardian.reach == Reach.Button).forEach { Body(it, centered = false) }
     }
 }

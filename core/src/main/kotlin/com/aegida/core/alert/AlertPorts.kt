@@ -80,6 +80,8 @@ data class Guardians(
     val heartbeatCancelled: Boolean = false,
     /** A change of the guardian's phone made while alerts were off: its note is sent when alerts go on (K8b). Null when none waits. */
     val phoneNotePending: PhoneChange? = null,
+    /** The number as it was when that note was first held, so a number changed and changed back sends nothing (K7.6, finding #193). */
+    val phoneNoteFrom: String? = null,
 ) {
     companion object {
         val None = Guardians(alertsOn = false, ownerName = "", firstTopic = null)

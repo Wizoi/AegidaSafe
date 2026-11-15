@@ -3,6 +3,7 @@ package com.aegida.app
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -195,6 +196,15 @@ class GuardianDetailsScreensTest(dark: Boolean, fontScale: Float) : ScreenTestBa
         compose.onNodeWithText(Texts.Common.SAVE).performScrollTo().assertIsEnabled().performClick()
         assertEquals(listOf("Sam", "sam@example.org", "555 0100"), saved)
         compose.onNodeWithText(Texts.Settings.CHANGE_GUARDIAN_POPUP_OK).assertDoesNotExistOrFail()
+    }
+
+    @Test fun t4_23_194_pickingInThePickADifferentGuardianFlowNeverFillsTheGuardiansName() {
+        withPicker(FakePicker(result = sam)) { ChangeGuardianScreen(picture, "", Guardians.None) { _, _, _ -> } }
+        compose.onNodeWithText(Texts.Setup.GUARDIAN_EMAIL).performScrollTo().performTextInput("sam@example.org")
+        pick()
+        compose.onNodeWithText("+1 555 010 0199").assertExists()
+        compose.onNodeWithText("Sam").assertDoesNotExistOrFail()
+        compose.onNodeWithText(Texts.Common.SAVE).performScrollTo().assertIsNotEnabled()
     }
 
     @Test fun t5_16_aNewEmailStillAsksHerToTellTheOldGuardianFirst() {

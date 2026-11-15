@@ -155,9 +155,11 @@ class DailyHeartbeat @Inject constructor(
     private val switch: DeadMansSwitch,
     private val guardianAlerts: GuardianAlerts,
     private val gate: AlertGate,
+    private val details: GuardianDetails,
 ) {
     suspend fun keepInStep(): SendResult? = gate.run {
         guardianAlerts.retryWelcome()
+        details.sendHeldPhoneNoteLocked() // a note left held by a kill between "alerts on" and its sending goes now (findings #187)
         switch.keepInStep()
     }
 }

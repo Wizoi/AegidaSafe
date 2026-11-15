@@ -15,6 +15,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.yield
 
 class GuardianAlertsTest {
     private val topic = NtfyTopic("aegida_" + "x9Y8z7W6".repeat(4))
@@ -136,5 +138,29 @@ class GuardianAlertsTest {
         val switch = DeadMansSwitch(guardians, NtfySender(http)) { java.time.Instant.now() }
         assertEquals(null, switch.arm())
         assertEquals(0, http.posts.size)
+    }
+
+    @Test fun anInvitationPreparedWhileACheckHoldsTheGateWaitsSoNeitherLosesItsWrite() = runTest { // finding #195
+        val gate = AlertGate()
+        val sender = NtfySender(http)
+        val mine = GuardianAlerts(guardians, sender, DeadMansSwitch(guardians, sender) { start }, gate)
+        guardians.value = Guardians(alertsOn = false, ownerName = "Mom", firstTopic = null)
+        val started = kotlinx.coroutines.CompletableDeferred<Unit>()
+        val check = launch {
+            gate.run { // a check saving a flag it read before waiting
+                val read = guardians.value
+                started.complete(Unit)
+                yield()
+                yield()
+                guardians.value = read.copy(heartbeatCancelled = true, welcomePendingFor = "waiting")
+            }
+        }
+        started.await()
+        val invite = launch { mine.prepareInvite() }
+        check.join()
+        invite.join()
+        assertTrue(guardians.value.heartbeatCancelled)
+        assertEquals("waiting", guardians.value.welcomePendingFor)
+        assertTrue("and her channel exists", guardians.value.firstTopic != null)
     }
 }

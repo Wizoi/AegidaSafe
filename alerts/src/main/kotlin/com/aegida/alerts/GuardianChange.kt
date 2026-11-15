@@ -47,7 +47,7 @@ class GuardianChange @Inject constructor(
                 firstGuardianPhone = phone.trim(),
                 pairedAt = clock.now(),
                 welcomePendingFor = null,
-                phoneNotePending = null, // the new guardian never hears about the old one's number
+                phoneNotePending = null, phoneNoteFrom = null, // the new guardian never hears about the old one's number
                 heartbeatCancelled = !before.alertsOn, // the new topic has nothing waiting; startTelling arms it when alerts are on
             ),
         )

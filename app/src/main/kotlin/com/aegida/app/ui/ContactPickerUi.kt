@@ -1,7 +1,6 @@
 package com.aegida.app.ui
 
 import android.app.Activity
-import android.content.ActivityNotFoundException
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
@@ -54,14 +53,17 @@ private fun rememberSystemContactPicker(): ContactPickerUi {
 
             override fun open(onResult: (ContactPick) -> Unit) {
                 waiting = onResult
-                try {
-                    launcher.launch(ContactPicker.pickIntent())
-                } catch (ignored: ActivityNotFoundException) {
-                    waiting = null // the list went away between drawing the button and the tap: she can still type it
-                } catch (ignored: SecurityException) {
-                    waiting = null
-                }
+                // the list went away between drawing the button and the tap: she can still type it
+                if (!launchQuietly { launcher.launch(ContactPicker.pickIntent()) }) waiting = null
             }
         }
     }
+}
+
+/** Opens the contact list; false (nothing thrown) when it cannot be opened, so the button simply does nothing (T4.5). */
+internal fun launchQuietly(launch: () -> Unit): Boolean = try {
+    launch()
+    true
+} catch (ignored: RuntimeException) {
+    false // ActivityNotFoundException, SecurityException, a launcher that is already gone: no reason shown
 }

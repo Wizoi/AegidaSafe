@@ -72,13 +72,19 @@ class WhatYouSeeAndRateTest(dark: Boolean, fontScale: Float) : ScreenTestBase(da
         compose.onNodeWithText(Texts.Setup.DONE_TITLE).assertDoesNotExist()
         // her picture twice: the header and the big tile
         compose.onAllNodesWithContentDescription(Texts.Common.YOUR_PICTURE.format(SafetyPicture.Sunflower.label)).assertCountEquals(2)
-        Texts.Setup.seeLines(true, true, "Sam", callable = true).forEach { reachable(it) }
+        Texts.Setup.seeLines(true, true, "Sam", callButton = true).forEach { reachable(it) }
         compose.onNodeWithText(Texts.Common.DONE).performClick()
         assertEquals(1, done)
     }
 
     @Test fun t2_10_withNoPhoneTheLastLineSaysAskSamNeverTapAButtonThatIsNotThere() {
         show { WhatYouSeePage(picture, noticesOn = true, guardian = GuardianReach("Sam", "", true)) {} }
+        reachable("If you are ever unsure, ask Sam.")
+        compose.onNodeWithText(Texts.Home.CALL_A_GUARDIAN, substring = true).assertDoesNotExist()
+    }
+
+    @Test fun aSavedNumberWithNoDialerOnThePhoneSaysAskSamBecauseHomeShowsNoCallButton() { // T4.7, finding #189
+        show { WhatYouSeePage(picture, noticesOn = true, guardian = GuardianReach("Sam", "555 0100", dialerExists = false)) {} }
         reachable("If you are ever unsure, ask Sam.")
         compose.onNodeWithText(Texts.Home.CALL_A_GUARDIAN, substring = true).assertDoesNotExist()
     }

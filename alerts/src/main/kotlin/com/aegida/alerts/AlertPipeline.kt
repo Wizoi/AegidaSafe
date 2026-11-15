@@ -147,7 +147,8 @@ class AlertPipeline @Inject constructor(
      * secret. Sent, or queued when offline, as its own kind ([kind]: [Problem.AppAllowed], [Problem.SiteAllowed] or [Problem.GuardianPhoneChanged]) with [detail], her
      * History line, so a queued note's line names it too. [note] makes the words from her name. Nothing is sent while alerts are off.
      */
-    suspend fun tellAllowed(kind: Problem, detail: String?, now: Instant, note: (owner: String) -> String) {
+    suspend fun tellAllowed(kind: Problem, detail: String?, now: Instant, unlessWaiting: Boolean = false, note: (owner: String) -> String) {
+        if (unlessWaiting && line.isWaiting(kind)) return // a note of this kind still in the outbox is enough (K7.4)
         val settings = line.current()
         val topic = settings.firstTopic?.takeIf { settings.alertsOn } ?: return
         val owner = guardianName(settings)
