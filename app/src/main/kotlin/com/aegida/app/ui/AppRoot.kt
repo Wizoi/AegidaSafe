@@ -1,5 +1,6 @@
 package com.aegida.app.ui
 
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.runtime.Composable
@@ -29,7 +30,7 @@ fun AppRoot(vm: MainViewModel = hiltViewModel(), asked: FindingKey? = null, onAs
     }
     when {
         !state.loaded -> AegidaScreen(null) {}
-        !state.setup.done -> Box(Modifier.navigationBarsPadding()) { SetupFlow(state, vm) }
+        !state.setup.done -> Box(Modifier.navigationBarsPadding().windowInsetsPadding(sides())) { SetupFlow(state, vm) }
         else -> MainContent(state, vm, asked, onAsked)
     }
 }

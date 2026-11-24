@@ -1,5 +1,6 @@
 package com.aegida.app.ui
 
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
@@ -23,7 +24,7 @@ internal fun MainFrame(tab: Tab, onTab: Boolean, onSelect: (Tab) -> Unit, conten
         contentWindowInsets = WindowInsets(0, 0, 0, 0), // AegidaScreen adds the status bar space; the bar handles its own
         bottomBar = { TabBar(tab, onTab, onSelect) },
     ) { padding ->
-        Box(Modifier.padding(padding)) { content() }
+        Box(Modifier.padding(padding).windowInsetsPadding(sides())) { content() }
     }
 }
 

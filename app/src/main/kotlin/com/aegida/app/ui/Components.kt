@@ -17,6 +17,10 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -99,6 +103,13 @@ fun AegidaHeader(pictureId: String?, modifier: Modifier = Modifier) {
         Text(Texts.APP_NAME, style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary)
     }
 }
+
+/**
+ * The sides Android keeps for itself when the phone is turned: a navigation bar or a camera cutout. Words and buttons stay clear of them
+ * (#199; seen on the emulator with three-button navigation sideways). The top is [AegidaScreen]'s, the bottom the tab bar's.
+ */
+@Composable
+internal fun sides(): WindowInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal)
 
 /**
  * A screen: header, then content that scrolls, so large text never pushes a button off the bottom. [pinned] (the screen's main
