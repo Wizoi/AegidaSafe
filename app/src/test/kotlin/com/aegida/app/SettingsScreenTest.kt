@@ -89,11 +89,19 @@ class SettingsScreenTest(dark: Boolean, fontScale: Float) : ScreenTestBase(dark,
         SettingsScreen(if (listedOnPlay == null) content else content.copy(listedOnPlay = listedOnPlay), actions)
     }
 
-    /** T10.0 and T11: while Aegida is in closed testing (the switch as shipped) there is no share button, no rate button and no line about reviews. */
+    /** T10.0 and T11: while Aegida was only in closed testing there was no share button, no rate button and no line about reviews. */
     @Test fun whileInClosedTestingThereIsNoTellAFriendAndNoRateButton() {
-        showSettings()
+        showSettings(false)
         reachable(Texts.Settings.HOW_IT_WORKS)
         noShareOrRate()
+    }
+
+    /** #200: Aegida is public on Play (production, Nov 24), so the switch as shipped shows both quiet buttons and the line about reviews. */
+    @Test fun nowAegidaIsPublicMySettingsOffersTellAFriendAndRate() {
+        showSettings()
+        reachable(Texts.Settings.SHARE_BUTTON)
+        reachable(Texts.Settings.RATE_NOTE)
+        reachable(Texts.Settings.RATE_BUTTON)
     }
 
     /** T10.1, T10.5, T11.1, T11.7: once public, both buttons sit under "How does this work?", each tap just opens, twice means twice. */

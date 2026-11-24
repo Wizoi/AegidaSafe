@@ -17,8 +17,8 @@ object PublicPages {
     const val PLAY_MARKET = "market://details?id=$PLAY_ID"
 
     /**
-     * Whether Aegida is public on Play. While it is in closed testing a friend who is not a tester would get "not found", so My settings
-     * shows neither "Tell a friend" nor "Rate". Turn this on in the first production release.
+     * Whether Aegida is public on Play. While it was only in closed testing a friend who was not a tester would get "not found", so My
+     * settings showed neither "Tell a friend" nor "Rate". On since Aegida went to production (0.4.4, Nov 24; finding #200).
      */
-    const val LISTED_ON_PLAY = false
+    const val LISTED_ON_PLAY = true
 }
