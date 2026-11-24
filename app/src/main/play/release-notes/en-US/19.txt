@@ -1,0 +1,3 @@
+What's new:
+• "Tell a friend about Aegida" and "Rate Aegida on Google Play" are at the bottom of My settings
+• With the phone turned sideways, buttons and words no longer sit under the navigation bar

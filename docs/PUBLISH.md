@@ -50,6 +50,7 @@ no launcher icon.
    ./gradlew publishListing                            # text, images and notes only, no new build
    ./gradlew promoteArtifact --from-track internal --promote-track alpha   # same build, no new versionCode
    ./gradlew promoteArtifact --from-track internal --promote-track "External Testing"   # same build, for the paid testers
+   ./gradlew promoteArtifact --from-track internal --promote-track production   # public since 0.4.4; releases go straight to production (Kevin, Nov 24)
    ```
    While the app is still a draft in the Console (forms not all done), Play only accepts **draft** releases outside the internal track:
    add `--release-status draft` to `promoteArtifact` (`./gradlew :app:promoteReleaseArtifact --from-track internal --promote-track alpha --release-status draft`),
